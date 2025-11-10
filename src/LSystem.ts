@@ -18,6 +18,7 @@ export class LSystem {
     private rules: Map<string, string>;
     private angle: number;
     private angleVariation: number;
+    private lengthVariation: number;
     private iterations: number;
 
     constructor(
@@ -25,11 +26,13 @@ export class LSystem {
         rules: LSystemRule[],
         angle: number = 25,
         angleVariation: number = 0,
+        lengthVariation: number = 0,
     ) {
         this.axiom = axiom;
         this.rules = new Map();
         this.angle = (angle * Math.PI) / 180; // Convert to radians
         this.angleVariation = (angleVariation * Math.PI) / 180; // Convert to radians
+        this.lengthVariation = lengthVariation / 100; // Convert percentage to decimal
         this.iterations = 0;
 
         rules.forEach((rule) => {
@@ -45,6 +48,10 @@ export class LSystem {
         this.angleVariation = (variation * Math.PI) / 180;
     }
 
+    public setLengthVariation(variation: number): void {
+        this.lengthVariation = variation / 100;
+    }
+
     private getVariedAngle(): number {
         if (this.angleVariation === 0) {
             return this.angle;
@@ -52,6 +59,15 @@ export class LSystem {
         // Generate random variation between -angleVariation and +angleVariation
         const variation = (Math.random() * 2 - 1) * this.angleVariation;
         return this.angle + variation;
+    }
+
+    private getVariedLength(baseLength: number): number {
+        if (this.lengthVariation === 0) {
+            return baseLength;
+        }
+        // Generate random variation between -lengthVariation and +lengthVariation
+        const variation = (Math.random() * 2 - 1) * this.lengthVariation;
+        return baseLength * (1 + variation);
     }
 
     public generate(iterations: number): string {
@@ -222,17 +238,21 @@ export class LSystem {
 
             switch (char) {
                 case "F": // Forward draw
-                case "f": { // Forward move (no draw)
+                case "f": {
+                    // Forward move (no draw)
                     const startPos: [number, number, number] = [
                         ...currentState.position,
                     ];
+                    const variedLength = this.getVariedLength(
+                        currentState.length,
+                    );
                     const endPos: [number, number, number] = [
                         currentState.position[0] +
-                            currentState.direction[0] * currentState.length,
+                            currentState.direction[0] * variedLength,
                         currentState.position[1] +
-                            currentState.direction[1] * currentState.length,
+                            currentState.direction[1] * variedLength,
                         currentState.position[2] +
-                            currentState.direction[2] * currentState.length,
+                            currentState.direction[2] * variedLength,
                     ];
 
                     if (char === "F") {
@@ -250,7 +270,8 @@ export class LSystem {
                     currentState.length *= 0.95; // Slight length reduction
                     break;
                 }
-                case "+": { // Turn right
+                case "+": {
+                    // Turn right
                     const variedAngle = this.getVariedAngle();
                     currentState.direction = normalize(
                         rotateVector(
@@ -264,7 +285,8 @@ export class LSystem {
                     );
                     break;
                 }
-                case "-": { // Turn left
+                case "-": {
+                    // Turn left
                     const variedAngle = this.getVariedAngle();
                     currentState.direction = normalize(
                         rotateVector(
@@ -278,7 +300,8 @@ export class LSystem {
                     );
                     break;
                 }
-                case "&": { // Pitch down
+                case "&": {
+                    // Pitch down
                     const variedAngle = this.getVariedAngle();
                     currentState.direction = normalize(
                         rotateVector(
@@ -292,7 +315,8 @@ export class LSystem {
                     );
                     break;
                 }
-                case "^": { // Pitch up
+                case "^": {
+                    // Pitch up
                     const variedAngle = this.getVariedAngle();
                     currentState.direction = normalize(
                         rotateVector(
@@ -306,7 +330,8 @@ export class LSystem {
                     );
                     break;
                 }
-                case "\\": { // Roll left
+                case "\\": {
+                    // Roll left
                     const variedAngle = this.getVariedAngle();
                     currentState.up = normalize(
                         rotateVector(
@@ -320,7 +345,8 @@ export class LSystem {
                     );
                     break;
                 }
-                case "/": { // Roll right
+                case "/": {
+                    // Roll right
                     const variedAngle = this.getVariedAngle();
                     currentState.up = normalize(
                         rotateVector(

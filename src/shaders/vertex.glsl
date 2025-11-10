@@ -23,7 +23,7 @@ void main() {
     float windSpeed = u_time * 2.0;
 
     // Wind affects higher parts more
-    float heightFactor = a_height * 0.5 + 0.5;
+    float heightFactor = 0.5 + 0.5;
     position.x += sin(windSpeed + a_position.y * 0.5) * windStrength * heightFactor;
     position.z += cos(windSpeed * 0.8 + a_position.y * 0.3) * windStrength * heightFactor * 0.5;
 

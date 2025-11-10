@@ -481,7 +481,7 @@ export class Renderer {
             void main() {
                 // Apply gentle wind animation
                 vec3 position = a_position;
-                float windStrength = 0.1;
+                float windStrength = 0.02;
                 float windSpeed = u_time * 2.0;
 
                 // Wind affects higher parts more

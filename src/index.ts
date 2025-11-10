@@ -25,6 +25,7 @@ class LSystemApp {
     private thicknessSlider!: HTMLInputElement;
     private taperingSlider!: HTMLInputElement;
     private angleVariationSlider!: HTMLInputElement;
+    private lengthVariationSlider!: HTMLInputElement;
     private segmentsSlider!: HTMLInputElement;
     private colorModeSelect!: HTMLSelectElement;
     private zoomSlider!: HTMLInputElement;
@@ -84,7 +85,7 @@ class LSystemApp {
         coral3d: {
             name: "3D Coral",
             axiom: "F",
-            rules: "F -> F[&F^F/F\\F][+F-F]F",
+            rules: "F -> F[+F-F][-F+F][&F^F][^F&F]F",
             angle: 22,
             iterations: 4,
         },
@@ -131,6 +132,9 @@ class LSystemApp {
         this.angleVariationSlider = document.getElementById(
             "angleVariation",
         ) as HTMLInputElement;
+        this.lengthVariationSlider = document.getElementById(
+            "lengthVariation",
+        ) as HTMLInputElement;
         this.segmentsSlider = document.getElementById(
             "segments",
         ) as HTMLInputElement;
@@ -160,6 +164,11 @@ class LSystemApp {
             "angleVariation",
             "angleVariation-value",
             "°",
+        );
+        this.setupSliderValueDisplay(
+            "lengthVariation",
+            "lengthVariation-value",
+            "%",
         );
         this.setupSliderValueDisplay("segments", "segments-value");
         this.setupSliderValueDisplay("zoom", "zoom-value");
@@ -218,6 +227,7 @@ class LSystemApp {
             this.thicknessSlider,
             this.taperingSlider,
             this.angleVariationSlider,
+            this.lengthVariationSlider,
             this.segmentsSlider,
         ].forEach((slider) => {
             slider.addEventListener("input", debouncedGenerate);
@@ -302,6 +312,9 @@ class LSystemApp {
             const iterations = parseInt(this.iterationsSlider.value);
             const angle = parseFloat(this.angleSlider.value);
             const angleVariation = parseFloat(this.angleVariationSlider.value);
+            const lengthVariation = parseFloat(
+                this.lengthVariationSlider.value,
+            );
             const length = parseFloat(this.lengthSlider.value);
             const thickness = parseFloat(this.thicknessSlider.value);
             const tapering = parseFloat(this.taperingSlider.value);
@@ -311,7 +324,13 @@ class LSystemApp {
             }
 
             const rules = LSystem.parseRules(rulesText);
-            this.lSystem = new LSystem(axiom, rules, angle, angleVariation);
+            this.lSystem = new LSystem(
+                axiom,
+                rules,
+                angle,
+                angleVariation,
+                lengthVariation,
+            );
 
             const lSystemString = this.lSystem.generate(iterations);
 
