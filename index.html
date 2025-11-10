@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Interactive 3D L-Systems</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: "Arial", sans-serif;
+                background: #1a1a1a;
+                color: #ffffff;
+                overflow: hidden;
+            }
+
+            #container {
+                display: flex;
+                height: 100vh;
+            }
+
+            #canvas-container {
+                flex: 1;
+                position: relative;
+                background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            }
+
+            #canvas {
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
+
+            #controls {
+                width: 320px;
+                background: #2a2a2a;
+                padding: 20px;
+                overflow-y: auto;
+                box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+            }
+
+            .control-group {
+                margin-bottom: 20px;
+                padding: 15px;
+                background: #333333;
+                border-radius: 8px;
+                border-left: 3px solid #4caf50;
+            }
+
+            .control-group h3 {
+                margin: 0 0 15px 0;
+                color: #4caf50;
+                font-size: 16px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+            label {
+                display: block;
+                margin-bottom: 8px;
+                font-size: 12px;
+                color: #cccccc;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            input,
+            textarea,
+            select {
+                width: 100%;
+                padding: 8px;
+                background: #1a1a1a;
+                border: 1px solid #555555;
+                border-radius: 4px;
+                color: #ffffff;
+                font-size: 13px;
+                box-sizing: border-box;
+            }
+
+            input[type="range"] {
+                margin: 5px 0;
+            }
+
+            textarea {
+                height: 60px;
+                resize: vertical;
+                font-family: "Courier New", monospace;
+            }
+
+            button {
+                width: 100%;
+                padding: 10px;
+                background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                transition: all 0.3s ease;
+                margin-top: 10px;
+            }
+
+            button:hover {
+                background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+                transform: translateY(-1px);
+            }
+
+            button:active {
+                transform: translateY(0);
+            }
+
+            .preset-buttons {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+                gap: 5px;
+                margin-top: 10px;
+            }
+
+            .help-section {
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid #555;
+            }
+
+            .help-button {
+                background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+                font-size: 12px;
+                padding: 8px;
+                margin: 0;
+            }
+
+            .help-button:hover {
+                background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            }
+
+            /* Modal styles */
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.8);
+            }
+
+            .modal-content {
+                background-color: #2a2a2a;
+                margin: 2% auto;
+                padding: 0;
+                border-radius: 8px;
+                width: 90%;
+                max-width: 800px;
+                max-height: 90%;
+                overflow: hidden;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            }
+
+            .modal-header {
+                background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+                padding: 20px;
+                color: white;
+                border-radius: 8px 8px 0 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .modal-header h2 {
+                margin: 0;
+                font-size: 24px;
+            }
+
+            .close {
+                color: white;
+                font-size: 28px;
+                font-weight: bold;
+                cursor: pointer;
+                padding: 0 10px;
+                border-radius: 4px;
+                transition: background-color 0.3s;
+            }
+
+            .close:hover {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+
+            .modal-body {
+                padding: 20px;
+                max-height: calc(90vh - 100px);
+                overflow-y: auto;
+                color: #ffffff;
+            }
+
+            .help-section-title {
+                color: #4caf50;
+                font-size: 18px;
+                margin: 20px 0 10px 0;
+                border-bottom: 1px solid #4caf50;
+                padding-bottom: 5px;
+            }
+
+            .help-section-title:first-child {
+                margin-top: 0;
+            }
+
+            .symbol-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 10px 0;
+                background: #333;
+                border-radius: 4px;
+                overflow: hidden;
+            }
+
+            .symbol-table th,
+            .symbol-table td {
+                padding: 12px;
+                text-align: left;
+                border-bottom: 1px solid #555;
+            }
+
+            .symbol-table th {
+                background: #444;
+                font-weight: bold;
+                color: #4caf50;
+            }
+
+            .symbol-table tr:last-child td {
+                border-bottom: none;
+            }
+
+            .symbol-code {
+                font-family: "Courier New", monospace;
+                background: #1a1a1a;
+                padding: 2px 6px;
+                border-radius: 3px;
+                color: #4caf50;
+                font-weight: bold;
+            }
+
+            .example-box {
+                background: #333;
+                border-left: 3px solid #4caf50;
+                padding: 15px;
+                margin: 15px 0;
+                border-radius: 0 4px 4px 0;
+            }
+
+            .example-code {
+                font-family: "Courier New", monospace;
+                background: #1a1a1a;
+                padding: 10px;
+                border-radius: 4px;
+                color: #4caf50;
+                margin: 10px 0;
+                white-space: pre-wrap;
+            }
+
+            .preset-buttons button {
+                font-size: 11px;
+                padding: 6px;
+                margin: 0;
+            }
+
+            .value-display {
+                display: inline-block;
+                float: right;
+                color: #4caf50;
+                font-weight: bold;
+            }
+
+            #loading {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: #4caf50;
+                font-size: 18px;
+                z-index: 1000;
+            }
+
+            .error {
+                color: #ff6b6b;
+                font-size: 12px;
+                margin-top: 5px;
+                display: none;
+            }
+
+            #fps-counter {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: rgba(0, 0, 0, 0.7);
+                padding: 5px 10px;
+                border-radius: 4px;
+                font-size: 12px;
+                color: #4caf50;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container">
+            <div id="canvas-container">
+                <canvas id="canvas"></canvas>
+                <div id="loading">Initializing WebGL...</div>
+                <div id="fps-counter">FPS: --</div>
+            </div>
+
+            <div id="controls">
+                <div class="control-group">
+                    <h3>L-System Rules</h3>
+                    <label for="axiom">Axiom (Starting String)</label>
+                    <textarea id="axiom" placeholder="F">F</textarea>
+
+                    <label for="rules">Rules (one per line: A -> B)</label>
+                    <textarea id="rules" placeholder="F -> F[+F]F[-F]F">
+F -> F[+F]F[-F]F</textarea
+                    >
+
+                    <label for="iterations"
+                        >Iterations
+                        <span class="value-display" id="iterations-value"
+                            >4</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="iterations"
+                        min="1"
+                        max="8"
+                        value="4"
+                        step="1"
+                    />
+
+                    <button id="generate">Generate L-System</button>
+
+                    <div class="preset-buttons">
+                        <button onclick="loadPreset('tree')">Tree</button>
+                        <button onclick="loadPreset('fern')">Fern</button>
+                        <button onclick="loadPreset('dragon')">Dragon</button>
+                        <button onclick="loadPreset('plant')">Plant</button>
+                        <button onclick="loadPreset('tree3d')">3D Tree</button>
+                        <button onclick="loadPreset('bush3d')">3D Bush</button>
+                        <button onclick="loadPreset('coral3d')">
+                            3D Coral
+                        </button>
+                        <button onclick="loadPreset('spiral3d')">
+                            3D Spiral
+                        </button>
+                    </div>
+
+                    <div class="help-section">
+                        <button class="help-button" onclick="showHelp()">
+                            📖 L-System Reference
+                        </button>
+                    </div>
+
+                    <div class="error" id="rules-error"></div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Geometry Parameters</h3>
+
+                    <label for="angle"
+                        >Branch Angle
+                        <span class="value-display" id="angle-value"
+                            >25°</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="angle"
+                        min="10"
+                        max="90"
+                        value="25"
+                        step="1"
+                    />
+
+                    <label for="length"
+                        >Branch Length
+                        <span class="value-display" id="length-value"
+                            >1.0</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="length"
+                        min="0.1"
+                        max="3.0"
+                        value="1.0"
+                        step="0.1"
+                    />
+
+                    <label for="thickness"
+                        >Branch Thickness
+                        <span class="value-display" id="thickness-value"
+                            >0.05</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="thickness"
+                        min="0.01"
+                        max="0.2"
+                        value="0.05"
+                        step="0.01"
+                    />
+
+                    <label for="tapering"
+                        >Thickness Tapering
+                        <span class="value-display" id="tapering-value"
+                            >0.8</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="tapering"
+                        min="0.3"
+                        max="1.0"
+                        value="0.8"
+                        step="0.05"
+                    />
+
+                    <label for="angleVariation"
+                        >Angle Variation
+                        <span class="value-display" id="angleVariation-value"
+                            >0°</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="angleVariation"
+                        min="0"
+                        max="15"
+                        value="0"
+                        step="0.5"
+                    />
+                </div>
+
+                <div class="control-group">
+                    <h3>Rendering Options</h3>
+
+                    <label for="segments"
+                        >Cylinder Segments
+                        <span class="value-display" id="segments-value"
+                            >8</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="segments"
+                        min="3"
+                        max="16"
+                        value="8"
+                        step="1"
+                    />
+
+                    <label for="colorMode">Color Mode</label>
+                    <select id="colorMode">
+                        <option value="height">Height Gradient</option>
+                        <option value="depth">Branch Depth</option>
+                        <option value="uniform">Uniform Green</option>
+                        <option value="autumn">Autumn Colors</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <h3>Camera Controls</h3>
+                    <label for="zoom"
+                        >Zoom
+                        <span class="value-display" id="zoom-value"
+                            >5.0</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="zoom"
+                        min="1.0"
+                        max="30.0"
+                        value="5.0"
+                        step="0.1"
+                    />
+
+                    <label for="rotationSpeed"
+                        >Auto Rotation
+                        <span class="value-display" id="rotationSpeed-value"
+                            >0.5</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="rotationSpeed"
+                        min="0"
+                        max="2"
+                        value="0.5"
+                        step="0.1"
+                    />
+
+                    <button id="resetCamera">Reset Camera</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Modal -->
+        <div id="helpModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>L-System Reference Guide</h2>
+                    <span class="close" onclick="closeHelp()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="help-section-title">
+                        Basic Turtle Graphics Commands
+                    </div>
+                    <table class="symbol-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Action</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="symbol-code">F</span></td>
+                                <td>Move Forward & Draw</td>
+                                <td>
+                                    Move forward one unit and draw a line
+                                    segment
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><span class="symbol-code">f</span></td>
+                                <td>Move Forward (No Draw)</td>
+                                <td>Move forward one unit without drawing</td>
+                            </tr>
+                            <tr>
+                                <td><span class="symbol-code">+</span></td>
+                                <td>Turn Right</td>
+                                <td>Turn right by the current angle (yaw)</td>
+                            </tr>
+                            <tr>
+                                <td><span class="symbol-code">-</span></td>
+                                <td>Turn Left</td>
+                                <td>Turn left by the current angle (yaw)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="help-section-title">3D Rotation Commands</div>
+                    <table class="symbol-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Action</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="symbol-code">&</span></td>
+                                <td>Pitch Down</td>
+                                <td>Rotate down around the right axis</td>
+                            </tr>
+                            <tr>
+                                <td><span class="symbol-code">^</span></td>
+                                <td>Pitch Up</td>
+                                <td>Rotate up around the right axis</td>
+                            </tr>
+                            <tr>
+                                <td><span class="symbol-code">\</span></td>
+                                <td>Roll Left</td>
+                                <td>Roll left around the forward axis</td>
+                            </tr>
+                            <tr>
+                                <td><span class="symbol-code">/</span></td>
+                                <td>Roll Right</td>
+                                <td>Roll right around the forward axis</td>
+                            </tr>
+                            <tr>
+                                <td><span class="symbol-code">|</span></td>
+                                <td>Turn Around</td>
+                                <td>Turn 180 degrees</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="help-section-title">Branching Commands</div>
+                    <table class="symbol-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Action</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="symbol-code">[</span></td>
+                                <td>Push State</td>
+                                <td>
+                                    Save current position, direction, and
+                                    properties to stack
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><span class="symbol-code">]</span></td>
+                                <td>Pop State</td>
+                                <td>
+                                    Restore saved position, direction, and
+                                    properties from stack
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="help-section-title">Rule Syntax</div>
+                    <div class="example-box">
+                        <strong>Format:</strong>
+                        <span class="symbol-code">Symbol -> Replacement</span>
+                        <br /><br />
+                        Each rule defines how to replace one symbol with a
+                        sequence of symbols. Multiple rules should be separated
+                        by new lines.
+                    </div>
+
+                    <div class="help-section-title">2D Examples</div>
+
+                    <div class="example-box">
+                        <strong>Simple Tree:</strong>
+                        <div class="example-code">
+                            Axiom: F Rules: F -> F[+F]F[-F]F
+                        </div>
+                        Creates a tree that branches left and right at each
+                        growth point.
+                    </div>
+
+                    <div class="example-box">
+                        <strong>Dragon Curve:</strong>
+                        <div class="example-code">
+                            Axiom: F Rules: F -> F+F--F+F
+                        </div>
+                        Creates a fractal dragon curve pattern.
+                    </div>
+
+                    <div class="help-section-title">3D Examples</div>
+
+                    <div class="example-box">
+                        <strong>3D Tree (6 directions):</strong>
+                        <div class="example-code">
+                            Axiom: F Rules: F -> F[&F][^F][+F][-F][/F][\F]
+                        </div>
+                        Branches in all six directions: up, down, left, right,
+                        roll-left, roll-right.
+                    </div>
+
+                    <div class="example-box">
+                        <strong>3D Spiral:</strong>
+                        <div class="example-code">
+                            Axiom: A Rules: A -> F[&A][/A][\A][^A] F -> FF
+                        </div>
+                        Creates a 3D spiral structure with multiple branching
+                        levels.
+                    </div>
+
+                    <div class="help-section-title">Natural Variation</div>
+                    <div class="example-box">
+                        <strong>Angle Variation:</strong>
+                        Use the "Angle Variation" slider to add randomness to
+                        branching angles. This makes structures look more
+                        organic and natural by introducing slight variations
+                        (±0° to ±15°) to each turn command.
+                        <br /><br />
+                        <strong>Effect:</strong> Instead of perfectly regular
+                        branching, each + - & ^ \ / command will use a slightly
+                        different angle, creating more realistic plant-like
+                        structures.
+                    </div>
+
+                    <div class="help-section-title">
+                        Tips for Creating L-Systems
+                    </div>
+                    <ul>
+                        <li>
+                            <strong>Start Simple:</strong> Begin with basic 2D
+                            patterns before moving to 3D
+                        </li>
+                        <li>
+                            <strong>Use Variables:</strong> Letters like X, A, B
+                            can represent abstract growth without drawing
+                        </li>
+                        <li>
+                            <strong>Balance Complexity:</strong> Too many
+                            iterations can create overly complex structures
+                        </li>
+                        <li>
+                            <strong>Experiment with Angles:</strong> Different
+                            angles (15°, 30°, 45°, 60°, 90°) create different
+                            aesthetics
+                        </li>
+                        <li>
+                            <strong>Combine Operations:</strong> Mix rotations
+                            like <span class="symbol-code">[&+F]</span> for
+                            diagonal branching
+                        </li>
+                        <li>
+                            <strong>Use Multiple Rules:</strong> Complex systems
+                            often need rules for different symbols
+                        </li>
+                        <li>
+                            <strong>Add Natural Variation:</strong> Use angle
+                            variation (2-8°) to make structures look more
+                            organic and less mathematically perfect
+                        </li>
+                    </ul>
+
+                    <div class="help-section-title">Performance Notes</div>
+                    <ul>
+                        <li>
+                            Keep iterations low (3-6) for complex rules to avoid
+                            performance issues
+                        </li>
+                        <li>
+                            The system automatically limits string length to
+                            prevent browser freezing
+                        </li>
+                        <li>
+                            Simple rules can handle more iterations than complex
+                            branching rules
+                        </li>
+                        <li>
+                            Use the geometry parameters to fine-tune the visual
+                            appearance
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <script type="module" src="dist/index.js"></script>
+        <script>
+            function showHelp() {
+                document.getElementById("helpModal").style.display = "block";
+            }
+
+            function closeHelp() {
+                document.getElementById("helpModal").style.display = "none";
+            }
+
+            // Close modal when clicking outside of it
+            window.onclick = function (event) {
+                const modal = document.getElementById("helpModal");
+                if (event.target === modal) {
+                    modal.style.display = "none";
+                }
+            };
+
+            // Close modal with Escape key
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "Escape") {
+                    closeHelp();
+                }
+            });
+        </script>
+    </body>
+</html>

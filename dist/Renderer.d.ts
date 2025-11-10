@@ -1,0 +1,70 @@
+export interface RendererOptions {
+    canvas: HTMLCanvasElement;
+    segments?: number;
+    colorMode?: number;
+}
+export declare class Renderer {
+    private gl;
+    private canvas;
+    private program;
+    private vertexBuffer;
+    private normalBuffer;
+    private uvBuffer;
+    private depthBuffer;
+    private heightBuffer;
+    private indexBuffer;
+    private uniforms;
+    private attributes;
+    private viewMatrix;
+    private projectionMatrix;
+    private modelViewMatrix;
+    private normalMatrix;
+    private indexCount;
+    private colorMode;
+    private zoom;
+    private rotation;
+    private rotationSpeed;
+    private lastTime;
+    private animationId;
+    private isDragging;
+    private lastMouseX;
+    private lastMouseY;
+    private manualRotationX;
+    private manualRotationY;
+    private panX;
+    private panY;
+    constructor(options: RendererOptions);
+    private setupMouseControls;
+    private initializeMatrices;
+    private mat4Identity;
+    private mat3Identity;
+    private mat4Translate;
+    private mat4RotateX;
+    private mat4RotateY;
+    private mat4Multiply;
+    private mat4Perspective;
+    private mat3NormalFromMat4;
+    private initWebGL;
+    private createProgram;
+    private createShader;
+    private setupBuffers;
+    updateGeometry(geometry: {
+        vertices: number[];
+        normals: number[];
+        uvs: number[];
+        depths: number[];
+        heights: number[];
+        indices: number[];
+    }): void;
+    setColorMode(mode: number): void;
+    setZoom(zoom: number): void;
+    setRotationSpeed(speed: number): void;
+    resetCamera(): void;
+    private updateCamera;
+    private resize;
+    render(time: number): void;
+    startAnimation(): void;
+    stopAnimation(): void;
+    dispose(): void;
+}
+//# sourceMappingURL=Renderer.d.ts.map
