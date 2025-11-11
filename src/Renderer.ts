@@ -4,22 +4,42 @@ export interface RendererOptions {
     colorMode?: number;
 }
 
+export interface GeometryData {
+    vertices: number[];
+    normals: number[];
+    uvs: number[];
+    depths: number[];
+    heights: number[];
+    indices: number[];
+    leafVertices: number[];
+    leafNormals: number[];
+    leafUvs: number[];
+    leafIndices: number[];
+}
+
 export class Renderer {
     private gl: WebGLRenderingContext;
     private canvas: HTMLCanvasElement;
     private program!: WebGLProgram;
+    private leafProgram!: WebGLProgram;
     private vertexBuffer!: WebGLBuffer;
     private normalBuffer!: WebGLBuffer;
     private uvBuffer!: WebGLBuffer;
     private depthBuffer!: WebGLBuffer;
     private heightBuffer!: WebGLBuffer;
     private indexBuffer!: WebGLBuffer;
+    private leafVertexBuffer!: WebGLBuffer;
+    private leafNormalBuffer!: WebGLBuffer;
+    private leafUvBuffer!: WebGLBuffer;
+    private leafIndexBuffer!: WebGLBuffer;
 
     // Uniform locations
     private uniforms: { [key: string]: WebGLUniformLocation } = {};
+    private leafUniforms: { [key: string]: WebGLUniformLocation } = {};
 
     // Attribute locations
     private attributes: { [key: string]: number } = {};
+    private leafAttributes: { [key: string]: number } = {};
 
     // Camera properties
     private viewMatrix: Float32Array = new Float32Array(16);
@@ -29,7 +49,9 @@ export class Renderer {
 
     // Render state
     private indexCount: number = 0;
+    private leafIndexCount: number = 0;
     private colorMode: number = 0;
+    private leafColor: [number, number, number] = [0.18, 0.8, 0.13]; // Default green
     private zoom: number = 5.0;
     private rotation: number = 0;
     private rotationSpeed: number = 0.5;
@@ -408,16 +430,20 @@ export class Renderer {
     private initWebGL(): void {
         const gl = this.gl;
 
-        // Enable depth testing and backface culling
+        gl.clearColor(0.1, 0.1, 0.1, 1.0);
         gl.enable(gl.DEPTH_TEST);
-        gl.enable(gl.CULL_FACE);
-        gl.cullFace(gl.BACK);
+        gl.depthFunc(gl.LEQUAL);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-        // Create shader program
-        this.program = this.createProgram();
+        // Create branch program
+        this.program = this.createBranchProgram();
+
+        // Create leaf program
+        this.leafProgram = this.createLeafProgram();
+
+        // Setup branch program
         gl.useProgram(this.program);
-
-        // Get attribute locations
         this.attributes = {
             position: gl.getAttribLocation(this.program, "a_position"),
             normal: gl.getAttribLocation(this.program, "a_normal"),
@@ -426,7 +452,6 @@ export class Renderer {
             height: gl.getAttribLocation(this.program, "a_height"),
         };
 
-        // Get uniform locations
         this.uniforms = {
             modelViewMatrix: gl.getUniformLocation(
                 this.program,
@@ -448,13 +473,43 @@ export class Renderer {
             )!,
         };
 
-        // Enable attributes
-        Object.values(this.attributes).forEach((attr) => {
-            if (attr >= 0) gl.enableVertexAttribArray(attr);
-        });
+        // Setup leaf program
+        gl.useProgram(this.leafProgram);
+        this.leafAttributes = {
+            position: gl.getAttribLocation(this.leafProgram, "a_position"),
+            normal: gl.getAttribLocation(this.leafProgram, "a_normal"),
+            uv: gl.getAttribLocation(this.leafProgram, "a_uv"),
+        };
+
+        this.leafUniforms = {
+            modelViewMatrix: gl.getUniformLocation(
+                this.leafProgram,
+                "u_modelViewMatrix",
+            )!,
+            projectionMatrix: gl.getUniformLocation(
+                this.leafProgram,
+                "u_projectionMatrix",
+            )!,
+            normalMatrix: gl.getUniformLocation(
+                this.leafProgram,
+                "u_normalMatrix",
+            )!,
+            time: gl.getUniformLocation(this.leafProgram, "u_time")!,
+            lightDirection: gl.getUniformLocation(
+                this.leafProgram,
+                "u_lightDirection",
+            )!,
+            leafColor: gl.getUniformLocation(this.leafProgram, "u_leafColor")!,
+        };
+
+        // Check for WebGL errors
+        const error = gl.getError();
+        if (error !== gl.NO_ERROR) {
+            console.error("WebGL error during initialization:", error);
+        }
     }
 
-    private createProgram(): WebGLProgram {
+    private createBranchProgram(): WebGLProgram {
         const gl = this.gl;
 
         const vertexShaderSource = `
@@ -629,6 +684,129 @@ export class Renderer {
         return program;
     }
 
+    private createLeafProgram(): WebGLProgram {
+        const gl = this.gl;
+
+        const vertexShaderSource = `
+            precision mediump float;
+
+            attribute vec3 a_position;
+            attribute vec3 a_normal;
+            attribute vec2 a_uv;
+
+            uniform mat4 u_modelViewMatrix;
+            uniform mat4 u_projectionMatrix;
+            uniform mat3 u_normalMatrix;
+            uniform float u_time;
+
+            varying vec3 v_normal;
+            varying vec2 v_uv;
+            varying vec3 v_position;
+
+            void main() {
+                // Synchronize leaf wind animation with branches
+                vec3 pos = a_position;
+                float windStrength = 0.02; // Proportional to branch wind
+                float windSpeed = u_time * 2.0;
+
+                // Use same height-based calculation as branches
+                float heightFactor = pos.y * 0.5 + 0.8; // Leaves are more affected by wind
+
+                // Match branch wind patterns exactly but with stronger effect
+                float windX = sin(windSpeed + pos.y * 0.5) * windStrength * heightFactor;
+                float windZ = cos(windSpeed * 0.8 + pos.y * 0.3) * windStrength * heightFactor * 0.5;
+
+                // Add leaf-specific gentle swaying
+                windX += sin(windSpeed * 1.2 + pos.x * 0.3) * windStrength * 0.4;
+                windZ += cos(windSpeed * 1.1 + pos.z * 0.2) * windStrength * 0.3;
+
+                // Subtle vertical motion for floating effect
+                float windY = sin(windSpeed * 1.5 + pos.x * 0.2) * windStrength * 0.15;
+
+                pos.x += windX;
+                pos.y += windY;
+                pos.z += windZ;
+
+                gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(pos, 1.0);
+
+                v_normal = u_normalMatrix * a_normal;
+                v_uv = a_uv;
+                v_position = pos;
+            }
+        `;
+
+        const fragmentShaderSource = `
+            precision mediump float;
+
+            uniform vec3 u_lightDirection;
+            uniform vec3 u_leafColor;
+
+            varying vec3 v_normal;
+            varying vec2 v_uv;
+            varying vec3 v_position;
+
+            void main() {
+                vec3 normal = normalize(v_normal);
+                vec3 lightDir = normalize(-u_lightDirection);
+                vec3 viewDir = normalize(-v_position);
+
+                // Calculate advanced lighting for glass-like appearance
+                float diff = max(dot(normal, lightDir), 0.0);
+                float ambient = 0.2;
+
+                // Add rim lighting for glass effect
+                float rim = 1.0 - max(dot(viewDir, normal), 0.0);
+                rim = pow(rim, 3.0);
+
+                float lighting = ambient + diff * 0.5 + rim * 0.6;
+
+                // Enhanced fresnel effect for glass-like translucency
+                float fresnel = 1.0 - abs(dot(normal, viewDir));
+                fresnel = pow(fresnel, 1.5);
+
+                // Use custom leaf color with enhanced mixing
+                vec3 baseColor = u_leafColor * 0.6;
+                vec3 glowColor = u_leafColor * 1.8;
+                vec3 leafColor = mix(baseColor, glowColor, fresnel);
+
+                leafColor *= lighting;
+
+                // Enhanced translucency for glass-like spheres
+                float centerDist = length(v_uv - 0.5);
+                float alpha = 0.2 + fresnel * 0.45; // Translucent base with fresnel glow
+                alpha *= (1.0 - centerDist * 0.2); // Subtle edge transparency
+                alpha = clamp(alpha, 0.15, 0.7); // Highly translucent but visible
+
+                gl_FragColor = vec4(leafColor, alpha);
+            }
+        `;
+
+        const vertexShader = this.createShader(
+            gl.VERTEX_SHADER,
+            vertexShaderSource,
+        );
+        const fragmentShader = this.createShader(
+            gl.FRAGMENT_SHADER,
+            fragmentShaderSource,
+        );
+
+        const program = gl.createProgram()!;
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            const info = gl.getProgramInfoLog(program);
+            gl.deleteProgram(program);
+            throw new Error("Failed to link shader program: " + info);
+        }
+
+        gl.deleteShader(vertexShader);
+        gl.deleteShader(fragmentShader);
+
+        return program;
+    }
+
     private createShader(type: number, source: string): WebGLShader {
         const gl = this.gl;
         const shader = gl.createShader(type);
@@ -649,23 +827,26 @@ export class Renderer {
     private setupBuffers(): void {
         const gl = this.gl;
 
+        // Branch buffers
         this.vertexBuffer = gl.createBuffer()!;
         this.normalBuffer = gl.createBuffer()!;
         this.uvBuffer = gl.createBuffer()!;
         this.depthBuffer = gl.createBuffer()!;
         this.heightBuffer = gl.createBuffer()!;
         this.indexBuffer = gl.createBuffer()!;
+
+        // Leaf buffers
+        this.leafVertexBuffer = gl.createBuffer()!;
+        this.leafNormalBuffer = gl.createBuffer()!;
+        this.leafUvBuffer = gl.createBuffer()!;
+        this.leafIndexBuffer = gl.createBuffer()!;
     }
 
-    public updateGeometry(geometry: {
-        vertices: number[];
-        normals: number[];
-        uvs: number[];
-        depths: number[];
-        heights: number[];
-        indices: number[];
-    }): void {
+    public updateGeometry(geometry: GeometryData): void {
         const gl = this.gl;
+
+        // Update branch geometry
+        gl.useProgram(this.program);
 
         // Update vertices
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
@@ -742,10 +923,85 @@ export class Renderer {
         );
 
         this.indexCount = geometry.indices.length;
+
+        // Update leaf geometry
+        if (geometry.leafVertices.length > 0) {
+            gl.useProgram(this.leafProgram);
+
+            // Update leaf vertices
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.leafVertexBuffer);
+            gl.bufferData(
+                gl.ARRAY_BUFFER,
+                new Float32Array(geometry.leafVertices),
+                gl.STATIC_DRAW,
+            );
+            gl.vertexAttribPointer(
+                this.leafAttributes.position,
+                3,
+                gl.FLOAT,
+                false,
+                0,
+                0,
+            );
+
+            // Update leaf normals
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.leafNormalBuffer);
+            gl.bufferData(
+                gl.ARRAY_BUFFER,
+                new Float32Array(geometry.leafNormals),
+                gl.STATIC_DRAW,
+            );
+            gl.vertexAttribPointer(
+                this.leafAttributes.normal,
+                3,
+                gl.FLOAT,
+                false,
+                0,
+                0,
+            );
+
+            // Update leaf UVs
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.leafUvBuffer);
+            gl.bufferData(
+                gl.ARRAY_BUFFER,
+                new Float32Array(geometry.leafUvs),
+                gl.STATIC_DRAW,
+            );
+            gl.vertexAttribPointer(
+                this.leafAttributes.uv,
+                2,
+                gl.FLOAT,
+                false,
+                0,
+                0,
+            );
+
+            // Update leaf indices
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.leafIndexBuffer);
+            gl.bufferData(
+                gl.ELEMENT_ARRAY_BUFFER,
+                new Uint16Array(geometry.leafIndices),
+                gl.STATIC_DRAW,
+            );
+
+            this.leafIndexCount = geometry.leafIndices.length;
+        } else {
+            this.leafIndexCount = 0;
+        }
+
+        // Check for WebGL errors after geometry update
+        const error = gl.getError();
+        if (error !== gl.NO_ERROR) {
+            console.error("WebGL error during geometry update:", error);
+        }
     }
 
     public setColorMode(mode: number): void {
         this.colorMode = mode;
+    }
+
+    public setLeafColor(color: [number, number, number]): void {
+        this.leafColor = color;
     }
 
     public setZoom(zoom: number): void {
@@ -763,6 +1019,44 @@ export class Renderer {
         this.manualRotationY = 0;
         this.panX = 0;
         this.panY = 0;
+    }
+
+    public getCameraState(): {
+        zoom: number;
+        rotationSpeed: number;
+        manualRotationX: number;
+        manualRotationY: number;
+        panX: number;
+        panY: number;
+        autoRotation: number;
+    } {
+        return {
+            zoom: this.zoom,
+            rotationSpeed: this.rotationSpeed,
+            manualRotationX: this.manualRotationX,
+            manualRotationY: this.manualRotationY,
+            panX: this.panX,
+            panY: this.panY,
+            autoRotation: this.rotation,
+        };
+    }
+
+    public setCameraState(state: {
+        zoom: number;
+        rotationSpeed: number;
+        manualRotationX: number;
+        manualRotationY: number;
+        panX: number;
+        panY: number;
+        autoRotation: number;
+    }): void {
+        this.zoom = state.zoom;
+        this.rotationSpeed = state.rotationSpeed;
+        this.manualRotationX = state.manualRotationX;
+        this.manualRotationY = state.manualRotationY;
+        this.panX = state.panX;
+        this.panY = state.panY;
+        this.rotation = state.autoRotation;
     }
 
     private updateCamera(): void {
@@ -826,80 +1120,193 @@ export class Renderer {
         }
     }
 
-    public render(time: number): void {
+    public render(time: number = 0): void {
         const gl = this.gl;
 
-        this.resize();
+        // Update camera
         this.updateCamera();
 
-        // Clear
-        gl.clearColor(0.05, 0.05, 0.1, 1.0);
+        // Clear screen
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        if (this.indexCount === 0) return;
+        // Render branches
+        if (this.indexCount > 0) {
+            gl.useProgram(this.program);
 
-        // Use program
-        gl.useProgram(this.program);
+            // Update uniforms
+            gl.uniformMatrix4fv(
+                this.uniforms.modelViewMatrix,
+                false,
+                this.modelViewMatrix,
+            );
+            gl.uniformMatrix4fv(
+                this.uniforms.projectionMatrix,
+                false,
+                this.projectionMatrix,
+            );
+            gl.uniformMatrix3fv(
+                this.uniforms.normalMatrix,
+                false,
+                this.normalMatrix,
+            );
+            gl.uniform1f(this.uniforms.time, time * 0.001);
+            gl.uniform1i(this.uniforms.colorMode, this.colorMode);
+            gl.uniform3fv(this.uniforms.lightDirection, [0.5, 1.0, 0.3]);
 
-        // Set uniforms
-        gl.uniformMatrix4fv(
-            this.uniforms.modelViewMatrix,
-            false,
-            this.modelViewMatrix,
-        );
-        gl.uniformMatrix4fv(
-            this.uniforms.projectionMatrix,
-            false,
-            this.projectionMatrix,
-        );
-        gl.uniformMatrix3fv(
-            this.uniforms.normalMatrix,
-            false,
-            this.normalMatrix,
-        );
-        gl.uniform1f(this.uniforms.time, time * 0.001);
-        gl.uniform1i(this.uniforms.colorMode, this.colorMode);
-        gl.uniform3fv(this.uniforms.lightDirection, [0.5, 1.0, 0.3]);
+            // Bind buffers and set up attributes
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+            gl.enableVertexAttribArray(this.attributes.position);
+            gl.vertexAttribPointer(
+                this.attributes.position,
+                3,
+                gl.FLOAT,
+                false,
+                0,
+                0,
+            );
 
-        // Bind buffers and draw
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.vertexAttribPointer(
-            this.attributes.position,
-            3,
-            gl.FLOAT,
-            false,
-            0,
-            0,
-        );
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
+            gl.enableVertexAttribArray(this.attributes.normal);
+            gl.vertexAttribPointer(
+                this.attributes.normal,
+                3,
+                gl.FLOAT,
+                false,
+                0,
+                0,
+            );
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
-        gl.vertexAttribPointer(
-            this.attributes.normal,
-            3,
-            gl.FLOAT,
-            false,
-            0,
-            0,
-        );
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
+            gl.enableVertexAttribArray(this.attributes.uv);
+            gl.vertexAttribPointer(
+                this.attributes.uv,
+                2,
+                gl.FLOAT,
+                false,
+                0,
+                0,
+            );
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
-        gl.vertexAttribPointer(this.attributes.uv, 2, gl.FLOAT, false, 0, 0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.depthBuffer);
+            gl.enableVertexAttribArray(this.attributes.depth);
+            gl.vertexAttribPointer(
+                this.attributes.depth,
+                1,
+                gl.FLOAT,
+                false,
+                0,
+                0,
+            );
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.depthBuffer);
-        gl.vertexAttribPointer(this.attributes.depth, 1, gl.FLOAT, false, 0, 0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.heightBuffer);
+            gl.enableVertexAttribArray(this.attributes.height);
+            gl.vertexAttribPointer(
+                this.attributes.height,
+                1,
+                gl.FLOAT,
+                false,
+                0,
+                0,
+            );
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.heightBuffer);
-        gl.vertexAttribPointer(
-            this.attributes.height,
-            1,
-            gl.FLOAT,
-            false,
-            0,
-            0,
-        );
+            // Draw branches
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+            gl.drawElements(
+                gl.TRIANGLES,
+                this.indexCount,
+                gl.UNSIGNED_SHORT,
+                0,
+            );
+        }
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);
+        // Render leaves
+        if (this.leafIndexCount > 0) {
+            // Setup optimal blending for highly translucent spheres
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            gl.depthMask(false); // Don't write to depth buffer for transparent objects
+            gl.disable(gl.CULL_FACE);
+
+            // Sort leaves back-to-front for proper transparency (simple depth sort)
+            gl.depthFunc(gl.LEQUAL);
+            gl.useProgram(this.leafProgram);
+
+            // Update uniforms
+            gl.uniformMatrix4fv(
+                this.leafUniforms.modelViewMatrix,
+                false,
+                this.modelViewMatrix,
+            );
+            gl.uniformMatrix4fv(
+                this.leafUniforms.projectionMatrix,
+                false,
+                this.projectionMatrix,
+            );
+            gl.uniformMatrix3fv(
+                this.leafUniforms.normalMatrix,
+                false,
+                this.normalMatrix,
+            );
+            gl.uniform1f(this.leafUniforms.time, time * 0.001);
+            gl.uniform3fv(this.leafUniforms.lightDirection, [0.5, 1.0, 0.3]);
+            gl.uniform3fv(this.leafUniforms.leafColor, this.leafColor);
+
+            // Bind leaf buffers and set up attributes
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.leafVertexBuffer);
+            gl.enableVertexAttribArray(this.leafAttributes.position);
+            gl.vertexAttribPointer(
+                this.leafAttributes.position,
+                3,
+                gl.FLOAT,
+                false,
+                0,
+                0,
+            );
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.leafNormalBuffer);
+            gl.enableVertexAttribArray(this.leafAttributes.normal);
+            gl.vertexAttribPointer(
+                this.leafAttributes.normal,
+                3,
+                gl.FLOAT,
+                false,
+                0,
+                0,
+            );
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.leafUvBuffer);
+            gl.enableVertexAttribArray(this.leafAttributes.uv);
+            gl.vertexAttribPointer(
+                this.leafAttributes.uv,
+                2,
+                gl.FLOAT,
+                false,
+                0,
+                0,
+            );
+
+            // Draw leaves
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.leafIndexBuffer);
+            gl.drawElements(
+                gl.TRIANGLES,
+                this.leafIndexCount,
+                gl.UNSIGNED_SHORT,
+                0,
+            );
+
+            // Restore render state
+            gl.enable(gl.CULL_FACE);
+            gl.cullFace(gl.BACK);
+            gl.depthMask(true);
+            gl.depthFunc(gl.LESS);
+            // Keep blending enabled for subsequent transparent objects
+
+            // Check for WebGL errors after leaf rendering
+            const leafError = gl.getError();
+            if (leafError !== gl.NO_ERROR) {
+                console.error("WebGL error during leaf rendering:", leafError);
+            }
+        }
     }
 
     public startAnimation(): void {

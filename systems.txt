@@ -1,4 +1,65 @@
+// Basic 3D branching structure
 A -> F[&+A][&-A][^+A][^-A]
 F -> AF
 
+// Complex 3D branching with multiple rotations
 F -> F[+F-F][-F+F][&F^F][^F&F][/F\F][/F\F]F
+
+// ===================
+// LEAF SYSTEM EXAMPLES
+// ===================
+
+// Simple tree with leaves at branch ends
+T -> F[&+T][&-T][^+T][^-T]
+T -> F[&+L][&-L][^+L][^-L]  // Alternative rule generates leaves
+F -> FF
+L -> L                      // Leaves stay as leaves
+
+// Bush with compound leaves
+B -> F[&+B][&-B][^+B][^-B]
+B -> F[&+L][&-L][^+L][^-L]
+F -> FF
+L -> LL[+L][-L]            // Compound leaf structure
+
+// Simple leafy branch demonstration
+F -> F[+FL][-FL][&FL][^FL]
+L -> L
+
+// Fern-like structure with leaflets
+X -> F[+X]F[-X]+X
+X -> F[+L]F[-L]+L          // Generate leaves instead of branches
+F -> FF
+L -> L[+l][-l]             // Small leaflets on main leaf
+l -> l                     // Leaflets stay put
+
+// Dense foliage tree
+M -> F[&+M][&-M][^+M][^-M][/M][\M]
+M -> FL                    // Some branches end in leaves
+F -> FF
+L -> LLL[++L][--L][&&L][^^L]  // Dense leaf clusters
+
+// Seasonal variation examples
+// Spring growth (mostly branches)
+S -> F[&+S][&-S][^+S][^-S]
+F -> FF
+
+// Summer foliage (branches with leaves)
+S -> F[&+S][&-S][^+S][^-S]
+S -> F[&+L][&-L][^+L][^-L]
+F -> FF
+L -> LL[+L][-L][&L][^L]
+
+// Fall (sparse leaves)
+S -> F[&+S][&-S][^+S][^-S]
+S -> F[&+L][&-L]            // Fewer leaf branches
+F -> FF
+L -> L                      // Simple leaves
+
+// ===================
+// USAGE NOTES
+// ===================
+// - L symbol generates leaf geometry
+// - Leaves can have their own branching rules (L -> LL[+L][-L])
+// - Mix branch rules (A -> F[...A...]) with leaf rules (A -> F[...L...])
+// - Leaves are affected by wind animation in the renderer
+// - Adjust leaf probability and generation threshold in code for control

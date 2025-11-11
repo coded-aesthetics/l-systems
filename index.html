@@ -300,6 +300,130 @@
                 font-size: 12px;
                 color: #4caf50;
             }
+
+            /* Save/Load Controls Styles */
+            #plantName {
+                width: 100%;
+                padding: 8px;
+                margin-bottom: 10px;
+                border: 1px solid #555;
+                border-radius: 4px;
+                background: #2a2a2a;
+                color: #fff;
+                font-size: 14px;
+            }
+
+            #plantName:focus {
+                outline: none;
+                border-color: #4caf50;
+                box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+            }
+
+            #loadSelect {
+                width: 100%;
+                margin-bottom: 10px;
+                padding: 8px;
+                border: 1px solid #555;
+                border-radius: 4px;
+                background: #2a2a2a;
+                color: #fff;
+                font-size: 14px;
+            }
+
+            #loadSelect:focus {
+                outline: none;
+                border-color: #4caf50;
+            }
+
+            .save-load-buttons {
+                display: flex;
+                gap: 5px;
+                margin-bottom: 10px;
+            }
+
+            #saveButton {
+                width: 100%;
+                margin-bottom: 10px;
+                background: #4caf50;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 4px;
+                font-size: 14px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+
+            #saveButton:hover {
+                background: #45a049;
+            }
+
+            #loadButton,
+            #deleteButton,
+            #exportButton,
+            #importButton {
+                flex: 1;
+                padding: 8px;
+                border: none;
+                border-radius: 4px;
+                font-size: 12px;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+
+            #loadButton {
+                background: #2196f3;
+                color: white;
+            }
+
+            #loadButton:hover:not(:disabled) {
+                background: #1976d2;
+            }
+
+            #loadButton:disabled {
+                background: #555;
+                color: #999;
+                cursor: not-allowed;
+            }
+
+            #deleteButton {
+                background: #e74c3c;
+                color: white;
+            }
+
+            #deleteButton:hover:not(:disabled) {
+                background: #c0392b;
+            }
+
+            #deleteButton:disabled {
+                background: #555;
+                color: #999;
+                cursor: not-allowed;
+            }
+
+            #exportButton {
+                background: #ff9800;
+                color: white;
+            }
+
+            #exportButton:hover {
+                background: #e68900;
+            }
+
+            #importButton {
+                background: #9c27b0;
+                color: white;
+            }
+
+            #importButton:hover {
+                background: #7b1fa2;
+            }
+
+            .save-load-section {
+                border-top: 1px solid #333;
+                margin-top: 15px;
+                padding-top: 15px;
+            }
         </style>
     </head>
     <body>
@@ -345,6 +469,30 @@ F -> F[+F]F[-F]F</textarea
                         <button onclick="loadPreset('plant')">Plant</button>
                         <button onclick="loadPreset('tree3d')">3D Tree</button>
                         <button onclick="loadPreset('bush3d')">3D Bush</button>
+                        <button onclick="loadPreset('bushWithLeaves')">
+                            Bush with Leaves
+                        </button>
+                        <button onclick="loadPreset('treeWithLeaves')">
+                            Tree with Leaves
+                        </button>
+                        <button onclick="loadPreset('leafyBranch')">
+                            Leafy Branch
+                        </button>
+                        <button onclick="loadPreset('simpleLeafTest')">
+                            Simple Leaf Test
+                        </button>
+                        <button onclick="loadPreset('minimalLeaf')">
+                            Minimal Leaf
+                        </button>
+                        <button onclick="loadPreset('sphereLeaves')">
+                            Sphere Leaves
+                        </button>
+                        <button onclick="loadPreset('autumnTree')">
+                            Autumn Tree
+                        </button>
+                        <button onclick="loadPreset('windyLeaves')">
+                            Windy Leaves
+                        </button>
                         <button onclick="loadPreset('coral3d')">
                             3D Coral
                         </button>
@@ -476,11 +624,168 @@ F -> F[+F]F[-F]F</textarea
 
                     <label for="colorMode">Color Mode</label>
                     <select id="colorMode">
-                        <option value="height">Height Gradient</option>
-                        <option value="depth">Branch Depth</option>
-                        <option value="uniform">Uniform Green</option>
-                        <option value="autumn">Autumn Colors</option>
+                        <option value="0">Height Gradient</option>
+                        <option value="1">Branch Depth</option>
+                        <option value="2">Uniform Green</option>
+                        <option value="3">Rainbow</option>
                     </select>
+                </div>
+
+                <div class="control-group">
+                    <h3>Leaf Parameters</h3>
+
+                    <label for="leafProbability"
+                        >Leaf Probability
+                        <span class="value-display" id="leafProbability-value"
+                            >80%</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="leafProbability"
+                        min="0"
+                        max="100"
+                        value="80"
+                        step="5"
+                    />
+
+                    <label for="leafThreshold"
+                        >Leaf Generation Threshold
+                        <span class="value-display" id="leafThreshold-value"
+                            >2</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="leafThreshold"
+                        min="0"
+                        max="6"
+                        value="2"
+                        step="1"
+                    />
+
+                    <label for="leafColor">Leaf Color</label>
+                    <input
+                        type="color"
+                        id="leafColor"
+                        value="#2ecc40"
+                        style="
+                            width: 60px;
+                            height: 40px;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                        "
+                    />
+
+                    <div style="margin-top: 10px">
+                        <strong>Presets:</strong>
+                        <div
+                            style="
+                                display: flex;
+                                gap: 5px;
+                                margin-top: 5px;
+                                flex-wrap: wrap;
+                            "
+                        >
+                            <button
+                                onclick="setLeafColor('#2ecc40')"
+                                style="
+                                    width: 30px;
+                                    height: 30px;
+                                    background: #2ecc40;
+                                    border: 2px solid #ccc;
+                                    border-radius: 50%;
+                                    cursor: pointer;
+                                "
+                                title="Green"
+                            ></button>
+                            <button
+                                onclick="setLeafColor('#e74c3c')"
+                                style="
+                                    width: 30px;
+                                    height: 30px;
+                                    background: #e74c3c;
+                                    border: 2px solid #ccc;
+                                    border-radius: 50%;
+                                    cursor: pointer;
+                                "
+                                title="Red"
+                            ></button>
+                            <button
+                                onclick="setLeafColor('#f39c12')"
+                                style="
+                                    width: 30px;
+                                    height: 30px;
+                                    background: #f39c12;
+                                    border: 2px solid #ccc;
+                                    border-radius: 50%;
+                                    cursor: pointer;
+                                "
+                                title="Orange"
+                            ></button>
+                            <button
+                                onclick="setLeafColor('#f1c40f')"
+                                style="
+                                    width: 30px;
+                                    height: 30px;
+                                    background: #f1c40f;
+                                    border: 2px solid #ccc;
+                                    border-radius: 50%;
+                                    cursor: pointer;
+                                "
+                                title="Yellow"
+                            ></button>
+                            <button
+                                onclick="setLeafColor('#9b59b6')"
+                                style="
+                                    width: 30px;
+                                    height: 30px;
+                                    background: #9b59b6;
+                                    border: 2px solid #ccc;
+                                    border-radius: 50%;
+                                    cursor: pointer;
+                                "
+                                title="Purple"
+                            ></button>
+                            <button
+                                onclick="setLeafColor('#3498db')"
+                                style="
+                                    width: 30px;
+                                    height: 30px;
+                                    background: #3498db;
+                                    border: 2px solid #ccc;
+                                    border-radius: 50%;
+                                    cursor: pointer;
+                                "
+                                title="Blue"
+                            ></button>
+                            <button
+                                onclick="setLeafColor('#1abc9c')"
+                                style="
+                                    width: 30px;
+                                    height: 30px;
+                                    background: #1abc9c;
+                                    border: 2px solid #ccc;
+                                    border-radius: 50%;
+                                    cursor: pointer;
+                                "
+                                title="Teal"
+                            ></button>
+                            <button
+                                onclick="setLeafColor('#e91e63')"
+                                style="
+                                    width: 30px;
+                                    height: 30px;
+                                    background: #e91e63;
+                                    border: 2px solid #ccc;
+                                    border-radius: 50%;
+                                    cursor: pointer;
+                                "
+                                title="Pink"
+                            ></button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="control-group">
@@ -516,6 +821,67 @@ F -> F[+F]F[-F]F</textarea
                     />
 
                     <button id="resetCamera">Reset Camera</button>
+                </div>
+
+                <div class="control-group save-load-section">
+                    <h3>💾 Save & Load Plants</h3>
+
+                    <p
+                        style="
+                            font-size: 12px;
+                            color: #888;
+                            margin-bottom: 10px;
+                        "
+                    >
+                        Save your current plant configuration including all
+                        parameters, leaf colors, and camera position.
+                    </p>
+
+                    <label for="plantName">Plant Name</label>
+                    <input
+                        type="text"
+                        id="plantName"
+                        placeholder="Enter plant name..."
+                    />
+
+                    <button id="saveButton">💾 Save Current Plant</button>
+
+                    <label for="loadSelect">Saved Plants</label>
+                    <select id="loadSelect">
+                        <option value="">Select a plant...</option>
+                    </select>
+
+                    <div class="save-load-buttons">
+                        <button id="loadButton" disabled>📂 Load</button>
+                        <button id="deleteButton" disabled>🗑️ Delete</button>
+                    </div>
+
+                    <div class="save-load-buttons">
+                        <button id="exportButton">📤 Export All</button>
+                        <button id="importButton">📥 Import</button>
+                    </div>
+
+                    <input
+                        type="file"
+                        id="importFile"
+                        accept=".json"
+                        style="display: none"
+                    />
+
+                    <p
+                        style="
+                            font-size: 11px;
+                            color: #666;
+                            margin-top: 10px;
+                            line-height: 1.3;
+                        "
+                    >
+                        <strong>Tips:</strong><br />
+                        • Press Enter in name field to save quickly<br />
+                        • Export creates a backup file you can share<br />
+                        • Import merges plants from backup files<br />
+                        • Camera position and all settings are preserved
+                    </p>
                 </div>
             </div>
         </div>
@@ -562,6 +928,11 @@ F -> F[+F]F[-F]F</textarea
                                 <td><span class="symbol-code">-</span></td>
                                 <td>Turn Left</td>
                                 <td>Turn left by the current angle (yaw)</td>
+                            </tr>
+                            <tr>
+                                <td><span class="symbol-code">L</span></td>
+                                <td>Draw Leaf</td>
+                                <td>Generate a leaf at the current position</td>
                             </tr>
                         </tbody>
                     </table>
@@ -733,6 +1104,47 @@ F -> F[+F]F[-F]F</textarea
                         </li>
                     </ul>
 
+                    <div class="help-section-title">Save & Load Features</div>
+                    <ul>
+                        <li>
+                            <strong>Save Plants:</strong> Preserve all
+                            parameters, leaf colors, and camera position
+                        </li>
+                        <li>
+                            <strong>Load Plants:</strong> Restore complete plant
+                            configurations instantly
+                        </li>
+                        <li>
+                            <strong>Export/Import:</strong> Share your creations
+                            or backup your collection
+                        </li>
+                        <li>
+                            <strong>Local Storage:</strong> Plants are
+                            automatically saved in your browser
+                        </li>
+                    </ul>
+
+                    <div class="help-section-title">Keyboard Shortcuts</div>
+                    <ul>
+                        <li><strong>Ctrl+S:</strong> Save current plant</li>
+                        <li>
+                            <strong>Ctrl+O:</strong> Quick load first saved
+                            plant
+                        </li>
+                        <li><strong>Ctrl+E:</strong> Export all plants</li>
+                        <li>
+                            <strong>Ctrl+Enter:</strong> Generate L-System (in
+                            text areas)
+                        </li>
+                        <li>
+                            <strong>Escape:</strong> Clear inputs or close
+                            dropdowns
+                        </li>
+                        <li><strong>Mouse Wheel:</strong> Zoom in/out</li>
+                        <li><strong>Alt+Drag:</strong> Pan camera</li>
+                        <li><strong>Drag:</strong> Rotate camera</li>
+                    </ul>
+
                     <div class="help-section-title">Performance Notes</div>
                     <ul>
                         <li>
@@ -764,6 +1176,13 @@ F -> F[+F]F[-F]F</textarea
 
             function closeHelp() {
                 document.getElementById("helpModal").style.display = "none";
+            }
+
+            function setLeafColor(color) {
+                document.getElementById("leafColor").value = color;
+                document
+                    .getElementById("leafColor")
+                    .dispatchEvent(new Event("change"));
             }
 
             // Close modal when clicking outside of it

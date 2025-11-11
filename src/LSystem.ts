@@ -1,6 +1,14 @@
 export interface LSystemRule {
     from: string;
     to: string;
+    condition?: (state: GenerationState) => boolean;
+    probability?: number;
+}
+
+export interface GenerationState {
+    iteration: number;
+    depth: number;
+    position: number;
 }
 
 export interface LSystemState {
@@ -11,15 +19,25 @@ export interface LSystemState {
     length: number;
     thickness: number;
     depth: number;
+    generation: number;
+}
+
+export interface LeafGeometry {
+    vertices: number[];
+    normals: number[];
+    uvs: number[];
+    indices: number[];
 }
 
 export class LSystem {
     private axiom: string;
-    private rules: Map<string, string>;
+    private rules: Map<string, string[]>;
     private angle: number;
     private angleVariation: number;
     private lengthVariation: number;
     private iterations: number;
+    private leafProbability: number;
+    private leafGenerationThreshold: number;
 
     constructor(
         axiom: string,
@@ -27,6 +45,8 @@ export class LSystem {
         angle: number = 25,
         angleVariation: number = 0,
         lengthVariation: number = 0,
+        leafProbability: number = 0.7,
+        leafGenerationThreshold: number = 3,
     ) {
         this.axiom = axiom;
         this.rules = new Map();
@@ -34,10 +54,21 @@ export class LSystem {
         this.angleVariation = (angleVariation * Math.PI) / 180; // Convert to radians
         this.lengthVariation = lengthVariation / 100; // Convert percentage to decimal
         this.iterations = 0;
+        this.leafProbability = leafProbability;
+        this.leafGenerationThreshold = leafGenerationThreshold;
 
+        // Group rules by symbol to support multiple rules per symbol
         rules.forEach((rule) => {
-            this.rules.set(rule.from, rule.to);
+            if (!this.rules.has(rule.from)) {
+                this.rules.set(rule.from, []);
+            }
+            this.rules.get(rule.from)!.push(rule.to);
         });
+
+        // Add default leaf behavior if no explicit leaf rules exist
+        if (!this.rules.has("L")) {
+            this.rules.set("L", ["L"]); // Leaves stay as leaves
+        }
     }
 
     public setAngle(angle: number): void {
@@ -74,20 +105,47 @@ export class LSystem {
         let current = this.axiom;
         this.iterations = iterations;
 
+        console.log(`Starting L-System generation with axiom: "${current}"`);
+
         for (let i = 0; i < iterations; i++) {
-            current = this.iterate(current);
+            current = this.iterate(current, i);
+            console.log(
+                `Iteration ${i + 1}: "${current.substring(0, 100)}${current.length > 100 ? "..." : ""}"`,
+            );
+
+            // Count leaf symbols
+            const leafCount = (current.match(/L/g) || []).length;
+            console.log(`Leaf symbols (L) in iteration ${i + 1}: ${leafCount}`);
         }
 
         return current;
     }
 
-    private iterate(input: string): string {
+    private iterate(input: string, iteration: number): string {
         let result = "";
 
         for (let i = 0; i < input.length; i++) {
             const char = input[i];
-            const rule = this.rules.get(char);
-            result += rule !== undefined ? rule : char;
+
+            // Apply grammar rules - support multiple rules per symbol
+            const ruleOptions = this.rules.get(char);
+            if (ruleOptions !== undefined && ruleOptions.length > 0) {
+                // If multiple rules exist for this symbol, choose one randomly
+                const selectedRule =
+                    ruleOptions[Math.floor(Math.random() * ruleOptions.length)];
+                result += selectedRule;
+            } else {
+                // For characters without explicit rules, apply probabilistic leaf generation
+                if (
+                    char === "A" &&
+                    iteration >= this.leafGenerationThreshold &&
+                    Math.random() < this.leafProbability
+                ) {
+                    result += "L";
+                } else {
+                    result += char;
+                }
+            }
         }
 
         return result;
@@ -105,6 +163,10 @@ export class LSystem {
         depths: number[];
         heights: number[];
         indices: number[];
+        leafVertices: number[];
+        leafNormals: number[];
+        leafUvs: number[];
+        leafIndices: number[];
     } {
         const vertices: number[] = [];
         const normals: number[] = [];
@@ -112,6 +174,10 @@ export class LSystem {
         const depths: number[] = [];
         const heights: number[] = [];
         const indices: number[] = [];
+        const leafVertices: number[] = [];
+        const leafNormals: number[] = [];
+        const leafUvs: number[] = [];
+        const leafIndices: number[] = [];
 
         const stateStack: LSystemState[] = [];
         let currentState: LSystemState = {
@@ -122,9 +188,11 @@ export class LSystem {
             length: initialLength,
             thickness: initialThickness,
             depth: 0,
+            generation: 0,
         };
 
         let vertexCount = 0;
+        let leafVertexCount = 0;
         const segments = 8; // Number of segments around cylinder
 
         // Helper functions for vector operations
@@ -232,6 +300,78 @@ export class LSystem {
             }
         };
 
+        const addLeaf = (
+            position: [number, number, number],
+            direction: [number, number, number],
+            right: [number, number, number],
+            up: [number, number, number],
+            size: number,
+            depth: number,
+        ) => {
+            // Create leaf as translucent sphere with some randomness
+            const leafRadius = size * (0.8 + Math.random() * 0.4); // 80-120% variation
+            const sphereSegments = 8; // Number of horizontal segments
+            const sphereRings = 6; // Number of vertical rings
+
+            // Offset position slightly from branch end
+            const offsetPos: [number, number, number] = [
+                position[0] + direction[0] * leafRadius * 0.5,
+                position[1] + direction[1] * leafRadius * 0.5,
+                position[2] + direction[2] * leafRadius * 0.5,
+            ];
+
+            const startIdx = leafVertexCount;
+
+            // Generate sphere vertices
+            for (let ring = 0; ring <= sphereRings; ring++) {
+                const phi = (ring / sphereRings) * Math.PI; // 0 to PI
+                const y = Math.cos(phi);
+                const ringRadius = Math.sin(phi);
+
+                for (let segment = 0; segment <= sphereSegments; segment++) {
+                    const theta = (segment / sphereSegments) * 2 * Math.PI; // 0 to 2PI
+                    const x = ringRadius * Math.cos(theta);
+                    const z = ringRadius * Math.sin(theta);
+
+                    // Scale by leaf radius and add to position
+                    const vertexPos: [number, number, number] = [
+                        offsetPos[0] + x * leafRadius,
+                        offsetPos[1] + y * leafRadius,
+                        offsetPos[2] + z * leafRadius,
+                    ];
+
+                    leafVertices.push(vertexPos[0], vertexPos[1], vertexPos[2]);
+
+                    // Normal is the normalized position relative to center
+                    leafNormals.push(x, y, z);
+
+                    // UV coordinates
+                    leafUvs.push(segment / sphereSegments, ring / sphereRings);
+
+                    leafVertexCount++;
+                }
+            }
+
+            // Generate sphere indices
+            for (let ring = 0; ring < sphereRings; ring++) {
+                for (let segment = 0; segment < sphereSegments; segment++) {
+                    const current =
+                        startIdx + ring * (sphereSegments + 1) + segment;
+                    const next = current + sphereSegments + 1;
+
+                    // Two triangles per quad
+                    leafIndices.push(
+                        current,
+                        next,
+                        current + 1,
+                        current + 1,
+                        next,
+                        next + 1,
+                    );
+                }
+            }
+        };
+
         // Process L-system string
         for (let i = 0; i < lSystemString.length; i++) {
             const char = lSystemString[i];
@@ -268,6 +408,22 @@ export class LSystem {
 
                     currentState.position = endPos;
                     currentState.length *= 0.95; // Slight length reduction
+                    currentState.generation++;
+                    break;
+                }
+                case "L": {
+                    // Leaf
+                    console.log(
+                        `Processing leaf at position: [${currentState.position.join(", ")}]`,
+                    );
+                    addLeaf(
+                        currentState.position,
+                        currentState.direction,
+                        currentState.right,
+                        currentState.up,
+                        currentState.thickness * 3, // Leaf size relative to branch thickness (smaller for spheres)
+                        currentState.depth,
+                    );
                     break;
                 }
                 case "+": {
@@ -371,6 +527,7 @@ export class LSystem {
                     stateStack.push({ ...currentState });
                     currentState.depth++;
                     currentState.thickness *= tapering;
+                    currentState.generation++;
                     break;
                 case "]": // Pop state
                     if (stateStack.length > 0) {
@@ -380,7 +537,18 @@ export class LSystem {
             }
         }
 
-        return { vertices, normals, uvs, depths, heights, indices };
+        return {
+            vertices,
+            normals,
+            uvs,
+            depths,
+            heights,
+            indices,
+            leafVertices,
+            leafNormals,
+            leafUvs,
+            leafIndices,
+        };
     }
 
     public static parseRules(rulesText: string): LSystemRule[] {
@@ -389,7 +557,11 @@ export class LSystem {
 
         for (const line of lines) {
             const trimmed = line.trim();
-            if (trimmed && trimmed.includes("->")) {
+            if (
+                trimmed &&
+                trimmed.includes("->") &&
+                !trimmed.startsWith("//")
+            ) {
                 const [from, to] = trimmed.split("->").map((s) => s.trim());
                 if (from && to) {
                     rules.push({ from, to });
