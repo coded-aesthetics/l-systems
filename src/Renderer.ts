@@ -59,6 +59,9 @@ export class Renderer {
     private colorMode: number = 0;
     private leafColor: [number, number, number] = [0.18, 0.8, 0.13]; // Default green
     private zoom: number = 5.0;
+    private supportsUint32Indices: boolean = false;
+    private usingUint32Indices: boolean = false;
+    private usingUint32LeafIndices: boolean = false;
     private rotation: number = 0;
     private rotationSpeed: number = 0.5;
 
@@ -226,6 +229,20 @@ export class Renderer {
 
     private initWebGL(): void {
         const gl = this.gl;
+
+        // Check for 32-bit index support
+        const ext = gl.getExtension("OES_element_index_uint");
+        this.supportsUint32Indices = ext !== null;
+
+        if (this.supportsUint32Indices) {
+            console.log(
+                "32-bit indices supported - can handle large geometries",
+            );
+        } else {
+            console.warn(
+                "32-bit indices not supported - limited to 65,536 vertices",
+            );
+        }
 
         gl.clearColor(0.1, 0.1, 0.1, 1.0);
         gl.enable(gl.DEPTH_TEST);
@@ -787,11 +804,35 @@ export class Renderer {
 
         // Update indices
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        gl.bufferData(
-            gl.ELEMENT_ARRAY_BUFFER,
-            new Uint16Array(geometry.indices),
-            gl.STATIC_DRAW,
+
+        // Efficiently find max index without stack overflow
+        let maxIndex = 0;
+        for (let i = 0; i < geometry.indices.length; i++) {
+            if (geometry.indices[i] > maxIndex) {
+                maxIndex = geometry.indices[i];
+            }
+        }
+
+        this.usingUint32Indices =
+            this.supportsUint32Indices && maxIndex > 65535;
+
+        console.log(
+            `Branch geometry: ${geometry.indices.length} indices, max index: ${maxIndex}, using 32-bit: ${this.usingUint32Indices}`,
         );
+
+        if (this.usingUint32Indices) {
+            gl.bufferData(
+                gl.ELEMENT_ARRAY_BUFFER,
+                new Uint32Array(geometry.indices),
+                gl.STATIC_DRAW,
+            );
+        } else {
+            gl.bufferData(
+                gl.ELEMENT_ARRAY_BUFFER,
+                new Uint16Array(geometry.indices),
+                gl.STATIC_DRAW,
+            );
+        }
 
         this.indexCount = geometry.indices.length;
 
@@ -878,11 +919,35 @@ export class Renderer {
 
             // Update leaf indices
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.leafIndexBuffer);
-            gl.bufferData(
-                gl.ELEMENT_ARRAY_BUFFER,
-                new Uint16Array(geometry.leafIndices),
-                gl.STATIC_DRAW,
+
+            // Efficiently find max leaf index without stack overflow
+            let maxLeafIndex = 0;
+            for (let i = 0; i < geometry.leafIndices.length; i++) {
+                if (geometry.leafIndices[i] > maxLeafIndex) {
+                    maxLeafIndex = geometry.leafIndices[i];
+                }
+            }
+
+            this.usingUint32LeafIndices =
+                this.supportsUint32Indices && maxLeafIndex > 65535;
+
+            console.log(
+                `Leaf geometry: ${geometry.leafIndices.length} indices, max index: ${maxLeafIndex}, using 32-bit: ${this.usingUint32LeafIndices}`,
             );
+
+            if (this.usingUint32LeafIndices) {
+                gl.bufferData(
+                    gl.ELEMENT_ARRAY_BUFFER,
+                    new Uint32Array(geometry.leafIndices),
+                    gl.STATIC_DRAW,
+                );
+            } else {
+                gl.bufferData(
+                    gl.ELEMENT_ARRAY_BUFFER,
+                    new Uint16Array(geometry.leafIndices),
+                    gl.STATIC_DRAW,
+                );
+            }
 
             this.leafIndexCount = geometry.leafIndices.length;
         } else {
@@ -1140,12 +1205,12 @@ export class Renderer {
 
             // Draw branches
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-            gl.drawElements(
-                gl.TRIANGLES,
-                this.indexCount,
-                gl.UNSIGNED_SHORT,
-                0,
-            );
+            // Use appropriate index type based on what was stored during geometry update
+            const indexType = this.usingUint32Indices
+                ? gl.UNSIGNED_INT
+                : gl.UNSIGNED_SHORT;
+
+            gl.drawElements(gl.TRIANGLES, this.indexCount, indexType, 0);
         }
 
         // Render leaves
@@ -1243,10 +1308,15 @@ export class Renderer {
 
             // Draw leaves
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.leafIndexBuffer);
+            // Use appropriate index type based on what was stored during geometry update
+            const leafIndexType = this.usingUint32LeafIndices
+                ? gl.UNSIGNED_INT
+                : gl.UNSIGNED_SHORT;
+
             gl.drawElements(
                 gl.TRIANGLES,
                 this.leafIndexCount,
-                gl.UNSIGNED_SHORT,
+                leafIndexType,
                 0,
             );
 
