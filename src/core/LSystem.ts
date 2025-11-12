@@ -3,13 +3,9 @@
  * Maintains the same interface as the original while using the new modular architecture
  */
 
-import { LSystemApp } from "./LSystemApp.js";
-import {
-    LSystemRule,
-    LSystemConfig,
-    GeometryData,
-} from "./core/LSystemState.js";
-import { SymbolParser } from "./parsing/SymbolParser.js";
+import { LSystemGenerator } from "./LSystemGenerator.js";
+import { LSystemRule, LSystemConfig, GeometryData } from "./LSystemState.js";
+import { SymbolParser } from "../parsing/SymbolParser.js";
 
 // Re-export types for backward compatibility
 export interface ParameterizedSymbol {
@@ -141,7 +137,7 @@ export class ParameterizedSymbolParser {
  * Backward-compatible LSystem class that wraps the new modular architecture
  */
 export class LSystem {
-    private app: LSystemApp;
+    private app: LSystemGenerator;
 
     constructor(
         axiom: string,
@@ -160,7 +156,7 @@ export class LSystem {
             leafGenerationThreshold,
         };
 
-        this.app = new LSystemApp(axiom, rules, config);
+        this.app = new LSystemGenerator(axiom, rules, config);
     }
 
     public setAngle(angle: number): void {
@@ -229,7 +225,7 @@ export class LSystem {
     }
 
     public static parseRules(ruleText: string): LSystemRule[] {
-        return LSystemApp.parseRules(ruleText);
+        return LSystemGenerator.parseRules(ruleText);
     }
 }
 
@@ -238,4 +234,4 @@ export type {
     LSystemRule,
     LSystemConfig,
     GeometryData,
-} from "./core/LSystemState.js";
+} from "./LSystemState.js";

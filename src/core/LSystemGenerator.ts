@@ -3,24 +3,20 @@
  * Coordinates between the core engine, parsing, and geometry generation
  */
 
-import { LSystemEngine } from "./core/LSystemEngine.js";
-import {
-    LSystemRule,
-    LSystemConfig,
-    GeometryData,
-} from "./core/LSystemState.js";
-import { ValidationUtils } from "./utils/validationUtils.js";
-import { SymbolParser } from "./parsing/SymbolParser.js";
-import { ColorParser } from "./parsing/ColorParser.js";
+import { LSystemEngine } from "./LSystemEngine.js";
+import { LSystemRule, LSystemConfig, GeometryData } from "./LSystemState.js";
+import { ValidationUtils } from "../utils/validationUtils.js";
+import { SymbolParser } from "../parsing/SymbolParser.js";
+import { ColorParser } from "../parsing/ColorParser.js";
 import {
     VectorUtils,
     Vec3,
     normalize,
     cross,
     rotateVector,
-} from "./utils/mathUtils.js";
+} from "../utils/mathUtils.js";
 
-export class LSystemApp {
+export class LSystemGenerator {
     private engine: LSystemEngine;
     private currentGeometry: GeometryData | null = null;
     private currentString: string = "";
@@ -657,9 +653,9 @@ export type {
     LSystemRule,
     LSystemConfig,
     GeometryData,
-} from "./core/LSystemState.js";
-export { ValidationUtils } from "./utils/validationUtils.js";
-export { ColorParser } from "./parsing/ColorParser.js";
+} from "./LSystemState.js";
+export { ValidationUtils } from "../utils/validationUtils.js";
+export { ColorParser } from "../parsing/ColorParser.js";
 
 // Helper interface for internal state management
 interface LSystemState {

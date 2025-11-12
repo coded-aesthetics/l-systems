@@ -1,5 +1,9 @@
-import { LSystem, LSystemRule, ParameterizedSymbolParser } from "./LSystem.js";
-import { Renderer, GeometryData } from "./Renderer.js";
+import {
+    LSystem,
+    LSystemRule,
+    ParameterizedSymbolParser,
+} from "./core/LSystem.js";
+import { Renderer, GeometryData } from "./rendering/Renderer.js";
 
 interface Preset {
     name: string;
