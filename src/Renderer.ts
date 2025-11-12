@@ -11,10 +11,12 @@ export interface GeometryData {
     depths: number[];
     heights: number[];
     indices: number[];
+    colors: number[];
     leafVertices: number[];
     leafNormals: number[];
     leafUvs: number[];
     leafIndices: number[];
+    leafColors: number[];
 }
 
 export class Renderer {
@@ -28,10 +30,12 @@ export class Renderer {
     private depthBuffer!: WebGLBuffer;
     private heightBuffer!: WebGLBuffer;
     private indexBuffer!: WebGLBuffer;
+    private colorBuffer!: WebGLBuffer;
     private leafVertexBuffer!: WebGLBuffer;
     private leafNormalBuffer!: WebGLBuffer;
     private leafUvBuffer!: WebGLBuffer;
     private leafIndexBuffer!: WebGLBuffer;
+    private leafColorBuffer!: WebGLBuffer;
 
     // Uniform locations
     private uniforms: { [key: string]: WebGLUniformLocation } = {};
@@ -450,6 +454,7 @@ export class Renderer {
             uv: gl.getAttribLocation(this.program, "a_uv"),
             depth: gl.getAttribLocation(this.program, "a_depth"),
             height: gl.getAttribLocation(this.program, "a_height"),
+            color: gl.getAttribLocation(this.program, "a_color"),
         };
 
         this.uniforms = {
@@ -467,6 +472,13 @@ export class Renderer {
             )!,
             time: gl.getUniformLocation(this.program, "u_time")!,
             colorMode: gl.getUniformLocation(this.program, "u_colorMode")!,
+            useVertexColors: (() => {
+                const loc = gl.getUniformLocation(
+                    this.program,
+                    "u_useVertexColors",
+                );
+                return loc!;
+            })(),
             lightDirection: gl.getUniformLocation(
                 this.program,
                 "u_lightDirection",
@@ -479,6 +491,7 @@ export class Renderer {
             position: gl.getAttribLocation(this.leafProgram, "a_position"),
             normal: gl.getAttribLocation(this.leafProgram, "a_normal"),
             uv: gl.getAttribLocation(this.leafProgram, "a_uv"),
+            color: gl.getAttribLocation(this.leafProgram, "a_color"),
         };
 
         this.leafUniforms = {
@@ -495,6 +508,13 @@ export class Renderer {
                 "u_normalMatrix",
             )!,
             time: gl.getUniformLocation(this.leafProgram, "u_time")!,
+            useVertexColors: (() => {
+                const loc = gl.getUniformLocation(
+                    this.leafProgram,
+                    "u_useVertexColors",
+                );
+                return loc!;
+            })(),
             lightDirection: gl.getUniformLocation(
                 this.leafProgram,
                 "u_lightDirection",
@@ -520,6 +540,7 @@ export class Renderer {
             attribute vec2 a_uv;
             attribute float a_depth;
             attribute float a_height;
+            attribute vec4 a_color;
 
             uniform mat4 u_modelViewMatrix;
             uniform mat4 u_projectionMatrix;
@@ -532,6 +553,7 @@ export class Renderer {
             varying float v_depth;
             varying float v_height;
             varying vec3 v_worldPosition;
+            varying vec4 v_color;
 
             void main() {
                 // Apply gentle wind animation
@@ -551,6 +573,7 @@ export class Renderer {
                 v_uv = a_uv;
                 v_depth = a_depth;
                 v_height = a_height;
+                v_color = a_color;
 
                 gl_Position = u_projectionMatrix * worldPosition;
             }
@@ -565,9 +588,11 @@ export class Renderer {
             varying float v_depth;
             varying float v_height;
             varying vec3 v_worldPosition;
+            varying vec4 v_color;
 
             uniform float u_time;
             uniform int u_colorMode;
+            uniform bool u_useVertexColors;
             uniform vec3 u_lightDirection;
 
             // Color palettes for different modes
@@ -627,15 +652,20 @@ export class Renderer {
             void main() {
                 vec3 baseColor;
 
-                // Select color based on mode
-                if (u_colorMode == 0) {
-                    baseColor = getHeightGradientColor(v_height);
-                } else if (u_colorMode == 1) {
-                    baseColor = getDepthColor(v_depth);
-                } else if (u_colorMode == 2) {
-                    baseColor = getUniformColor();
+                // Use vertex colors if available and enabled
+                if (u_useVertexColors && v_color.a > 0.0) {
+                    baseColor = v_color.rgb;
                 } else {
-                    baseColor = getAutumnColor(v_height, v_depth);
+                    // Select color based on mode
+                    if (u_colorMode == 0) {
+                        baseColor = getHeightGradientColor(v_height);
+                    } else if (u_colorMode == 1) {
+                        baseColor = getDepthColor(v_depth);
+                    } else if (u_colorMode == 2) {
+                        baseColor = getUniformColor();
+                    } else {
+                        baseColor = getAutumnColor(v_height, v_depth);
+                    }
                 }
 
                 // Simple lighting calculation
@@ -693,6 +723,7 @@ export class Renderer {
             attribute vec3 a_position;
             attribute vec3 a_normal;
             attribute vec2 a_uv;
+            attribute vec4 a_color;
 
             uniform mat4 u_modelViewMatrix;
             uniform mat4 u_projectionMatrix;
@@ -702,6 +733,7 @@ export class Renderer {
             varying vec3 v_normal;
             varying vec2 v_uv;
             varying vec3 v_position;
+            varying vec4 v_color;
 
             void main() {
                 // Synchronize leaf wind animation with branches
@@ -732,6 +764,7 @@ export class Renderer {
                 v_normal = u_normalMatrix * a_normal;
                 v_uv = a_uv;
                 v_position = pos;
+                v_color = a_color;
             }
         `;
 
@@ -740,10 +773,12 @@ export class Renderer {
 
             uniform vec3 u_lightDirection;
             uniform vec3 u_leafColor;
+            uniform bool u_useVertexColors;
 
             varying vec3 v_normal;
             varying vec2 v_uv;
             varying vec3 v_position;
+            varying vec4 v_color;
 
             void main() {
                 vec3 normal = normalize(v_normal);
@@ -764,9 +799,10 @@ export class Renderer {
                 float fresnel = 1.0 - abs(dot(normal, viewDir));
                 fresnel = pow(fresnel, 1.5);
 
-                // Use custom leaf color with enhanced mixing
-                vec3 baseColor = u_leafColor * 0.6;
-                vec3 glowColor = u_leafColor * 1.8;
+                // Use vertex color if available, otherwise use uniform leaf color
+                vec3 baseColorSource = u_useVertexColors && v_color.a > 0.0 ? v_color.rgb : u_leafColor;
+                vec3 baseColor = baseColorSource * 0.6;
+                vec3 glowColor = baseColorSource * 1.8;
                 vec3 leafColor = mix(baseColor, glowColor, fresnel);
 
                 leafColor *= lighting;
@@ -776,6 +812,11 @@ export class Renderer {
                 float alpha = 0.2 + fresnel * 0.45; // Translucent base with fresnel glow
                 alpha *= (1.0 - centerDist * 0.2); // Subtle edge transparency
                 alpha = clamp(alpha, 0.15, 0.7); // Highly translucent but visible
+
+                // Use vertex alpha if available
+                if (u_useVertexColors && v_color.a > 0.0) {
+                    alpha *= v_color.a;
+                }
 
                 gl_FragColor = vec4(leafColor, alpha);
             }
@@ -834,12 +875,14 @@ export class Renderer {
         this.depthBuffer = gl.createBuffer()!;
         this.heightBuffer = gl.createBuffer()!;
         this.indexBuffer = gl.createBuffer()!;
+        this.colorBuffer = gl.createBuffer()!;
 
         // Leaf buffers
         this.leafVertexBuffer = gl.createBuffer()!;
         this.leafNormalBuffer = gl.createBuffer()!;
         this.leafUvBuffer = gl.createBuffer()!;
         this.leafIndexBuffer = gl.createBuffer()!;
+        this.leafColorBuffer = gl.createBuffer()!;
     }
 
     public updateGeometry(geometry: GeometryData): void {
@@ -914,6 +957,35 @@ export class Renderer {
             0,
         );
 
+        // Update colors (only if available)
+        if (geometry.colors && geometry.colors.length > 0) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+            gl.bufferData(
+                gl.ARRAY_BUFFER,
+                new Float32Array(geometry.colors),
+                gl.STATIC_DRAW,
+            );
+            if (
+                this.attributes.color !== undefined &&
+                this.attributes.color !== -1
+            ) {
+                gl.vertexAttribPointer(
+                    this.attributes.color,
+                    4,
+                    gl.FLOAT,
+                    false,
+                    0,
+                    0,
+                );
+                gl.enableVertexAttribArray(this.attributes.color);
+            }
+        } else {
+            console.log(
+                "No branch colors available, colors array length:",
+                geometry.colors?.length || 0,
+            );
+        }
+
         // Update indices
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
         gl.bufferData(
@@ -976,6 +1048,35 @@ export class Renderer {
                 0,
             );
 
+            // Update leaf colors (only if available)
+            if (geometry.leafColors && geometry.leafColors.length > 0) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.leafColorBuffer);
+                gl.bufferData(
+                    gl.ARRAY_BUFFER,
+                    new Float32Array(geometry.leafColors),
+                    gl.STATIC_DRAW,
+                );
+                if (
+                    this.leafAttributes.color !== undefined &&
+                    this.leafAttributes.color !== -1
+                ) {
+                    gl.vertexAttribPointer(
+                        this.leafAttributes.color,
+                        4,
+                        gl.FLOAT,
+                        false,
+                        0,
+                        0,
+                    );
+                    gl.enableVertexAttribArray(this.leafAttributes.color);
+                }
+            } else {
+                console.log(
+                    "No leaf colors available, colors array length:",
+                    geometry.leafColors?.length || 0,
+                );
+            }
+
             // Update leaf indices
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.leafIndexBuffer);
             gl.bufferData(
@@ -998,6 +1099,8 @@ export class Renderer {
 
     public setColorMode(mode: number): void {
         this.colorMode = mode;
+        // Force a re-render to apply the new color mode
+        requestAnimationFrame(() => this.render());
     }
 
     public setLeafColor(color: [number, number, number]): void {
@@ -1209,6 +1312,33 @@ export class Renderer {
                 0,
             );
 
+            // Bind color buffer
+            if (this.attributes.color !== -1) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+                gl.enableVertexAttribArray(this.attributes.color);
+                gl.vertexAttribPointer(
+                    this.attributes.color,
+                    4,
+                    gl.FLOAT,
+                    false,
+                    0,
+                    0,
+                );
+            }
+
+            // Set vertex color usage uniform based on color mode
+            const useVertexColors = this.colorMode === 4; // Mode 4 = Parameterized Colors
+            if (this.uniforms.useVertexColors !== null) {
+                gl.uniform1i(
+                    this.uniforms.useVertexColors,
+                    useVertexColors ? 1 : 0,
+                );
+            } else {
+                console.error(
+                    "Branch u_useVertexColors uniform location is null!",
+                );
+            }
+
             // Draw branches
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
             gl.drawElements(
@@ -1284,6 +1414,33 @@ export class Renderer {
                 0,
                 0,
             );
+
+            // Bind leaf color buffer
+            if (this.leafAttributes.color !== -1) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.leafColorBuffer);
+                gl.enableVertexAttribArray(this.leafAttributes.color);
+                gl.vertexAttribPointer(
+                    this.leafAttributes.color,
+                    4,
+                    gl.FLOAT,
+                    false,
+                    0,
+                    0,
+                );
+            }
+
+            // Set vertex color usage uniform based on color mode
+            const useVertexColors = this.colorMode === 4; // Mode 4 = Parameterized Colors
+            if (this.leafUniforms.useVertexColors !== null) {
+                gl.uniform1i(
+                    this.leafUniforms.useVertexColors,
+                    useVertexColors ? 1 : 0,
+                );
+            } else {
+                console.error(
+                    "Leaf u_useVertexColors uniform location is null!",
+                );
+            }
 
             // Draw leaves
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.leafIndexBuffer);

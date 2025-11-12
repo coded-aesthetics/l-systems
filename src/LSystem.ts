@@ -1,3 +1,8 @@
+export interface ParameterizedSymbol {
+    symbol: string;
+    parameters: Map<string, string>;
+}
+
 export interface LSystemRule {
     from: string;
     to: string;
@@ -20,6 +25,7 @@ export interface LSystemState {
     thickness: number;
     depth: number;
     generation: number;
+    color?: [number, number, number, number]; // RGBA color
 }
 
 export interface LeafGeometry {
@@ -27,11 +33,112 @@ export interface LeafGeometry {
     normals: number[];
     uvs: number[];
     indices: number[];
+    colors?: number[];
+}
+
+export class ParameterizedSymbolParser {
+    private static readonly PARAM_PATTERN =
+        /([A-Za-z+\-\[\]&^\\\/Ff])(\{[^}]+\})?/g;
+    private static readonly PARAM_CONTENT = /(\w+):([^,}]+)/g;
+
+    static parseString(input: string): ParameterizedSymbol[] {
+        const tokens: ParameterizedSymbol[] = [];
+        let match;
+
+        this.PARAM_PATTERN.lastIndex = 0;
+
+        while ((match = this.PARAM_PATTERN.exec(input)) !== null) {
+            const symbol = match[1];
+            const paramString = match[2];
+
+            const parameters = new Map<string, string>();
+
+            if (paramString) {
+                // Remove the braces and parse parameters
+                const paramContent = paramString.slice(1, -1); // Remove { }
+                const paramMatches = paramContent.matchAll(this.PARAM_CONTENT);
+
+                for (const paramMatch of paramMatches) {
+                    const key = paramMatch[1].trim();
+                    const value = paramMatch[2].trim();
+                    parameters.set(key, value);
+                }
+            }
+
+            tokens.push({ symbol, parameters });
+        }
+
+        return tokens;
+    }
+
+    static parseColor(
+        colorString: string,
+    ): [number, number, number, number] | null {
+        // Remove # if present
+        const cleanColor = colorString.startsWith("#")
+            ? colorString.slice(1)
+            : colorString;
+
+        // Handle named colors
+        const namedColors: { [key: string]: [number, number, number, number] } =
+            {
+                red: [1, 0, 0, 1],
+                green: [0, 1, 0, 1],
+                blue: [0, 0, 1, 1],
+                brown: [0.4, 0.2, 0.1, 1],
+                leaf_green: [0.3, 0.7, 0.2, 1],
+                bark_brown: [0.3, 0.15, 0.05, 1],
+                autumn_red: [0.7, 0.2, 0.1, 1],
+                autumn_orange: [0.8, 0.4, 0.1, 1],
+                autumn_yellow: [0.9, 0.7, 0.2, 1],
+                dark_green: [0.1, 0.3, 0.1, 1],
+            };
+
+        if (namedColors[cleanColor.toLowerCase()]) {
+            return namedColors[cleanColor.toLowerCase()];
+        }
+
+        // Handle hex colors
+        if (cleanColor.match(/^[0-9A-Fa-f]+$/)) {
+            if (cleanColor.length === 6) {
+                // RGB format
+                const r = parseInt(cleanColor.slice(0, 2), 16) / 255;
+                const g = parseInt(cleanColor.slice(2, 4), 16) / 255;
+                const b = parseInt(cleanColor.slice(4, 6), 16) / 255;
+                return [r, g, b, 1];
+            } else if (cleanColor.length === 8) {
+                // RGBA format
+                const r = parseInt(cleanColor.slice(0, 2), 16) / 255;
+                const g = parseInt(cleanColor.slice(2, 4), 16) / 255;
+                const b = parseInt(cleanColor.slice(4, 6), 16) / 255;
+                const a = parseInt(cleanColor.slice(6, 8), 16) / 255;
+                return [r, g, b, a];
+            }
+        }
+
+        return null;
+    }
+
+    static tokensToString(tokens: ParameterizedSymbol[]): string {
+        return tokens
+            .map((token) => {
+                if (token.parameters.size === 0) {
+                    return token.symbol;
+                }
+
+                const params = Array.from(token.parameters.entries())
+                    .map(([key, value]) => `${key}:${value}`)
+                    .join(",");
+                return `${token.symbol}{${params}}`;
+            })
+            .join("");
+    }
 }
 
 export class LSystem {
     private axiom: string;
     private rules: Map<string, string[]>;
+    private parameterizedRules: Map<string, string[]>;
     private angle: number;
     private angleVariation: number;
     private lengthVariation: number;
@@ -50,6 +157,7 @@ export class LSystem {
     ) {
         this.axiom = axiom;
         this.rules = new Map();
+        this.parameterizedRules = new Map();
         this.angle = (angle * Math.PI) / 180; // Convert to radians
         this.angleVariation = (angleVariation * Math.PI) / 180; // Convert to radians
         this.lengthVariation = lengthVariation / 100; // Convert percentage to decimal
@@ -59,10 +167,21 @@ export class LSystem {
 
         // Group rules by symbol to support multiple rules per symbol
         rules.forEach((rule) => {
-            if (!this.rules.has(rule.from)) {
-                this.rules.set(rule.from, []);
+            // Extract base symbol from 'from' part (handle parameterized symbols)
+            const baseSymbol = rule.from.includes("{")
+                ? rule.from.charAt(0)
+                : rule.from;
+
+            if (!this.rules.has(baseSymbol)) {
+                this.rules.set(baseSymbol, []);
             }
-            this.rules.get(rule.from)!.push(rule.to);
+            this.rules.get(baseSymbol)!.push(rule.to);
+
+            // Also store parameterized rules for direct lookup
+            if (!this.parameterizedRules.has(rule.from)) {
+                this.parameterizedRules.set(rule.from, []);
+            }
+            this.parameterizedRules.get(rule.from)!.push(rule.to);
         });
 
         // Add default leaf behavior if no explicit leaf rules exist
@@ -122,28 +241,38 @@ export class LSystem {
     }
 
     private iterate(input: string, iteration: number): string {
+        // Parse input string into tokens first
+        const tokens = ParameterizedSymbolParser.parseString(input);
         let result = "";
 
-        for (let i = 0; i < input.length; i++) {
-            const char = input[i];
+        for (const token of tokens) {
+            const fullSymbol = ParameterizedSymbolParser.tokensToString([
+                token,
+            ]);
 
-            // Apply grammar rules - support multiple rules per symbol
-            const ruleOptions = this.rules.get(char);
-            if (ruleOptions !== undefined && ruleOptions.length > 0) {
+            // Try base symbol rules first (this allows F{color:red} to match F -> ...)
+            let ruleOptions = this.rules.get(token.symbol);
+
+            // If no base symbol match, try exact parameterized rule match
+            if (!ruleOptions) {
+                ruleOptions = this.parameterizedRules.get(fullSymbol);
+            }
+
+            if (ruleOptions && ruleOptions.length > 0) {
                 // If multiple rules exist for this symbol, choose one randomly
                 const selectedRule =
                     ruleOptions[Math.floor(Math.random() * ruleOptions.length)];
                 result += selectedRule;
             } else {
-                // For characters without explicit rules, apply probabilistic leaf generation
+                // For symbols without explicit rules, apply probabilistic leaf generation
                 if (
-                    char === "A" &&
+                    token.symbol === "A" &&
                     iteration >= this.leafGenerationThreshold &&
                     Math.random() < this.leafProbability
                 ) {
                     result += "L";
                 } else {
-                    result += char;
+                    result += fullSymbol; // Preserve the full parameterized symbol
                 }
             }
         }
@@ -153,9 +282,10 @@ export class LSystem {
 
     public interpretToGeometry(
         lSystemString: string,
-        initialLength: number = 1.0,
-        initialThickness: number = 0.1,
+        length: number = 1,
+        thickness: number = 0.1,
         tapering: number = 0.8,
+        leafColor: [number, number, number] = [0.2, 0.8, 0.2],
     ): {
         vertices: number[];
         normals: number[];
@@ -167,6 +297,8 @@ export class LSystem {
         leafNormals: number[];
         leafUvs: number[];
         leafIndices: number[];
+        colors: number[];
+        leafColors: number[];
     } {
         const vertices: number[] = [];
         const normals: number[] = [];
@@ -174,10 +306,12 @@ export class LSystem {
         const depths: number[] = [];
         const heights: number[] = [];
         const indices: number[] = [];
+        const colors: number[] = [];
         const leafVertices: number[] = [];
         const leafNormals: number[] = [];
         const leafUvs: number[] = [];
         const leafIndices: number[] = [];
+        const leafColors: number[] = [];
 
         const stateStack: LSystemState[] = [];
         let currentState: LSystemState = {
@@ -185,10 +319,11 @@ export class LSystem {
             direction: [0, 1, 0], // Up
             up: [0, 0, 1], // Forward
             right: [1, 0, 0], // Right
-            length: initialLength,
-            thickness: initialThickness,
+            length: length,
+            thickness: thickness,
             depth: 0,
             generation: 0,
+            color: [0.4, 0.2, 0.1, 1], // Default brown color
         };
 
         let vertexCount = 0;
@@ -237,33 +372,42 @@ export class LSystem {
         };
 
         const addCylinder = (
-            start: [number, number, number],
-            end: [number, number, number],
+            startPos: [number, number, number],
+            endPos: [number, number, number],
             startThickness: number,
             endThickness: number,
             depth: number,
+            segmentColor?: [number, number, number, number],
         ) => {
             const direction = normalize([
-                end[0] - start[0],
-                end[1] - start[1],
-                end[2] - start[2],
+                endPos[0] - startPos[0],
+                endPos[1] - startPos[1],
+                endPos[2] - startPos[2],
             ]);
-            const up = Math.abs(direction[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
-            const right = normalize(
-                cross(direction, up as [number, number, number]),
-            );
-            const forward = cross(right, direction);
+            const up: [number, number, number] =
+                Math.abs(direction[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+            const right = normalize(cross(direction, up)) as [
+                number,
+                number,
+                number,
+            ];
+            const forward = normalize(cross(right, direction)) as [
+                number,
+                number,
+                number,
+            ];
 
             const startVertexCount = vertexCount;
+            const color = segmentColor || [0.4, 0.2, 0.1, 1];
 
-            // Create vertices for start and end circles
-            for (let ring = 0; ring < 2; ring++) {
-                const pos = ring === 0 ? start : end;
-                const thickness = ring === 0 ? startThickness : endThickness;
-                const height = ring === 0 ? start[1] : end[1];
+            // Create cylinder with variable thickness
+            for (let i = 0; i <= 1; i++) {
+                const pos = i === 0 ? startPos : endPos;
+                const thickness = i === 0 ? startThickness : endThickness;
+                const height = i === 0 ? -1 : 1; // For height gradient
 
-                for (let i = 0; i < segments; i++) {
-                    const angle = (i / segments) * 2 * Math.PI;
+                for (let j = 0; j < segments; j++) {
+                    const angle = (j / segments) * 2 * Math.PI;
                     const cos = Math.cos(angle);
                     const sin = Math.sin(angle);
 
@@ -276,27 +420,29 @@ export class LSystem {
                         pos[1] + localY * thickness,
                         pos[2] + localZ * thickness,
                     );
-
                     normals.push(localX, localY, localZ);
-                    uvs.push(i / segments, ring);
+                    uvs.push(j / segments, i);
                     depths.push(depth);
-                    heights.push(height);
+                    heights.push(pos[1]);
+
+                    // Add color data
+                    colors.push(color[0], color[1], color[2], color[3]);
+
                     vertexCount++;
                 }
             }
 
-            // Create indices for cylinder
+            // Create indices for cylinder faces
             for (let i = 0; i < segments; i++) {
                 const next = (i + 1) % segments;
 
                 const v0 = startVertexCount + i;
-                const v1 = startVertexCount + next;
-                const v2 = startVertexCount + segments + i;
+                const v1 = startVertexCount + segments + i;
+                const v2 = startVertexCount + next;
                 const v3 = startVertexCount + segments + next;
 
-                // Two triangles per quad
-                indices.push(v0, v2, v1);
-                indices.push(v1, v2, v3);
+                indices.push(v0, v1, v2);
+                indices.push(v2, v1, v3);
             }
         };
 
@@ -307,6 +453,7 @@ export class LSystem {
             up: [number, number, number],
             size: number,
             depth: number,
+            leafColor?: [number, number, number, number],
         ) => {
             // Create leaf as translucent sphere with some randomness
             const leafRadius = size * (0.8 + Math.random() * 0.4); // 80-120% variation
@@ -321,6 +468,7 @@ export class LSystem {
             ];
 
             const startIdx = leafVertexCount;
+            const leafRGBA = leafColor || [0.3, 0.7, 0.2, 1];
 
             // Generate sphere vertices
             for (let ring = 0; ring <= sphereRings; ring++) {
@@ -348,6 +496,14 @@ export class LSystem {
                     // UV coordinates
                     leafUvs.push(segment / sphereSegments, ring / sphereRings);
 
+                    // Add color data
+                    leafColors.push(
+                        leafRGBA[0],
+                        leafRGBA[1],
+                        leafRGBA[2],
+                        leafRGBA[3],
+                    );
+
                     leafVertexCount++;
                 }
             }
@@ -372,11 +528,32 @@ export class LSystem {
             }
         };
 
-        // Process L-system string
-        for (let i = 0; i < lSystemString.length; i++) {
-            const char = lSystemString[i];
+        // Parse parameterized symbols
+        const tokens = ParameterizedSymbolParser.parseString(lSystemString);
 
-            switch (char) {
+        // Process tokens
+        for (const token of tokens) {
+            // Extract color parameter if present
+            const colorParam = token.parameters.get("color");
+            let symbolColor: [number, number, number, number] | undefined;
+
+            if (colorParam) {
+                console.log(
+                    `Found color parameter: ${token.symbol}{color:${colorParam}}`,
+                );
+                symbolColor =
+                    ParameterizedSymbolParser.parseColor(colorParam) ||
+                    undefined;
+                if (symbolColor) {
+                    console.log(
+                        `Parsed color: [${symbolColor[0].toFixed(3)}, ${symbolColor[1].toFixed(3)}, ${symbolColor[2].toFixed(3)}, ${symbolColor[3].toFixed(3)}]`,
+                    );
+                } else {
+                    console.log(`Failed to parse color: ${colorParam}`);
+                }
+            }
+
+            switch (token.symbol) {
                 case "F": // Forward draw
                 case "f": {
                     // Forward move (no draw)
@@ -395,15 +572,28 @@ export class LSystem {
                             currentState.direction[2] * variedLength,
                     ];
 
-                    if (char === "F") {
+                    if (token.symbol === "F") {
                         const endThickness = currentState.thickness * tapering;
+                        const segmentColor = symbolColor || currentState.color;
+                        console.log(
+                            `Drawing F segment with color: [${segmentColor![0].toFixed(3)}, ${segmentColor![1].toFixed(3)}, ${segmentColor![2].toFixed(3)}, ${segmentColor![3].toFixed(3)}]`,
+                        );
                         addCylinder(
                             startPos,
                             endPos,
                             currentState.thickness,
                             endThickness,
                             currentState.depth,
+                            segmentColor,
                         );
+                    }
+
+                    // Update state color if symbol has color
+                    if (symbolColor) {
+                        console.log(
+                            `Updating current state color to: [${symbolColor[0].toFixed(3)}, ${symbolColor[1].toFixed(3)}, ${symbolColor[2].toFixed(3)}, ${symbolColor[3].toFixed(3)}]`,
+                        );
+                        currentState.color = symbolColor;
                     }
 
                     currentState.position = endPos;
@@ -416,6 +606,15 @@ export class LSystem {
                     console.log(
                         `Processing leaf at position: [${currentState.position.join(", ")}]`,
                     );
+                    const leafRGBA = symbolColor || [
+                        leafColor[0],
+                        leafColor[1],
+                        leafColor[2],
+                        1,
+                    ];
+                    console.log(
+                        `Drawing L leaf with color: [${leafRGBA[0].toFixed(3)}, ${leafRGBA[1].toFixed(3)}, ${leafRGBA[2].toFixed(3)}, ${leafRGBA[3].toFixed(3)}]`,
+                    );
                     addLeaf(
                         currentState.position,
                         currentState.direction,
@@ -423,6 +622,7 @@ export class LSystem {
                         currentState.up,
                         currentState.thickness * 3, // Leaf size relative to branch thickness (smaller for spheres)
                         currentState.depth,
+                        leafRGBA,
                     );
                     break;
                 }
@@ -548,6 +748,8 @@ export class LSystem {
             leafNormals,
             leafUvs,
             leafIndices,
+            colors,
+            leafColors,
         };
     }
 

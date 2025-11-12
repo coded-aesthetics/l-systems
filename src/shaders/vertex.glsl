@@ -3,6 +3,7 @@ attribute vec3 a_normal;
 attribute vec2 a_uv;
 attribute float a_depth;
 attribute float a_height;
+attribute vec4 a_color;
 
 uniform mat4 u_modelViewMatrix;
 uniform mat4 u_projectionMatrix;
@@ -15,6 +16,7 @@ varying vec2 v_uv;
 varying float v_depth;
 varying float v_height;
 varying vec3 v_worldPosition;
+varying vec4 v_color;
 
 void main() {
     // Apply gentle wind animation
@@ -34,6 +36,7 @@ void main() {
     v_uv = a_uv;
     v_depth = a_depth;
     v_height = a_height;
+    v_color = a_color;
 
     gl_Position = u_projectionMatrix * worldPosition;
 }

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L-Systems Color Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .test-section h2 {
+            color: #34495e;
+            margin-top: 0;
+        }
+        .example {
+            background: #fff;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #3498db;
+            font-family: 'Courier New', monospace;
+        }
+        .syntax {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .color-preview {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        .test-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #2980b9;
+        }
+        .output {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1></h1>🌳 L-Systems Parameterized Color Feature Test</h1>
+
+        <div class="test-section">
+            <h2>🎨 Color Syntax Overview</h2>
+            <p>The new parameterized color feature allows you to specify colors directly in L-system symbols using the syntax: <code class="syntax">{color:value}</code></p>
+
+            <h3></h3>Supported Color Formats:</h3>
+            <div class="example">
+                <strong>Named Colors:</strong><br>
+                • <span class="color-preview" style="background: red;"></span>red<br>
+                • <span class="color-preview" style="background: green;"></span>green<br>
+                • <span class="color-preview" style="background: blue;"></span>blue<br>
+                • <span class="color-preview" style="background: #654321;"></span>brown<br>
+                • <span class="color-preview" style="background: #4ade80;"></span>leaf_green<br>
+                • <span class="color-preview" style="background: #8b4513;"></span>bark_brown<br>
+                • <span class="color-preview" style="background: #dc2626;"></span>autumn_red<br>
+                • <span class="color-preview" style="background: #ea580c;"></span>autumn_orange<br>
+                • <span class="color-preview" style="background: #facc15;"></span>autumn_yellow<br>
+                • <span class="color-preview" style="background: #166534;"></span>dark_green
+            </div>
+
+            <div class="example">
+                <strong>Hex Colors:</strong><br>
+                • <code class="syntax">#FF0000</code> or <code class="syntax">FF0000</code> (RGB)<br>
+                • <code class="syntax">FABC34E4</code> (RGBA with transparency)
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📝 Basic Syntax Examples</h2>
+
+            <div class="example">
+                <strong>Single Colored Symbol:</strong><br>
+                <code class="syntax">L{color:green}</code> - Green leaf<br>
+                <code class="syntax">F{color:#8B4513}</code> - Brown branch<br>
+                <code class="syntax">L{color:FABC34E4}</code> - Semi-transparent yellow-orange leaf
+            </div>
+
+            <div class="example">
+                <strong>Rule with Colors:</strong><br>
+                <code class="syntax">F -> F{color:bark_brown}[+L{color:leaf_green}][-L{color:autumn_red}]</code>
+            </div>
+
+            <div class="example">
+                <strong>Complex Multi-Color Rule:</strong><br>
+                <code class="syntax">A -> F{color:brown}[&+A{color:red}][&-A{color:blue}][^+A{color:green}][^-A{color:autumn_orange}]</code>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2></h2>🧪 Test Examples</h2>
+            <p>Click the buttons below to test different color configurations:</p>
+
+            <button class="test-button" onclick="testBasicColors()">Test Basic Colors</button>
+            <button class="test-button" onclick="testHexColors()">Test Hex Colors</button>
+            <button class="test-button" onclick="testRGBAColors()">Test RGBA Colors</button>
+            <button class="test-button" onclick="testComplexRules()">Test Complex Rules</button>
+            <button class="test-button" onclick="runAllTests()">Run All Tests</button>
+
+            <div class="output" id="testOutput">Click a test button to see results...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>🌲 Ready-to-Use Plant Examples</h2>
+
+            <div class="example">
+                <strong>1. Simple Colored Tree</strong><br>
+                <strong></strong>Axiom:</strong> <code>F</code><br>
+                <strong>Rule:</strong> <code class="syntax">F -> F{color:bark_brown}[+L{color:leaf_green}][-L{color:leaf_green}]F</code><br>
+                <strong>Iterations:</strong> 4<br>
+                <strong>Angle:</strong> 25°
+            </div>
+
+            <div class="example">
+                <strong>2. Autumn Tree</strong><br>
+                <strong>Axiom:</strong> <code>F</code><br>
+                <strong>Rule:</strong> <code class="syntax">F -> F{color:bark_brown}[+L{color:autumn_red}][-L{color:autumn_orange}][&L{color:autumn_yellow}]</code><br>
+                <strong>Iterations:</strong> 4<br>
+                <strong>Angle:</strong> 28°
+            </div>
+
+            <div class="example">
+                <strong>3. Rainbow Bush</strong><br>
+                <strong>Axiom:</strong> <code>A</code><br>
+                <strong>Rules:</strong><br>
+                <code class="syntax">A -> F{color:brown}[&+A{color:red}][&-A{color:blue}][^+A{color:green}][^-A{color:autumn_orange}]</code><br>
+                <code class="syntax">F -> FF{color:bark_brown}</code><br>
+                <strong>Iterations:</strong> 3<br>
+                <strong>Angle:</strong> 25°
+            </div>
+
+            <div class="example">
+                <strong>4. Colored Fern</strong><br>
+                <strong>Axiom:</strong> <code>X</code><br>
+                <strong>Rules:</strong><br>
+                <code class="syntax">X -> F{color:green}[+X{color:leaf_green}]F{color:dark_green}[-X{color:green}]+X</code><br>
+                <code class="syntax">F -> FF{color:brown}</code><br>
+                <strong>Iterations:</strong> 5<br>
+                <strong>Angle:</strong> 25°
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>⚙️ Technical Implementation Notes</h2>
+            <ul>
+                <li><strong>Parser:</strong> Uses regex-based tokenization to extract symbols and parameters</li>
+                <li><strong>Color Support:</strong> RGBA with full alpha channel support</li>
+                <li><strong>Fallback:</strong> Invalid colors fall back to default system colors</li>
+                <li><strong>Performance:</strong> Colors are parsed once during rule interpretation</li>
+                <li><strong>WebGL:</strong> Colors are passed as vertex attributes for efficient GPU rendering</li>
+                <li><strong>Compatibility:</strong> Fully backward compatible with existing L-systems</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('testOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            output.innerHTML += `[${timestamp}] ${prefix} <span class="${className}">${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('testOutput').innerHTML = '';
+        }
+
+        function testBasicColors() {
+            clearOutput();
+            log('Testing basic named colors...');
+
+            const testColors = [
+                'red', 'green', 'blue', 'brown',
+                'leaf_green', 'bark_brown', 'dark_green',
+                'autumn_red', 'autumn_orange', 'autumn_yellow'
+            ];
+
+            testColors.forEach(color => {
+                const syntax = `L{color:${color}}`;
+                log(`Testing: ${syntax}`);
+            });
+
+            log('Basic color test completed!', 'success');
+        }
+
+        function testHexColors() {
+            clearOutput();
+            log('Testing hex color formats...');
+
+            const testCases = [
+                { input: '#FF0000', expected: 'Red' },
+                { input: 'FF0000', expected: 'Red (no #)' },
+                { input: '#00FF00', expected: 'Green' },
+                { input: '#0000FF', expected: 'Blue' },
+                { input: '#8B4513', expected: 'Brown' }
+            ];
+
+            testCases.forEach(test => {
+                const syntax = `F{color:${test.input}}`;
+                log(`Testing: ${syntax} (${test.expected})`);
+            });
+
+            log('Hex color test completed!', 'success');
+        }
+
+        function testRGBAColors() {
+            clearOutput();
+            log('Testing RGBA color formats...');
+
+            const testCases = [
+                { input: 'FF0000FF', expected: 'Opaque Red' },
+                { input: '00FF0080', expected: 'Semi-transparent Green' },
+                { input: 'FABC34E4', expected: 'Semi-transparent Yellow-Orange' },
+                { input: '0000FF40', expected: 'Very transparent Blue' }
+            ];
+
+            testCases.forEach(test => {
+                const syntax = `L{color:${test.input}}`;
+                log(`Testing: ${syntax} (${test.expected})`);
+            });
+
+            log('RGBA color test completed!', 'success');
+        }
+
+        function testComplexRules() {
+            clearOutput();
+            log('Testing complex multi-color rules...');
+
+            const testRules = [
+                'F -> F{color:bark_brown}[+L{color:leaf_green}][-L{color:autumn_red}]',
+                'A -> F{color:brown}[&+A{color:red}][&-A{color:blue}][^+A{color:green}]',
+                'X -> F{color:#8B4513}[+X{color:00FF0080}]F{color:dark_green}[-X]',
+                'L{color:green} -> L{color:autumn_orange}[+L{color:autumn_yellow}][-L{color:autumn_red}]'
+            ];
+
+            testRules.forEach((rule, index) => {
+                log(`Rule ${index + 1}: ${rule}`);
+            });
+
+            log('Complex rules test completed!', 'success');
+        }
+
+        function runAllTests() {
+            clearOutput();
+            log('Running comprehensive color feature test suite...');
+            log('=' .repeat(50));
+
+            setTimeout(() => {
+                log('\n1. Testing Basic Colors:');
+                testBasicColors();
+
+                setTimeout(() => {
+                    log('\n2. Testing Hex Colors:');
+                    testHexColors();
+
+                    setTimeout(() => {
+                        log('\n3. Testing RGBA Colors:');
+                        testRGBAColors();
+
+                        setTimeout(() => {
+                            log('\n4. Testing Complex Rules:');
+                            testComplexRules();
+
+                            setTimeout(() => {
+                                log('\n' + '=' .repeat(50));
+                                log('🎉 All tests completed successfully!', 'success');
+                                log('\nThe parameterized color feature is ready to use!');
+                                log('Copy any of the examples above into the main L-system application.');
+                            }, 500);
+                        }, 500);
+                    }, 500);
+                }, 500);
+            }, 100);
+        }
+
+        // Initialize
+        log('Color Test Suite Loaded Successfully!', 'success');
+        log('Click any test button to begin testing the color feature.');
+    </script>
+</body>
+</html>

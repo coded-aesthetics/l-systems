@@ -499,6 +499,62 @@ F -> F[+F]F[-F]F</textarea
                         <button onclick="loadPreset('spiral3d')">
                             3D Spiral
                         </button>
+                        <button
+                            onclick="loadPreset('coloredTree')"
+                            style="
+                                background: linear-gradient(
+                                    45deg,
+                                    #8b4513,
+                                    #228b22
+                                );
+                                color: white;
+                            "
+                        >
+                            🎨 Colored Tree
+                        </button>
+                        <button
+                            onclick="loadPreset('autumnTreeColored')"
+                            style="
+                                background: linear-gradient(
+                                    45deg,
+                                    #dc2626,
+                                    #ea580c,
+                                    #facc15
+                                );
+                                color: white;
+                            "
+                        >
+                            🍂 Autumn Colors
+                        </button>
+                        <button
+                            onclick="loadPreset('coloredFern')"
+                            style="
+                                background: linear-gradient(
+                                    45deg,
+                                    #166534,
+                                    #4ade80
+                                );
+                                color: white;
+                            "
+                        >
+                            🌿 Colored Fern
+                        </button>
+                        <button
+                            onclick="loadPreset('rainbowBush')"
+                            style="
+                                background: linear-gradient(
+                                    45deg,
+                                    #dc2626,
+                                    #ea580c,
+                                    #facc15,
+                                    #4ade80,
+                                    #3b82f6
+                                );
+                                color: white;
+                            "
+                        >
+                            🌈 Rainbow Bush
+                        </button>
                     </div>
 
                     <div class="help-section">
@@ -628,6 +684,7 @@ F -> F[+F]F[-F]F</textarea
                         <option value="1">Branch Depth</option>
                         <option value="2">Uniform Green</option>
                         <option value="3">Rainbow</option>
+                        <option value="4">Parameterized Colors</option>
                     </select>
                 </div>
 
@@ -1164,6 +1221,45 @@ F -> F[+F]F[-F]F</textarea
                             appearance
                         </li>
                     </ul>
+
+                    <div class="help-section-title">
+                        🎨 Parameterized Colors
+                    </div>
+                    <div class="example-box">
+                        <strong>New Feature:</strong> Add colors directly to
+                        symbols using <code>{color:value}</code> syntax
+                    </div>
+
+                    <div class="example-box">
+                        <strong>Basic Syntax:</strong>
+                        <div class="example-code">
+                            L{color:green} - Green leaf<br />
+                            F{color:brown} - Brown branch<br />
+                            L{color:#FF0000} - Red leaf (hex)<br />
+                            F{color:FABC34E4} - Semi-transparent branch (RGBA)
+                        </div>
+                    </div>
+
+                    <div class="example-box">
+                        <strong>In Rules:</strong>
+                        <div class="example-code">
+                            F ->
+                            F{color:bark_brown}[+L{color:leaf_green}][-L{color:autumn_red}]<br />
+                            L{color:green} ->
+                            L{color:autumn_orange}[+L{color:autumn_yellow}]
+                        </div>
+                    </div>
+
+                    <div class="example-box">
+                        <strong>Named Colors:</strong> red, green, blue, brown,
+                        leaf_green, bark_brown, dark_green, autumn_red,
+                        autumn_orange, autumn_yellow
+                    </div>
+
+                    <div class="example-box">
+                        <strong>💡 Remember:</strong> Set Color Mode to
+                        "Parameterized Colors" to enable this feature!
+                    </div>
                 </div>
             </div>
         </div>
@@ -1184,6 +1280,172 @@ F -> F[+F]F[-F]F</textarea
                     .getElementById("leafColor")
                     .dispatchEvent(new Event("change"));
             }
+
+            function showColorExamples() {
+                const examples = `
+🎨 Parameterized Color Syntax Examples:
+
+Basic colored symbols:
+• L{color:green} - Green leaf using named color
+• F{color:#8B4513} - Brown branch using hex color
+• L{color:FABC34E4} - Leaf with RGBA hex (alpha support)
+
+Complex rules with colors:
+• F -> F{color:brown}[+L{color:green}][-L{color:red}]
+• L{color:green} -> L{color:autumn_orange}L{color:autumn_red}
+
+Named colors available:
+• red, green, blue, brown
+• leaf_green, bark_brown
+• autumn_red, autumn_orange, autumn_yellow
+• dark_green
+
+Try these examples:
+1. Simple colored tree:
+   Axiom: F
+   Rule: F -> F{color:brown}[+L{color:green}][-L{color:green}]F
+
+2. Autumn tree:
+   Axiom: F
+   Rule: F -> F{color:bark_brown}[+L{color:autumn_red}][-L{color:autumn_orange}]
+
+3. Multi-colored fern:
+   Axiom: X
+   Rule: X -> F{color:green}[+X{color:leaf_green}]F[-X{color:dark_green}]+X
+   Rule: F -> FF{color:brown}
+
+💡 Don't forget to set Color Mode to "Parameterized Colors" to see the colors!
+                `;
+
+                alert(examples);
+
+                // Auto-set color mode to parameterized colors
+                const colorModeSelect = document.getElementById("colorMode");
+                if (colorModeSelect && colorModeSelect.value !== "4") {
+                    colorModeSelect.value = "4";
+                    colorModeSelect.dispatchEvent(new Event("change"));
+                }
+            }
+
+            function insertColorTemplate() {
+                const templates = [
+                    "F{color:bark_brown}[+L{color:leaf_green}][-L{color:autumn_red}]",
+                    "L{color:green} -> L{color:autumn_orange}[+L{color:autumn_yellow}]",
+                    "A{color:brown}[&+A{color:red}][&-A{color:blue}][^+A{color:green}]",
+                    "F{color:#8B4513}[+L{color:#32CD32}][-L{color:#FF6347}]",
+                ];
+
+                const selectedTemplate =
+                    templates[Math.floor(Math.random() * templates.length)];
+
+                const rulesTextarea = document.getElementById("rules");
+                if (rulesTextarea) {
+                    const currentValue = rulesTextarea.value.trim();
+                    const newValue = currentValue
+                        ? currentValue + "\n" + selectedTemplate
+                        : selectedTemplate;
+
+                    rulesTextarea.value = newValue;
+                    rulesTextarea.focus();
+
+                    // Trigger change event to update the system
+                    rulesTextarea.dispatchEvent(new Event("input"));
+                }
+
+                // Auto-set color mode to parameterized colors
+                const colorModeSelect = document.getElementById("colorMode");
+                if (colorModeSelect && colorModeSelect.value !== "4") {
+                    colorModeSelect.value = "4";
+                    colorModeSelect.dispatchEvent(new Event("change"));
+                }
+
+                // Show a brief tip
+                const insertBtn = document.getElementById("insertColorBtn");
+                if (insertBtn) {
+                    const originalText = insertBtn.textContent;
+                    insertBtn.textContent = "✓ Template Added!";
+                    insertBtn.style.background =
+                        "linear-gradient(45deg, #16a34a, #15803d)";
+
+                    setTimeout(() => {
+                        insertBtn.textContent = originalText;
+                        insertBtn.style.background =
+                            "linear-gradient(45deg, #10b981, #059669)";
+                    }, 2000);
+                }
+            }
+
+            function testColorRendering() {
+                console.log("=== MANUAL COLOR RENDERING TEST ===");
+
+                // Set a simple colored rule
+                document.getElementById("axiom").value = "F";
+                document.getElementById("rules").value =
+                    "F -> F{color:red}[+L{color:green}]";
+                document.getElementById("iterations").value = "2";
+
+                // Force color mode to parameterized colors
+                const colorModeSelect = document.getElementById("colorMode");
+                colorModeSelect.value = "4";
+                colorModeSelect.dispatchEvent(new Event("change"));
+
+                // Generate after a short delay
+                setTimeout(() => {
+                    document.getElementById("generate").click();
+                }, 200);
+
+                // Show feedback
+                const testBtn = document.getElementById("testColorBtn");
+                const originalText = testBtn.textContent;
+                testBtn.textContent = "🔬 Testing...";
+                testBtn.style.background =
+                    "linear-gradient(45deg, #f59e0b, #d97706)";
+
+                setTimeout(() => {
+                    testBtn.textContent = "✓ Test Complete - Check Console";
+                    testBtn.style.background =
+                        "linear-gradient(45deg, #10b981, #059669)";
+
+                    setTimeout(() => {
+                        testBtn.textContent = originalText;
+                        testBtn.style.background =
+                            "linear-gradient(45deg, #ef4444, #dc2626)";
+                    }, 3000);
+                }, 1000);
+            }
+
+            function testCompletePipeline() {
+                console.log("=== COMPLETE PIPELINE TEST ===");
+
+                // Step 1: Set up simple test case
+                const axiom = "F";
+                const rule = "F -> F{color:red}[+L{color:green}]";
+                console.log(`Testing: "${axiom}" with rule "${rule}"`);
+
+                // Step 2: Force color mode to parameterized colors
+                const colorModeSelect = document.getElementById("colorMode");
+                colorModeSelect.value = "4";
+                colorModeSelect.dispatchEvent(new Event("change"));
+                console.log("✓ Set color mode to Parameterized Colors");
+
+                // Step 3: Set the test values in UI
+                document.getElementById("axiom").value = axiom;
+                document.getElementById("rules").value = rule;
+                document.getElementById("iterations").value = "1";
+
+                // Step 4: Trigger generation
+                setTimeout(() => {
+                    console.log("✓ Triggering generation...");
+                    document.getElementById("generate").click();
+                }, 200);
+
+                console.log(
+                    "Pipeline test initiated - check console for results",
+                );
+            }
+
+            // Make test function available globally
+            window.testCompletePipeline = testCompletePipeline;
 
             // Close modal when clicking outside of it
             window.onclick = function (event) {

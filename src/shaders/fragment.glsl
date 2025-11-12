@@ -6,9 +6,11 @@ varying vec2 v_uv;
 varying float v_depth;
 varying float v_height;
 varying vec3 v_worldPosition;
+varying vec4 v_color;
 
 uniform float u_time;
 uniform int u_colorMode;
+uniform bool u_useVertexColors;
 uniform vec3 u_lightDirection;
 
 // Color palettes for different modes
@@ -68,15 +70,20 @@ vec3 getAutumnColor(float height, float depth) {
 void main() {
     vec3 baseColor;
 
-    // Select color based on mode
-    if (u_colorMode == 0) {
-        baseColor = getHeightGradientColor(v_height);
-    } else if (u_colorMode == 1) {
-        baseColor = getDepthColor(v_depth);
-    } else if (u_colorMode == 2) {
-        baseColor = getUniformColor();
+    // Use vertex colors if available and enabled
+    if (u_useVertexColors && v_color.a > 0.5) {
+        baseColor = v_color.rgb;
     } else {
-        baseColor = getAutumnColor(v_height, v_depth);
+        // Select color based on mode
+        if (u_colorMode == 0) {
+            baseColor = getHeightGradientColor(v_height);
+        } else if (u_colorMode == 1) {
+            baseColor = getDepthColor(v_depth);
+        } else if (u_colorMode == 2) {
+            baseColor = getUniformColor();
+        } else {
+            baseColor = getAutumnColor(v_height, v_depth);
+        }
     }
 
     // Simple lighting calculation
