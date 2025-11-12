@@ -267,47 +267,12 @@ export class LSystem {
             }
 
             if (ruleOptions && ruleOptions.length > 0) {
-                // Apply probabilistic leaf generation for branching symbols when threshold is met
-                if (
-                    iteration >= this.leafGenerationThreshold &&
-                    Math.random() < this.leafProbability &&
-                    (token.symbol === "A" ||
-                        token.symbol === "B" ||
-                        token.symbol === "X" ||
-                        token.symbol === "Y" ||
-                        token.symbol === "T")
-                ) {
-                    // Generate leaf instead of following normal rule
-                    console.log(
-                        `Leaf generation triggered for symbol '${token.symbol}' at iteration ${iteration} (threshold: ${this.leafGenerationThreshold}, probability: ${this.leafProbability})`,
-                    );
-                    result += "L";
-                } else {
-                    // If multiple rules exist for this symbol, choose one randomly
-                    const selectedRule =
-                        ruleOptions[
-                            Math.floor(Math.random() * ruleOptions.length)
-                        ];
-                    result += selectedRule;
-                }
+                // If multiple rules exist for this symbol, choose one randomly
+                const selectedRule =
+                    ruleOptions[Math.floor(Math.random() * ruleOptions.length)];
+                result += selectedRule;
             } else {
-                // For symbols without explicit rules, apply probabilistic leaf generation to common branching symbols
-                if (
-                    (token.symbol === "A" ||
-                        token.symbol === "B" ||
-                        token.symbol === "X" ||
-                        token.symbol === "Y" ||
-                        token.symbol === "T") &&
-                    iteration >= this.leafGenerationThreshold &&
-                    Math.random() < this.leafProbability
-                ) {
-                    console.log(
-                        `Leaf generation triggered (no rules) for symbol '${token.symbol}' at iteration ${iteration} (threshold: ${this.leafGenerationThreshold}, probability: ${this.leafProbability})`,
-                    );
-                    result += "L";
-                } else {
-                    result += fullSymbol; // Preserve the full parameterized symbol
-                }
+                result += fullSymbol; // Preserve the full parameterized symbol
             }
         }
 
@@ -636,28 +601,38 @@ export class LSystem {
                     break;
                 }
                 case "L": {
-                    // Leaf
-                    console.log(
-                        `Processing leaf at position: [${currentState.position.join(", ")}]`,
-                    );
-                    const leafRGBA = symbolColor || [
-                        leafColor[0],
-                        leafColor[1],
-                        leafColor[2],
-                        1,
-                    ];
-                    console.log(
-                        `Drawing L leaf with color: [${leafRGBA[0].toFixed(3)}, ${leafRGBA[1].toFixed(3)}, ${leafRGBA[2].toFixed(3)}, ${leafRGBA[3].toFixed(3)}]`,
-                    );
-                    addLeaf(
-                        currentState.position,
-                        currentState.direction,
-                        currentState.right,
-                        currentState.up,
-                        currentState.thickness * 3, // Leaf size relative to branch thickness (smaller for spheres)
-                        currentState.depth,
-                        leafRGBA,
-                    );
+                    // Leaf - only render if depth threshold is met and probability check passes
+                    if (
+                        currentState.generation >=
+                            this.leafGenerationThreshold &&
+                        Math.random() < this.leafProbability
+                    ) {
+                        console.log(
+                            `Processing leaf at position: [${currentState.position.join(", ")}], generation: ${currentState.generation}, threshold: ${this.leafGenerationThreshold}, probability: ${this.leafProbability}`,
+                        );
+                        const leafRGBA = symbolColor || [
+                            leafColor[0],
+                            leafColor[1],
+                            leafColor[2],
+                            1,
+                        ];
+                        console.log(
+                            `Drawing L leaf with color: [${leafRGBA[0].toFixed(3)}, ${leafRGBA[1].toFixed(3)}, ${leafRGBA[2].toFixed(3)}, ${leafRGBA[3].toFixed(3)}]`,
+                        );
+                        addLeaf(
+                            currentState.position,
+                            currentState.direction,
+                            currentState.right,
+                            currentState.up,
+                            currentState.thickness * 3, // Leaf size relative to branch thickness (smaller for spheres)
+                            currentState.depth,
+                            leafRGBA,
+                        );
+                    } else {
+                        console.log(
+                            `Skipping leaf - generation: ${currentState.generation}, threshold: ${this.leafGenerationThreshold}, probability check failed or threshold not met`,
+                        );
+                    }
                     break;
                 }
                 case "+": {
