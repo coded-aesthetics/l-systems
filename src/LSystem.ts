@@ -202,6 +202,14 @@ export class LSystem {
         this.lengthVariation = variation / 100;
     }
 
+    public setLeafProbability(probability: number): void {
+        this.leafProbability = probability;
+    }
+
+    public setLeafGenerationThreshold(threshold: number): void {
+        this.leafGenerationThreshold = threshold;
+    }
+
     private getVariedAngle(): number {
         if (this.angleVariation === 0) {
             return this.angle;
@@ -259,17 +267,43 @@ export class LSystem {
             }
 
             if (ruleOptions && ruleOptions.length > 0) {
-                // If multiple rules exist for this symbol, choose one randomly
-                const selectedRule =
-                    ruleOptions[Math.floor(Math.random() * ruleOptions.length)];
-                result += selectedRule;
-            } else {
-                // For symbols without explicit rules, apply probabilistic leaf generation
+                // Apply probabilistic leaf generation for branching symbols when threshold is met
                 if (
-                    token.symbol === "A" &&
+                    iteration >= this.leafGenerationThreshold &&
+                    Math.random() < this.leafProbability &&
+                    (token.symbol === "A" ||
+                        token.symbol === "B" ||
+                        token.symbol === "X" ||
+                        token.symbol === "Y" ||
+                        token.symbol === "T")
+                ) {
+                    // Generate leaf instead of following normal rule
+                    console.log(
+                        `Leaf generation triggered for symbol '${token.symbol}' at iteration ${iteration} (threshold: ${this.leafGenerationThreshold}, probability: ${this.leafProbability})`,
+                    );
+                    result += "L";
+                } else {
+                    // If multiple rules exist for this symbol, choose one randomly
+                    const selectedRule =
+                        ruleOptions[
+                            Math.floor(Math.random() * ruleOptions.length)
+                        ];
+                    result += selectedRule;
+                }
+            } else {
+                // For symbols without explicit rules, apply probabilistic leaf generation to common branching symbols
+                if (
+                    (token.symbol === "A" ||
+                        token.symbol === "B" ||
+                        token.symbol === "X" ||
+                        token.symbol === "Y" ||
+                        token.symbol === "T") &&
                     iteration >= this.leafGenerationThreshold &&
                     Math.random() < this.leafProbability
                 ) {
+                    console.log(
+                        `Leaf generation triggered (no rules) for symbol '${token.symbol}' at iteration ${iteration} (threshold: ${this.leafGenerationThreshold}, probability: ${this.leafProbability})`,
+                    );
                     result += "L";
                 } else {
                     result += fullSymbol; // Preserve the full parameterized symbol

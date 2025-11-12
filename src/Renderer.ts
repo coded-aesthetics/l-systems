@@ -655,6 +655,12 @@ export class Renderer {
                 // Use vertex colors if available and enabled
                 if (u_useVertexColors && v_color.a > 0.0) {
                     baseColor = v_color.rgb;
+
+                    // Apply height gradient to parameterized colors
+                    // Blend with white based on height (higher = lighter)
+                    float normalizedHeight = (v_height + 1.0) * 0.5; // Convert from [-1,1] to [0,1]
+                    float whiteMixFactor = normalizedHeight * 0.1; // Adjust intensity (0.1 = 10% max white blend)
+                    baseColor = mix(baseColor, vec3(1.0, 1.0, 1.0), whiteMixFactor);
                 } else {
                     // Select color based on mode
                     if (u_colorMode == 0) {
