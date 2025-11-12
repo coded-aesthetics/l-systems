@@ -603,12 +603,11 @@ export class LSystem {
                 case "L": {
                     // Leaf - only render if depth threshold is met and probability check passes
                     if (
-                        currentState.generation >=
-                            this.leafGenerationThreshold &&
+                        currentState.depth >= this.leafGenerationThreshold &&
                         Math.random() < this.leafProbability
                     ) {
                         console.log(
-                            `Processing leaf at position: [${currentState.position.join(", ")}], generation: ${currentState.generation}, threshold: ${this.leafGenerationThreshold}, probability: ${this.leafProbability}`,
+                            `Processing leaf at position: [${currentState.position.join(", ")}], depth: ${currentState.depth}, threshold: ${this.leafGenerationThreshold}, probability: ${this.leafProbability}`,
                         );
                         const leafRGBA = symbolColor || [
                             leafColor[0],
@@ -630,7 +629,7 @@ export class LSystem {
                         );
                     } else {
                         console.log(
-                            `Skipping leaf - generation: ${currentState.generation}, threshold: ${this.leafGenerationThreshold}, probability check failed or threshold not met`,
+                            `Skipping leaf - depth: ${currentState.depth}, threshold: ${this.leafGenerationThreshold}, probability check failed or threshold not met`,
                         );
                     }
                     break;
