@@ -2,6 +2,28 @@
 
 A 3D interactive L-Systems plant generator with WebGL rendering, featuring real-time parameter adjustment, leaf generation, and comprehensive save/load functionality.
 
+## Architecture
+
+This project has been refactored into a clean, modular architecture for better maintainability and extensibility:
+
+### Core Modules (`src/core/`)
+- **`LSystemState.ts`** - Core types and interfaces
+- **`LSystemEngine.ts`** - Pure L-System string generation engine
+- **`RuleProcessor.ts`** - Rule parsing and processing logic
+
+### Parsing Utilities (`src/parsing/`)
+- **`ParameterParser.ts`** - Symbol parameter extraction
+- **`ColorParser.ts`** - Color parsing with named colors support  
+- **`SymbolParser.ts`** - Combined symbol parsing orchestrator
+
+### Utilities (`src/utils/`)
+- **`mathUtils.ts`** - 3D math operations and vector utilities
+- **`validationUtils.ts`** - Comprehensive input validation
+
+### Main Application
+- **`LSystemApp.ts`** - Main application orchestrator
+- **`LSystem.ts`** - Backward-compatible wrapper (maintains original API)
+
 ## Features
 
 ### Core L-Systems

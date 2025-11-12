@@ -539,6 +539,8 @@ class LSystemApp {
             let value = parseFloat(slider.value);
             if (sliderId === "iterations" || sliderId === "segments") {
                 display.textContent = Math.round(value) + suffix;
+            } else if (sliderId === "tapering") {
+                display.textContent = value.toFixed(2) + suffix;
             } else {
                 display.textContent = value.toFixed(1) + suffix;
             }
@@ -559,6 +561,8 @@ class LSystemApp {
         let value = parseFloat(slider.value);
         if (sliderId === "iterations" || sliderId === "segments") {
             display.textContent = Math.round(value) + suffix;
+        } else if (sliderId === "tapering") {
+            display.textContent = value.toFixed(2) + suffix;
         } else {
             display.textContent = value.toFixed(1) + suffix;
         }

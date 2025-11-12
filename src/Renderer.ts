@@ -1,3 +1,5 @@
+import { Mat4Utils, Mat3Utils, Vec3 } from "./utils/mathUtils.js";
+
 export interface RendererOptions {
     canvas: HTMLCanvasElement;
     segments?: number;
@@ -214,222 +216,13 @@ export class Renderer {
 
     private initializeMatrices(): void {
         // Initialize matrices to identity
-        this.mat4Identity(this.viewMatrix);
-        this.mat4Identity(this.projectionMatrix);
-        this.mat4Identity(this.modelViewMatrix);
-        this.mat3Identity(this.normalMatrix);
+        Mat4Utils.setIdentity(this.viewMatrix);
+        Mat4Utils.setIdentity(this.projectionMatrix);
+        Mat4Utils.setIdentity(this.modelViewMatrix);
+        Mat3Utils.setIdentity(this.normalMatrix);
     }
 
-    // Matrix utility functions
-    private mat4Identity(out: Float32Array): void {
-        out.fill(0);
-        out[0] = out[5] = out[10] = out[15] = 1;
-    }
-
-    private mat3Identity(out: Float32Array): void {
-        out.fill(0);
-        out[0] = out[4] = out[8] = 1;
-    }
-
-    private mat4Translate(
-        out: Float32Array,
-        a: Float32Array,
-        v: [number, number, number],
-    ): void {
-        const x = v[0],
-            y = v[1],
-            z = v[2];
-
-        if (a === out) {
-            out[12] = a[0] * x + a[4] * y + a[8] * z + a[12];
-            out[13] = a[1] * x + a[5] * y + a[9] * z + a[13];
-            out[14] = a[2] * x + a[6] * y + a[10] * z + a[14];
-            out[15] = a[3] * x + a[7] * y + a[11] * z + a[15];
-        } else {
-            for (let i = 0; i < 12; i++) out[i] = a[i];
-            out[12] = a[0] * x + a[4] * y + a[8] * z + a[12];
-            out[13] = a[1] * x + a[5] * y + a[9] * z + a[13];
-            out[14] = a[2] * x + a[6] * y + a[10] * z + a[14];
-            out[15] = a[3] * x + a[7] * y + a[11] * z + a[15];
-        }
-    }
-
-    private mat4RotateX(out: Float32Array, a: Float32Array, rad: number): void {
-        const s = Math.sin(rad);
-        const c = Math.cos(rad);
-        const a10 = a[4],
-            a11 = a[5],
-            a12 = a[6],
-            a13 = a[7];
-        const a20 = a[8],
-            a21 = a[9],
-            a22 = a[10],
-            a23 = a[11];
-
-        if (a !== out) {
-            out[0] = a[0];
-            out[1] = a[1];
-            out[2] = a[2];
-            out[3] = a[3];
-            out[12] = a[12];
-            out[13] = a[13];
-            out[14] = a[14];
-            out[15] = a[15];
-        }
-
-        out[4] = a10 * c + a20 * s;
-        out[5] = a11 * c + a21 * s;
-        out[6] = a12 * c + a22 * s;
-        out[7] = a13 * c + a23 * s;
-        out[8] = a20 * c - a10 * s;
-        out[9] = a21 * c - a11 * s;
-        out[10] = a22 * c - a12 * s;
-        out[11] = a23 * c - a13 * s;
-    }
-
-    private mat4RotateY(out: Float32Array, a: Float32Array, rad: number): void {
-        const s = Math.sin(rad);
-        const c = Math.cos(rad);
-        const a00 = a[0],
-            a01 = a[1],
-            a02 = a[2],
-            a03 = a[3];
-        const a20 = a[8],
-            a21 = a[9],
-            a22 = a[10],
-            a23 = a[11];
-
-        if (a !== out) {
-            out[4] = a[4];
-            out[5] = a[5];
-            out[6] = a[6];
-            out[7] = a[7];
-            out[12] = a[12];
-            out[13] = a[13];
-            out[14] = a[14];
-            out[15] = a[15];
-        }
-
-        out[0] = a00 * c - a20 * s;
-        out[1] = a01 * c - a21 * s;
-        out[2] = a02 * c - a22 * s;
-        out[3] = a03 * c - a23 * s;
-        out[8] = a00 * s + a20 * c;
-        out[9] = a01 * s + a21 * c;
-        out[10] = a02 * s + a22 * c;
-        out[11] = a03 * s + a23 * c;
-    }
-
-    private mat4Multiply(
-        out: Float32Array,
-        a: Float32Array,
-        b: Float32Array,
-    ): void {
-        const a00 = a[0],
-            a01 = a[1],
-            a02 = a[2],
-            a03 = a[3];
-        const a10 = a[4],
-            a11 = a[5],
-            a12 = a[6],
-            a13 = a[7];
-        const a20 = a[8],
-            a21 = a[9],
-            a22 = a[10],
-            a23 = a[11];
-        const a30 = a[12],
-            a31 = a[13],
-            a32 = a[14],
-            a33 = a[15];
-
-        let b0 = b[0],
-            b1 = b[1],
-            b2 = b[2],
-            b3 = b[3];
-        out[0] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
-        out[1] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
-        out[2] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
-        out[3] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
-
-        b0 = b[4];
-        b1 = b[5];
-        b2 = b[6];
-        b3 = b[7];
-        out[4] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
-        out[5] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
-        out[6] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
-        out[7] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
-
-        b0 = b[8];
-        b1 = b[9];
-        b2 = b[10];
-        b3 = b[11];
-        out[8] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
-        out[9] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
-        out[10] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
-        out[11] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
-
-        b0 = b[12];
-        b1 = b[13];
-        b2 = b[14];
-        b3 = b[15];
-        out[12] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
-        out[13] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
-        out[14] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
-        out[15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
-    }
-
-    private mat4Perspective(
-        out: Float32Array,
-        fovy: number,
-        aspect: number,
-        near: number,
-        far: number,
-    ): void {
-        const f = 1.0 / Math.tan(fovy / 2);
-        const nf = 1 / (near - far);
-
-        out.fill(0);
-        out[0] = f / aspect;
-        out[5] = f;
-        out[10] = (far + near) * nf;
-        out[11] = -1;
-        out[14] = 2 * far * near * nf;
-    }
-
-    private mat3NormalFromMat4(out: Float32Array, a: Float32Array): void {
-        const a00 = a[0],
-            a01 = a[1],
-            a02 = a[2];
-        const a10 = a[4],
-            a11 = a[5],
-            a12 = a[6];
-        const a20 = a[8],
-            a21 = a[9],
-            a22 = a[10];
-
-        const b01 = a22 * a11 - a12 * a21;
-        const b11 = -a22 * a10 + a12 * a20;
-        const b21 = a21 * a10 - a11 * a20;
-
-        let det = a00 * b01 + a01 * b11 + a02 * b21;
-
-        if (!det) {
-            this.mat3Identity(out);
-            return;
-        }
-        det = 1.0 / det;
-
-        out[0] = b01 * det;
-        out[1] = (-a22 * a01 + a02 * a21) * det;
-        out[2] = (a12 * a01 - a02 * a11) * det;
-        out[3] = b11 * det;
-        out[4] = (a22 * a00 - a02 * a20) * det;
-        out[5] = (-a12 * a00 + a02 * a10) * det;
-        out[6] = b21 * det;
-        out[7] = (-a21 * a00 + a01 * a20) * det;
-        out[8] = (a11 * a00 - a01 * a10) * det;
-    }
+    // Matrix utility functions are now imported from mathUtils
 
     private initWebGL(): void {
         const gl = this.gl;
@@ -1173,35 +966,35 @@ export class Renderer {
         this.rotation += this.rotationSpeed * 0.01;
 
         // Setup view matrix (camera)
-        this.mat4Identity(this.viewMatrix);
-        this.mat4Translate(this.viewMatrix, this.viewMatrix, [
+        Mat4Utils.setIdentity(this.viewMatrix);
+        Mat4Utils.translate(this.viewMatrix, this.viewMatrix, [
             this.panX,
             this.panY,
             -this.zoom,
-        ]);
+        ] as Vec3);
 
         // Apply manual rotation from mouse drag
-        this.mat4RotateX(
+        Mat4Utils.rotateX(
             this.viewMatrix,
             this.viewMatrix,
             this.manualRotationX - 0.3,
         );
-        this.mat4RotateY(
+        Mat4Utils.rotateY(
             this.viewMatrix,
             this.viewMatrix,
             this.manualRotationY + this.rotation,
         );
 
         // Setup model-view matrix
-        this.mat4Identity(this.modelViewMatrix);
-        this.mat4Multiply(
+        Mat4Utils.setIdentity(this.modelViewMatrix);
+        Mat4Utils.multiply(
             this.modelViewMatrix,
             this.viewMatrix,
             this.modelViewMatrix,
         );
 
         // Setup normal matrix
-        this.mat3NormalFromMat4(this.normalMatrix, this.modelViewMatrix);
+        Mat3Utils.normalFromMat4(this.normalMatrix, this.modelViewMatrix);
     }
 
     private resize(): void {
@@ -1219,12 +1012,12 @@ export class Renderer {
 
             // Update projection matrix
             const aspect = displayWidth / displayHeight;
-            this.mat4Perspective(
+            Mat4Utils.perspective(
                 this.projectionMatrix,
                 Math.PI / 4,
                 aspect,
                 0.1,
-                100.0,
+                100,
             );
         }
     }
