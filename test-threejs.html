@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+        #canvas-container {
+            width: 800px;
+            height: 600px;
+            border: 1px solid #333;
+            margin: 20px 0;
+        }
+        #status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #2d5a3d;
+            border: 1px solid #4CAF50;
+        }
+        .error {
+            background: #5a2d2d;
+            border: 1px solid #f44336;
+        }
+        .info {
+            background: #2d3a5a;
+            border: 1px solid #2196F3;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Three.js + L-Systems Test</h1>
+
+    <div id="status" class="info">
+        Initializing...
+    </div>
+
+    <div>
+        <button onclick="testBasicThreeJS()">Test Basic Three.js</button>
+        <button onclick="testLSystemImport()">Test L-System Import</button>
+        <button onclick="testLSystemGeneration()">Test L-System Generation</button>
+        <button onclick="testFullIntegration()">Test Full Integration</button>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="test-canvas"></canvas>
+    </div>
+
+    <!-- Import map for Three.js ES6 modules -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        // Global variables for testing
+        let scene, camera, renderer, controls;
+        let statusDiv = document.getElementById('status');
+
+        function updateStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+        }
+
+        // Test 1: Basic Three.js functionality
+        window.testBasicThreeJS = async function() {
+            updateStatus('Testing Three.js import...', 'info');
+
+            try {
+                // Import Three.js
+                const THREE = await import('three');
+                const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+
+                updateStatus('✓ Three.js imported successfully', 'success');
+
+                // Create a simple scene
+                const canvas = document.getElementById('test-canvas');
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, 800/600, 0.1, 1000);
+                renderer = new THREE.WebGLRenderer({ canvas: canvas });
+                renderer.setSize(800, 600);
+                renderer.setClearColor(0x222222);
+
+                // Add a test cube
+                const geometry = new THREE.BoxGeometry();
+                const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+                const cube = new THREE.Mesh(geometry, material);
+                scene.add(cube);
+
+                // Position camera
+                camera.position.z = 5;
+
+                // Add controls
+                controls = new OrbitControls(camera, canvas);
+
+                // Render
+                function animate() {
+                    requestAnimationFrame(animate);
+                    cube.rotation.x += 0.01;
+                    cube.rotation.y += 0.01;
+                    controls.update();
+                    renderer.render(scene, camera);
+                }
+                animate();
+
+                updateStatus('✓ Three.js scene created successfully - spinning cube should be visible', 'success');
+
+            } catch (error) {
+                updateStatus('✗ Three.js test failed: ' + error.message, 'error');
+                console.error('Three.js test error:', error);
+            }
+        };
+
+        // Test 2: L-System import
+        window.testLSystemImport = async function() {
+            updateStatus('Testing L-System import...', 'info');
+
+            try {
+                const { LSystem } = await import('./dist/core/LSystem.js');
+                updateStatus('✓ L-System imported successfully', 'success');
+
+                // Test basic instantiation
+                const rules = LSystem.parseRules('F -> F[+F]F[-F]F');
+                const lSystem = new LSystem('F', rules, 25);
+                updateStatus('✓ L-System created successfully', 'success');
+
+            } catch (error) {
+                updateStatus('✗ L-System import failed: ' + error.message, 'error');
+                console.error('L-System import error:', error);
+            }
+        };
+
+        // Test 3: L-System generation
+        window.testLSystemGeneration = async function() {
+            updateStatus('Testing L-System generation...', 'info');
+
+            try {
+                const { LSystem } = await import('./dist/core/LSystem.js');
+
+                // Create a simple tree L-System
+                const rules = LSystem.parseRules('F -> F[+F]F[-F]F');
+                const lSystem = new LSystem('F', rules, 25);
+
+                // Generate string
+                const generated = lSystem.generate(3);
+                updateStatus(`✓ L-System generated: "${generated.substring(0, 50)}${generated.length > 50 ? '...' : ''}"`, 'success');
+
+                // Try to generate geometry
+                const geometry = lSystem.interpretToGeometry(
+                    generated,
+                    1.0,    // length
+                    0.05,   // thickness
+                    0.8,    // tapering
+                    [0.2, 0.8, 0.2] // leaf color
+                );
+
+                if (geometry && geometry.vertices && geometry.vertices.length > 0) {
+                    updateStatus(`✓ Geometry generated: ${geometry.vertices.length/3} vertices, ${geometry.indices ? geometry.indices.length/3 : 0} triangles`, 'success');
+                } else {
+                    updateStatus('✗ Geometry generation failed - no vertices generated', 'error');
+                }
+
+            } catch (error) {
+                updateStatus('✗ L-System generation failed: ' + error.message, 'error');
+                console.error('L-System generation error:', error);
+            }
+        };
+
+        // Test 4: Full integration
+        window.testFullIntegration = async function() {
+            updateStatus('Testing full Three.js + L-System integration...', 'info');
+
+            try {
+                // Import both libraries
+                const THREE = await import('three');
+                const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+                const { LSystem } = await import('./dist/core/LSystem.js');
+
+                // Clear previous scene
+                if (scene) {
+                    while(scene.children.length > 0){
+                        scene.remove(scene.children[0]);
+                    }
+                }
+
+                // Create/update scene
+                const canvas = document.getElementById('test-canvas');
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, 800/600, 0.1, 1000);
+                renderer = new THREE.WebGLRenderer({ canvas: canvas });
+                renderer.setSize(800, 600);
+                renderer.setClearColor(0x87CEEB);
+
+                // Add lighting
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+                scene.add(ambientLight);
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+                directionalLight.position.set(10, 10, 5);
+                scene.add(directionalLight);
+
+                // Generate L-System
+                const rules = LSystem.parseRules('F -> F[+F]F[-F]F');
+                const lSystem = new LSystem('F', rules, 25);
+                const lSystemString = lSystem.generate(4);
+
+                // Generate geometry
+                const geometryData = lSystem.interpretToGeometry(
+                    lSystemString,
+                    1.0,
+                    0.05,
+                    0.8,
+                    [0.2, 0.8, 0.2]
+                );
+
+                if (geometryData.vertices && geometryData.vertices.length > 0) {
+                    // Create Three.js geometry
+                    const branchGeometry = new THREE.BufferGeometry();
+                    branchGeometry.setAttribute('position', new THREE.Float32BufferAttribute(geometryData.vertices, 3));
+
+                    if (geometryData.normals && geometryData.normals.length > 0) {
+                        branchGeometry.setAttribute('normal', new THREE.Float32BufferAttribute(geometryData.normals, 3));
+                    } else {
+                        branchGeometry.computeVertexNormals();
+                    }
+
+                    if (geometryData.indices) {
+                        branchGeometry.setIndex(geometryData.indices);
+                    }
+
+                    // Create material and mesh
+                    const material = new THREE.MeshPhongMaterial({
+                        color: 0x8B4513,
+                        shininess: 30
+                    });
+                    const mesh = new THREE.Mesh(branchGeometry, material);
+                    scene.add(mesh);
+
+                    // Add leaves if available
+                    if (geometryData.leafVertices && geometryData.leafVertices.length > 0) {
+                        const leafGeometry = new THREE.BufferGeometry();
+                        leafGeometry.setAttribute('position', new THREE.Float32BufferAttribute(geometryData.leafVertices, 3));
+
+                        if (geometryData.leafNormals && geometryData.leafNormals.length > 0) {
+                            leafGeometry.setAttribute('normal', new THREE.Float32BufferAttribute(geometryData.leafNormals, 3));
+                        } else {
+                            leafGeometry.computeVertexNormals();
+                        }
+
+                        if (geometryData.leafIndices) {
+                            leafGeometry.setIndex(geometryData.leafIndices);
+                        }
+
+                        const leafMaterial = new THREE.MeshPhongMaterial({
+                            color: 0x228B22,
+                            transparent: true,
+                            opacity: 0.8,
+                            side: THREE.DoubleSide
+                        });
+                        const leafMesh = new THREE.Mesh(leafGeometry, leafMaterial);
+                        scene.add(leafMesh);
+                    }
+
+                    // Position camera to view the L-System
+                    const box = new THREE.Box3().setFromObject(mesh);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+
+                    camera.position.set(
+                        center.x + maxDim * 1.5,
+                        center.y + maxDim * 1.5,
+                        center.z + maxDim * 1.5
+                    );
+
+                    // Add controls
+                    controls = new OrbitControls(camera, canvas);
+                    controls.target.copy(center);
+                    controls.update();
+
+                    // Animate
+                    function animate() {
+                        requestAnimationFrame(animate);
+                        controls.update();
+                        renderer.render(scene, camera);
+                    }
+                    animate();
+
+                    updateStatus(`✓ Full integration successful! L-System tree rendered with ${geometryData.vertices.length/3} vertices`, 'success');
+
+                } else {
+                    updateStatus('✗ Integration failed - no geometry data generated', 'error');
+                }
+
+            } catch (error) {
+                updateStatus('✗ Full integration failed: ' + error.message, 'error');
+                console.error('Integration error:', error);
+            }
+        };
+
+        // Initialize
+        updateStatus('Ready to test. Click buttons above to run tests.', 'info');
+
+    </script>
+</body>
+</html>

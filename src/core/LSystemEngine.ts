@@ -17,7 +17,7 @@ export class LSystemEngine {
     constructor(
         axiom: string,
         rules: LSystemRule[],
-        config: Partial<LSystemConfig> = {}
+        config: Partial<LSystemConfig> = {},
     ) {
         this.axiom = axiom;
         this.ruleProcessor = new RuleProcessor(rules);
@@ -31,12 +31,12 @@ export class LSystemEngine {
             lengthVariation: 0,
             leafProbability: 0.7,
             leafGenerationThreshold: 3,
-            ...config
+            ...config,
         };
 
         // Add default leaf behavior if no explicit leaf rules exist
-        if (!this.ruleProcessor.hasRules('L')) {
-            this.ruleProcessor.addRule({ from: 'L', to: 'L' });
+        if (!this.ruleProcessor.hasRules("L")) {
+            this.ruleProcessor.addRule({ from: "L", to: "L" });
         }
     }
 
@@ -58,11 +58,14 @@ export class LSystemEngine {
             this.generationHistory.push(current);
 
             // Log progress for debugging
-            const preview = current.length > 100 ? `${current.substring(0, 100)}...` : current;
+            const preview =
+                current.length > 100
+                    ? `${current.substring(0, 100)}...`
+                    : current;
             console.log(`Iteration ${i + 1}: "${preview}"`);
 
             // Count specific symbols for monitoring
-            const leafCount = this.countSymbol(current, 'L');
+            const leafCount = this.countSymbol(current, "L");
             console.log(`Leaf symbols (L) in iteration ${i + 1}: ${leafCount}`);
         }
 
@@ -84,7 +87,10 @@ export class LSystemEngine {
      * @returns Current L-System string
      */
     public getCurrentGeneration(): string {
-        return this.generationHistory[this.generationHistory.length - 1] || this.axiom;
+        return (
+            this.generationHistory[this.generationHistory.length - 1] ||
+            this.axiom
+        );
     }
 
     /**
@@ -146,7 +152,7 @@ export class LSystemEngine {
      * @param rules - Rules to add
      */
     public addRules(rules: LSystemRule[]): void {
-        rules.forEach(rule => this.ruleProcessor.addRule(rule));
+        rules.forEach((rule) => this.ruleProcessor.addRule(rule));
     }
 
     /**
@@ -176,7 +182,7 @@ export class LSystemEngine {
     public getStatistics(): {
         currentLength: number;
         totalIterations: number;
-        ruleStats: ReturnType<RuleProcessor['getStatistics']>;
+        ruleStats: ReturnType<RuleProcessor["getStatistics"]>;
         symbolCounts: { [symbol: string]: number };
     } {
         const current = this.getCurrentGeneration();
@@ -184,7 +190,7 @@ export class LSystemEngine {
 
         // Count each symbol type
         const symbolCounts: { [symbol: string]: number } = {};
-        tokens.forEach(token => {
+        tokens.forEach((token) => {
             const symbol = token.symbol;
             symbolCounts[symbol] = (symbolCounts[symbol] || 0) + 1;
         });
@@ -193,7 +199,7 @@ export class LSystemEngine {
             currentLength: current.length,
             totalIterations: this.currentIteration,
             ruleStats: this.ruleProcessor.getStatistics(),
-            symbolCounts
+            symbolCounts,
         };
     }
 

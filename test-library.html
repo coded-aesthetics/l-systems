@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L-Systems Library Integration Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .canvas-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .canvas-item {
+            text-align: center;
+        }
+        .canvas-item canvas {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .canvas-item h4 {
+            margin: 10px 0 5px 0;
+            color: #555;
+        }
+        .stats {
+            font-size: 12px;
+            color: #777;
+            margin-top: 5px;
+        }
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .controls button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 4px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .controls button:hover {
+            background: #45a049;
+        }
+        .controls button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .test-results {
+            background: #e8f5e8;
+            border: 1px solid #4CAF50;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .test-results.error {
+            background: #ffe8e8;
+            border-color: #f44336;
+        }
+        .log {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>L-Systems Library Integration Test</h1>
+            <p>Testing the L-Systems library with various configurations and Three.js integration</p>
+        </div>
+
+        <div class="test-section">
+            <h3>1. Core Library Tests</h3>
+            <div class="controls">
+                <button onclick="testCoreLibrary()">Test Core Library</button>
+                <button onclick="testColoredLSystems()">Test Colored L-Systems</button>
+                <button onclick="testPerformance()">Performance Test</button>
+            </div>
+            <div id="coreResults" class="test-results" style="display: none;"></div>
+            <div id="coreLog" class="log" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Three.js Integration Tests</h3>
+            <div class="canvas-container" id="canvasContainer">
+                <!-- Canvases will be added dynamically -->
+            </div>
+            <div class="controls">
+                <button onclick="generateAllTrees()">Generate All Trees</button>
+                <button onclick="clearAllTrees()">Clear All</button>
+                <button onclick="exportAllTrees()">Export All to OBJ</button>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Test Results</h3>
+            <div id="testResults" class="test-results" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { LSystemsLibrary } from './dist/lib/LSystemsLibrary.js';
+        import { ThreeJSAdapter } from './dist/lib/adapters/ThreeJSAdapter.js';
+
+        let testResults = [];
+        let meshGroups = [];
+
+        // Test configurations
+        const testConfigs = [
+            {
+                name: 'Simple Tree',
+                config: {
+                    axiom: "F",
+                    rules: "F -> F[+F]F[-F]F",
+                    iterations: 4,
+                    angle: 25
+                },
+                geometryParams: {
+                    length: 1.0,
+                    thickness: 0.05,
+                    tapering: 0.8,
+                    leafColor: [0.2, 0.8, 0.2]
+                },
+                adapterOptions: {
+                    materialType: 'standard',
+                    branchColor: 0x8b4513,
+                    leafColor: 0x228b22
+                }
+            },
+            {
+                name: 'Fern',
+                config: {
+                    axiom: "X",
+                    rules: "X -> F[+X]F[-X]+X\nF -> FF",
+                    iterations: 5,
+                    angle: 25
+                },
+                geometryParams: {
+                    length: 0.8,
+                    thickness: 0.03,
+                    tapering: 0.9,
+                    leafColor: [0.1, 0.9, 0.3]
+                },
+                adapterOptions: {
+                    materialType: 'phong',
+                    branchColor: 0x2f4f2f,
+                    leafColor: 0x90ee90
+                }
+            },
+            {
+                name: 'Bush',
+                config: {
+                    axiom: "F",
+                    rules: "F -> FF+[+F-F-F]-[-F+F+F]",
+                    iterations: 4,
+                    angle: 22
+                },
+                geometryParams: {
+                    length: 1.2,
+                    thickness: 0.06,
+                    tapering: 0.7,
+                    leafColor: [0.3, 0.7, 0.2]
+                },
+                adapterOptions: {
+                    materialType: 'lambert',
+                    branchColor: 0x654321,
+                    leafColor: 0x32cd32
+                }
+            },
+            {
+                name: 'Colored Tree',
+                config: {
+                    axiom: "F{color:brown}",
+                    rules: "F{color:brown} -> F{color:bark_brown}[+L{color:leaf_green}][-L{color:autumn_red}]",
+                    iterations: 4,
+                    angle: 25
+                },
+                geometryParams: {
+                    length: 1.0,
+                    thickness: 0.05,
+                    tapering: 0.8
+                },
+                adapterOptions: {
+                    materialType: 'standard'
+                }
+            }
+        ];
+
+        function log(message, isError = false) {
+            console.log(message);
+            const logEl = document.getElementById('coreLog');
+            if (logEl) {
+                logEl.style.display = 'block';
+                logEl.innerHTML += (isError ? '[ERROR] ' : '[INFO] ') + message + '\n';
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+        }
+
+        function showResults(results, isError = false) {
+            const resultsEl = document.getElementById('coreResults');
+            resultsEl.style.display = 'block';
+            resultsEl.className = 'test-results' + (isError ? ' error' : '');
+            resultsEl.innerHTML = results;
+        }
+
+        window.testCoreLibrary = function() {
+            log('Starting core library tests...');
+            const resultsEl = document.getElementById('coreLog');
+            if (resultsEl) resultsEl.innerHTML = '';
+
+            try {
+                // Test 1: Basic L-System generation
+                log('Test 1: Basic L-System generation');
+                const config = {
+                    axiom: "F",
+                    rules: "F -> F[+F]F[-F]F",
+                    iterations: 3,
+                    angle: 25
+                };
+
+                const library = new LSystemsLibrary(config);
+                const lString = library.generateString(3);
+                log(`Generated L-System string length: ${lString.length}`);
+
+                // Test 2: Geometry generation
+                log('Test 2: Geometry generation');
+                const geometry = library.generateTree(3, {
+                    length: 1.0,
+                    thickness: 0.05,
+                    tapering: 0.8
+                });
+
+                log(`Branch vertices: ${geometry.statistics.branchVertices}`);
+                log(`Leaf vertices: ${geometry.statistics.leafVertices}`);
+                log(`Total vertices: ${geometry.statistics.totalVertices}`);
+
+                // Test 3: Rule parsing
+                log('Test 3: Rule parsing');
+                const rules = LSystemsLibrary.parseRules("F -> FF[+F][-F]\nX -> F[+X]F[-X]");
+                log(`Parsed ${rules.length} rules`);
+
+                // Test 4: Configuration updates
+                log('Test 4: Configuration updates');
+                library.updateConfig({ angle: 30, iterations: 2 });
+                const newString = library.generateString(2);
+                log(`Updated configuration generated string length: ${newString.length}`);
+
+                library.dispose();
+                log('Core library tests completed successfully!');
+                showResults('✅ All core library tests passed!', false);
+
+            } catch (error) {
+                log(`Core library test failed: ${error.message}`, true);
+                showResults(`❌ Core library tests failed: ${error.message}`, true);
+            }
+        };
+
+        window.testColoredLSystems = function() {
+            log('Starting colored L-Systems tests...');
+
+            try {
+                // Test colored L-System
+                const colorConfig = {
+                    axiom: "F{color:brown}",
+                    rules: "F{color:brown} -> F{color:bark_brown}[+L{color:leaf_green}][-L{color:autumn_red}]",
+                    iterations: 3,
+                    angle: 25
+                };
+
+                const geometry = LSystemsLibrary.generateTree(colorConfig);
+                log(`Colored tree vertices: ${geometry.statistics.totalVertices}`);
+                log(`Branch colors length: ${geometry.branches.colors.length}`);
+                log(`Leaf colors length: ${geometry.leaves.colors.length}`);
+
+                // Test hex colors
+                const hexColorConfig = {
+                    axiom: "F{color:#8B4513}",
+                    rules: "F{color:#8B4513} -> F{color:654321}[+L{color:#228B22}]",
+                    iterations: 2,
+                    angle: 25
+                };
+
+                const hexGeometry = LSystemsLibrary.generateTree(hexColorConfig);
+                log(`Hex colored tree vertices: ${hexGeometry.statistics.totalVertices}`);
+
+                log('Colored L-Systems tests completed successfully!');
+                showResults('✅ Colored L-Systems tests passed!', false);
+
+            } catch (error) {
+                log(`Colored L-Systems test failed: ${error.message}`, true);
+                showResults(`❌ Colored L-Systems tests failed: ${error.message}`, true);
+            }
+        };
+
+        window.testPerformance = function() {
+            log('Starting performance tests...');
+
+            try {
+                const iterations = [2, 3, 4, 5];
+                const results = [];
+
+                iterations.forEach(iter => {
+                    const startTime = performance.now();
+
+                    const geometry = LSystemsLibrary.generateTree({
+                        axiom: "F",
+                        rules: "F -> F[+F]F[-F]F",
+                        iterations: iter,
+                        angle: 25
+                    });
+
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+
+                    results.push({
+                        iterations: iter,
+                        vertices: geometry.statistics.totalVertices,
+                        duration: duration.toFixed(2)
+                    });
+
+                    log(`Iteration ${iter}: ${geometry.statistics.totalVertices} vertices in ${duration.toFixed(2)}ms`);
+                });
+
+                log('Performance tests completed successfully!');
+                showResults('✅ Performance tests completed! Check log for details.', false);
+
+            } catch (error) {
+                log(`Performance test failed: ${error.message}`, true);
+                showResults(`❌ Performance tests failed: ${error.message}`, true);
+            }
+        };
+
+        function createCanvasItem(name, width = 300, height = 300) {
+            const container = document.getElementById('canvasContainer');
+
+            const item = document.createElement('div');
+            item.className = 'canvas-item';
+            item.innerHTML = `
+                <h4>${name}</h4>
+                <canvas width="${width}" height="${height}"></canvas>
+                <div class="stats" id="stats-${name.toLowerCase().replace(/\s+/g, '-')}">
+                    Ready to generate...
+                </div>
+            `;
+
+            container.appendChild(item);
+            return item.querySelector('canvas');
+        }
+
+        function createThreeJSScene(canvas, config, geometryParams, adapterOptions) {
+            try {
+                // Create Three.js scene
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0xf0f0f0);
+
+                const camera = new THREE.PerspectiveCamera(75, canvas.width / canvas.height, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+                renderer.setSize(canvas.width, canvas.height);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+                // Add lighting
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+                directionalLight.position.set(10, 10, 5);
+                directionalLight.castShadow = true;
+                scene.add(directionalLight);
+
+                // Generate mesh
+                const meshGroup = ThreeJSAdapter.createMeshFromLSystem(config, geometryParams, {
+                    castShadow: true,
+                    receiveShadow: true,
+                    ...adapterOptions
+                });
+
+                scene.add(meshGroup.group);
+
+                // Fit camera
+                ThreeJSAdapter.fitCameraToMesh(meshGroup, camera, null, 2.0);
+
+                // Render
+                renderer.render(scene, camera);
+
+                return { scene, camera, renderer, meshGroup };
+            } catch (error) {
+                console.error('Error creating Three.js scene:', error);
+                throw error;
+            }
+        }
+
+        window.generateAllTrees = function() {
+            const container = document.getElementById('canvasContainer');
+            container.innerHTML = '';
+            meshGroups.length = 0;
+
+            testConfigs.forEach((testConfig, index) => {
+                try {
+                    const canvas = createCanvasItem(testConfig.name);
+                    const startTime = performance.now();
+
+                    const sceneData = createThreeJSScene(
+                        canvas,
+                        testConfig.config,
+                        testConfig.geometryParams,
+                        testConfig.adapterOptions
+                    );
+
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+
+                    meshGroups.push(sceneData.meshGroup);
+
+                    // Update stats
+                    const statsId = 'stats-' + testConfig.name.toLowerCase().replace(/\s+/g, '-');
+                    const statsEl = document.getElementById(statsId);
+                    if (statsEl) {
+                        statsEl.innerHTML = `
+                            Vertices: ${sceneData.meshGroup.stats.totalVertices.toLocaleString()}<br>
+                            Triangles: ${sceneData.meshGroup.stats.totalTriangles.toLocaleString()}<br>
+                            Generated in: ${duration.toFixed(1)}ms
+                        `;
+                    }
+
+                } catch (error) {
+                    console.error(`Error generating ${testConfig.name}:`, error);
+                    const canvas = createCanvasItem(testConfig.name + ' (Error)');
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#ff6b6b';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = 'white';
+                    ctx.font = '16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Generation Failed', canvas.width/2, canvas.height/2);
+                    ctx.font = '12px Arial';
+                    ctx.fillText(error.message, canvas.width/2, canvas.height/2 + 20);
+                }
+            });
+
+            const resultsEl = document.getElementById('testResults');
+            resultsEl.style.display = 'block';
+            resultsEl.innerHTML = `✅ Generated ${meshGroups.length} trees successfully!`;
+        };
+
+        window.clearAllTrees = function() {
+            const container = document.getElementById('canvasContainer');
+            container.innerHTML = '';
+
+            // Dispose of mesh groups
+            meshGroups.forEach(meshGroup => {
+                try {
+                    ThreeJSAdapter.dispose(meshGroup);
+                } catch (error) {
+                    console.warn('Error disposing mesh group:', error);
+                }
+            });
+            meshGroups.length = 0;
+
+            const resultsEl = document.getElementById('testResults');
+            resultsEl.style.display = 'block';
+            resultsEl.innerHTML = '🧹 All trees cleared and resources disposed.';
+        };
+
+        window.exportAllTrees = function() {
+            if (meshGroups.length === 0) {
+                alert('No trees to export. Generate trees first.');
+                return;
+            }
+
+            try {
+                let allObjData = '# L-Systems Library Export\n# Generated trees\n\n';
+
+                meshGroups.forEach((meshGroup, index) => {
+                    const objData = ThreeJSAdapter.exportToOBJ(meshGroup);
+                    allObjData += `\n# Tree ${index + 1}\n`;
+                    allObjData += objData;
+                    allObjData += '\n';
+                });
+
+                // Create download
+                const blob = new Blob([allObjData], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'lsystems-trees.obj';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                const resultsEl = document.getElementById('testResults');
+                resultsEl.style.display = 'block';
+                resultsEl.innerHTML = `📁 Exported ${meshGroups.length} trees to OBJ file.`;
+
+            } catch (error) {
+                alert('Export failed: ' + error.message);
+            }
+        };
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            console.log('L-Systems Library Integration Test loaded');
+            console.log('Available functions:', {
+                testCoreLibrary: typeof testCoreLibrary,
+                testColoredLSystems: typeof testColoredLSystems,
+                testPerformance: typeof testPerformance,
+                generateAllTrees: typeof generateAllTrees,
+                clearAllTrees: typeof clearAllTrees,
+                exportAllTrees: typeof exportAllTrees
+            });
+        });
+    </script>
+</body>
+</html>

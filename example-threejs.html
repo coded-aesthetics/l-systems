@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L-Systems with Three.js - Library Example</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            font-family: 'Arial', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .header p {
+            margin: 10px 0 0;
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 140px);
+            gap: 20px;
+            padding: 0 20px 20px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        #threejs-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .controls {
+            width: 350px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+            max-height: 100%;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .control-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .control-group h3 {
+            margin: 0 0 15px;
+            color: #333;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 6px;
+            background: linear-gradient(90deg, #e0e0e0, #4CAF50);
+            border-radius: 3px;
+            padding: 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+
+        button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 5px 5px 5px 0;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .preset-grid button {
+            margin: 0;
+            font-size: 12px;
+            padding: 8px 12px;
+        }
+
+        .value-display {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: bold;
+            color: #4CAF50;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.2em;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .stats {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+
+        .info-panel {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 11px;
+            max-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>L-Systems + Three.js</h1>
+        <p>Interactive 3D Fractal Rendering Library Example</p>
+    </div>
+
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="threejs-canvas"></canvas>
+            <div id="loading" class="loading" style="display: none;">Generating L-System...</div>
+            <div class="stats" id="stats">
+                Vertices: 0<br>
+                Triangles: 0<br>
+                FPS: 0
+            </div>
+            <div class="info-panel">
+                <strong>Controls:</strong><br>
+                Mouse: Rotate camera<br>
+                Wheel: Zoom<br>
+                Right click + drag: Pan<br><br>
+                <strong>Usage:</strong><br>
+                1. Adjust parameters<br>
+                2. Click Generate L-System<br>
+                3. Try different presets<br>
+                4. Export as OBJ file
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <h3>L-System Definition</h3>
+                <label>Axiom (starting string):</label>
+                <input type="text" id="axiom" value="F">
+
+                <label>Rules (use arrow notation):</label>
+                <textarea id="rules" placeholder="F -> F[+F]F[-F]F">F -> F[+F]F[-F]F</textarea>
+                <small style="color: #666;">Example: F -> F[+F]F[-F]F means "replace F with F[+F]F[-F]F"</small>
+
+                <label>Iterations: <span class="value-display" id="iterations-value">4</span></label>
+                <input type="range" id="iterations" min="1" max="8" value="4">
+            </div>
+
+            <div class="control-group">
+                <h3>Geometry Parameters</h3>
+                <label></label>Angle: <span class="value-display" id="angle-value">25°</span></label>
+                <input type="range" id="angle" min="5" max="90" value="25">
+
+                <label>Length: <span class="value-display" id="length-value">1.0</span></label>
+                <input type="range" id="length" min="0.1" max="3.0" step="0.1" value="1.0">
+
+                <label>Thickness: <span class="value-display" id="thickness-value">0.05</span></label>
+                <input type="range" id="thickness" min="0.01" max="0.2" step="0.01" value="0.05">
+
+                <label>Tapering: <span class="value-display" id="tapering-value">0.8</span></label>
+                <input type="range" id="tapering" min="0.1" max="1.0" step="0.01" value="0.8">
+            </div>
+
+            <div class="control-group">
+                <h3>Advanced Parameters</h3>
+                <label>Angle Variation: <span class="value-display" id="angle-variation-value">0°</span></label>
+                <input type="range" id="angle-variation" min="0" max="45" step="1" value="0">
+
+                <label>Length Variation: <span class="value-display" id="length-variation-value">0.0</span></label>
+                <input type="range" id="length-variation" min="0" max="0.5" step="0.05" value="0">
+
+                <label>Leaf Probability: <span class="value-display" id="leaf-probability-value">0.7</span></label>
+                <input type="range" id="leaf-probability" min="0" max="1.0" step="0.05" value="0.7">
+
+                <label>Leaf Threshold: <span class="value-display" id="leaf-threshold-value">3</span></label>
+                <input type="range" id="leaf-threshold" min="1" max="8" step="1" value="3">
+            </div>
+
+            <div class="control-group">
+                <h3>Rendering Options</h3>
+                <label>Material:</label>
+                <select id="material-type">
+                    <option value="standard">Standard</option>
+                    <option value="phong">Phong</option>
+                    <option value="lambert">Lambert</option>
+                    <option value="basic">Basic</option>
+                </select>
+
+                <label>Branch Color:</label>
+                <input type="color" id="branch-color" value="#4a4a4a">
+
+                <label>Leaf Color:</label>
+                <input type="color" id="leaf-color" value="#4CAF50">
+
+                <label>Background:</label>
+                <select id="background-type">
+                    <option value="gradient">Gradient</option>
+                    <option value="solid">Solid Color</option>
+                    <option value="skybox">Sky</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <h3>Presets</h3>
+                <div class="preset-grid">
+                    <button onclick="loadPreset('tree')">Tree</button>
+                    <button onclick="loadPreset('fern')">Fern</button>
+                    <button onclick="loadPreset('dragon')">Dragon</button>
+                    <button onclick="loadPreset('bush')">Bush</button>
+                    <button onclick="loadPreset('coral')">Coral</button>
+                    <button onclick="loadPreset('spiral')">Spiral</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <button onclick="generateLSystem()" style="width: 100%; font-size: 16px; padding: 15px;">
+                    🌱 Generate L-System
+                </button>
+                <button onclick="exportModel()" style="width: 48%; margin-right: 4%;">
+                    💾 Export OBJ
+                </button>
+                <button onclick="resetCamera()" style="width: 48%;">
+                    🎥 Reset Camera
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import map for Three.js ES6 modules -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        // Import Three.js and controls as modules
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Import the L-System library and ThreeJS adapter
+        import { LSystemsLibrary } from './dist/lib/LSystemsLibrary.js';
+        import { ThreeJSAdapter } from './dist/lib/adapters/ThreeJSAdapter.js';
+
+        class ThreeJSLSystemRenderer {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.controls = null;
+                this.OrbitControls = OrbitControls; // Store reference to OrbitControls
+                this.currentMesh = null;
+                this.currentMeshGroup = null;
+                this.vertices = 0;
+                this.triangles = 0;
+                this.fps = 0;
+                this.lastTime = 0;
+                this.frameCount = 0;
+
+                this.init();
+                this.setupEventListeners();
+                this.setupAdvancedParameterListeners();
+
+                // Set up controls after init
+                setTimeout(() => {
+                    this.setupControls();
+                }, 100);
+
+                this.animate();
+
+                // Generate initial L-System
+                setTimeout(() => this.generateLSystem(), 500);
+            }
+
+            init() {
+                const canvas = document.getElementById('threejs-canvas');
+
+                // Scene
+                this.scene = new THREE.Scene();
+
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(
+                    75,
+                    canvas.clientWidth / canvas.clientHeight,
+                    0.1,
+                    1000
+                );
+                this.camera.position.set(5, 5, 5);
+
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: canvas,
+                    antialias: true,
+                    alpha: true
+                });
+                this.renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.renderer.setClearColor(0x87CEEB, 1);
+
+                // Controls will be set up in setupControls method
+
+                // Lighting
+                this.setupLighting();
+
+                // Handle resize
+                window.addEventListener('resize', () => this.handleResize());
+
+                // Update background
+                this.updateBackground();
+            }
+
+            setupControls() {
+                try {
+                    const canvas = document.getElementById('threejs-canvas');
+
+                    if (!canvas || !this.camera || !this.OrbitControls) {
+                        this.controls = null;
+                        return;
+                    }
+
+                    this.controls = new this.OrbitControls(this.camera, canvas);
+                    this.controls.enableDamping = true;
+                    this.controls.dampingFactor = 0.05;
+                    this.controls.enableZoom = true;
+                    this.controls.autoRotate = false;
+                    this.controls.autoRotateSpeed = 0.5;
+                } catch (error) {
+                    console.warn('Controls setup failed:', error);
+                    this.controls = null;
+                }
+            }
+
+            setupLighting() {
+                // Bright ambient light for overall illumination
+                const ambientLight = new THREE.AmbientLight(0x606060, 0.6);
+                this.scene.add(ambientLight);
+
+                // Main directional light (sun)
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                directionalLight.position.set(10, 10, 5);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.camera.near = 0.5;
+                directionalLight.shadow.camera.far = 50;
+                directionalLight.shadow.camera.left = -20;
+                directionalLight.shadow.camera.right = 20;
+                directionalLight.shadow.camera.top = 20;
+                directionalLight.shadow.camera.bottom = -20;
+                this.scene.add(directionalLight);
+
+                // Secondary directional light from opposite side
+                const directionalLight2 = new THREE.DirectionalLight(0xffeedd, 0.6);
+                directionalLight2.position.set(-8, 6, -3);
+                this.scene.add(directionalLight2);
+
+                // Key light from above-front
+                const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                keyLight.position.set(0, 15, 10);
+                this.scene.add(keyLight);
+
+                // Fill light from below to reduce harsh shadows
+                const fillLight = new THREE.DirectionalLight(0x87ceeb, 0.4);
+                fillLight.position.set(0, -5, 0);
+                this.scene.add(fillLight);
+
+                // Point lights for highlights and depth
+                const pointLight1 = new THREE.PointLight(0xffffff, 0.8, 30);
+                pointLight1.position.set(8, 12, 8);
+                pointLight1.castShadow = true;
+                this.scene.add(pointLight1);
+
+                const pointLight2 = new THREE.PointLight(0x88ccff, 0.6, 25);
+                pointLight2.position.set(-6, 8, -6);
+                this.scene.add(pointLight2);
+
+                const pointLight3 = new THREE.PointLight(0xffddaa, 0.5, 20);
+                pointLight3.position.set(5, 3, -8);
+                this.scene.add(pointLight3);
+
+                // Hemisphere light for natural outdoor lighting
+                const hemisphereLight = new THREE.HemisphereLight(0x87ceeb, 0x8b7355, 0.4);
+                this.scene.add(hemisphereLight);
+            }
+
+            setupEventListeners() {
+                // Range input listeners
+                ['iterations', 'angle', 'length', 'thickness', 'tapering'].forEach(id => {
+                    const input = document.getElementById(id);
+                    const valueDisplay = document.getElementById(id + '-value');
+
+                    input.addEventListener('input', (e) => {
+                        const value = parseFloat(e.target.value);
+                        let displayValue = value;
+
+                        if (id === 'angle') displayValue = value + '°';
+                        else if (id === 'length' || id === 'thickness' || id === 'tapering') {
+                            displayValue = value.toFixed(2);
+                        }
+
+                        valueDisplay.textContent = displayValue;
+                    });
+                });
+
+                // Color and material changes
+                ['branch-color', 'leaf-color', 'material-type', 'background-type'].forEach(id => {
+                    document.getElementById(id).addEventListener('change', () => {
+                        if (id === 'background-type') {
+                            this.updateBackground();
+                        } else if (this.lSystemMesh) {
+                            this.updateMaterials();
+                        }
+                    });
+                });
+            }
+
+            setupAdvancedParameterListeners() {
+                // Advanced parameter listeners
+                ['angle-variation', 'length-variation', 'leaf-probability', 'leaf-threshold'].forEach(id => {
+                    const input = document.getElementById(id);
+                    const valueDisplay = document.getElementById(id + '-value');
+
+                    input.addEventListener('input', (e) => {
+                        const value = parseFloat(e.target.value);
+                        let displayValue = value;
+
+                        if (id === 'angle-variation') displayValue = value + '°';
+                        else if (id === 'length-variation' || id === 'leaf-probability') {
+                            displayValue = value.toFixed(2);
+                        }
+
+                        valueDisplay.textContent = displayValue;
+                    });
+                });
+            }
+
+            updateBackground() {
+                const backgroundType = document.getElementById('background-type').value;
+
+                switch (backgroundType) {
+                    case 'gradient':
+                        this.renderer.setClearColor(0x87CEEB, 1);
+                        break;
+                    case 'solid':
+                        this.renderer.setClearColor(0x222222, 1);
+                        break;
+                    case 'skybox':
+                        // Simple sky gradient simulation
+                        this.renderer.setClearColor(0x7ec0ee, 1);
+                        break;
+                }
+            }
+
+            createMaterial(type, color) {
+                const materialColor = new THREE.Color(color);
+
+                switch (type) {
+                    case 'standard':
+                        return new THREE.MeshStandardMaterial({
+                            color: materialColor,
+                            roughness: 0.7,
+                            metalness: 0.1
+                        });
+                    case 'phong':
+                        return new THREE.MeshPhongMaterial({
+                            color: materialColor,
+                            shininess: 30
+                        });
+                    case 'lambert':
+                        return new THREE.MeshLambertMaterial({
+                            color: materialColor
+                        });
+                    case 'basic':
+                        return new THREE.MeshBasicMaterial({
+                            color: materialColor
+                        });
+                    default:
+                        return new THREE.MeshStandardMaterial({ color: materialColor });
+                }
+            }
+
+            updateMaterials() {
+                if (!this.lSystemMesh) return;
+
+                const materialType = document.getElementById('material-type').value;
+                const branchColor = document.getElementById('branch-color').value;
+                const leafColor = document.getElementById('leaf-color').value;
+
+                // Update branch material
+                this.lSystemMesh.material = this.createMaterial(materialType, branchColor);
+
+                // Update leaf materials
+                this.leafMeshes.forEach(leafMesh => {
+                    leafMesh.material = this.createMaterial(materialType, leafColor);
+                });
+            }
+
+            async generateLSystem() {
+                const loadingEl = document.getElementById('loading');
+                loadingEl.style.display = 'block';
+
+                try {
+                    // Clear existing geometry
+                    this.clearLSystem();
+
+                    // Get parameters
+                    const axiom = document.getElementById('axiom').value || 'F';
+                    const rulesText = document.getElementById('rules').value || 'F=F[+F]F[-F]F';
+                    const iterations = parseInt(document.getElementById('iterations').value);
+                    const angle = parseFloat(document.getElementById('angle').value);
+                    const length = parseFloat(document.getElementById('length').value);
+                    const thickness = parseFloat(document.getElementById('thickness').value);
+                    const tapering = parseFloat(document.getElementById('tapering').value);
+
+                    // Get leaf color
+                    const leafColorHex = document.getElementById('leaf-color').value;
+                    const leafColor = this.hexToRgb(leafColorHex);
+
+                    // Get advanced parameters
+                    const angleVariation = parseFloat(document.getElementById('angle-variation').value);
+                    const lengthVariation = parseFloat(document.getElementById('length-variation').value);
+                    const leafProbability = parseFloat(document.getElementById('leaf-probability').value);
+                    const leafThreshold = parseInt(document.getElementById('leaf-threshold').value);
+
+                    // Create L-System configuration
+                    const config = {
+                        axiom: axiom,
+                        rules: rulesText,
+                        iterations: iterations,
+                        angle: angle,
+                        angleVariation: angleVariation,
+                        lengthVariation: lengthVariation,
+                        leafProbability: leafProbability,
+                        leafGenerationThreshold: leafThreshold
+                    };
+
+                    // Create geometry parameters
+                    const geometryParams = {
+                        length: length,
+                        thickness: thickness,
+                        tapering: tapering,
+                        leafColor: [leafColor.r / 255, leafColor.g / 255, leafColor.b / 255]
+                    };
+
+                    // Generate mesh using ThreeJS adapter
+                    const meshGroup = ThreeJSAdapter.createMeshFromLSystem(config, geometryParams, {
+                        materialType: 'standard',
+                        castShadow: true,
+                        receiveShadow: true
+                    });
+
+                    // Add to scene
+                    this.scene.add(meshGroup.group);
+                    this.currentMesh = meshGroup.group;
+                    this.currentMeshGroup = meshGroup;
+
+                    // Update statistics
+                    this.vertices = meshGroup.stats.totalVertices;
+                    this.triangles = meshGroup.stats.totalTriangles;
+                    this.updateStats();
+
+                    // Fit camera to object
+                    this.fitCameraToObject();
+
+                } catch (error) {
+                    console.error('Error generating L-System:', error);
+                    alert('Error generating L-System: ' + error.message);
+                } finally {
+                    loadingEl.style.display = 'none';
+                }
+            }
+
+
+
+            clearLSystem() {
+                if (this.currentMesh) {
+                    this.scene.remove(this.currentMesh);
+                    this.currentMesh = null;
+                }
+
+                if (this.currentMeshGroup) {
+                    ThreeJSAdapter.dispose(this.currentMeshGroup);
+                    this.currentMeshGroup = null;
+                }
+
+                this.vertices = 0;
+                this.triangles = 0;
+            }
+
+            fitCameraToObject() {
+                if (!this.currentMeshGroup) return;
+
+                ThreeJSAdapter.fitCameraToMesh(
+                    this.currentMeshGroup,
+                    this.camera,
+                    this.controls,
+                    1.5
+                );
+            }
+
+            hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16)
+                } : { r: 0, g: 0, b: 0 };
+            }
+
+            exportModel() {
+                if (!this.lSystemMesh) {
+                    alert('Generate an L-System first!');
+                    return;
+                }
+
+                // Simple OBJ export
+                let objContent = '# L-System Export\n';
+
+                const geometry = this.lSystemMesh.geometry;
+                const vertices = geometry.attributes.position.array;
+
+                // Export vertices
+                for (let i = 0; i < vertices.length; i += 3) {
+                    objContent += `v ${vertices[i]} ${vertices[i + 1]} ${vertices[i + 2]}\n`;
+                }
+
+                // Export faces (simplified)
+                const indices = geometry.index ? geometry.index.array : [];
+                for (let i = 0; i < indices.length; i += 3) {
+                    objContent += `f ${indices[i] + 1} ${indices[i + 1] + 1} ${indices[i + 2] + 1}\n`;
+                }
+
+                // Download
+                const blob = new Blob([objContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'lsystem.obj';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            updateStats() {
+                const statsEl = document.getElementById('stats');
+                if (statsEl) {
+                    statsEl.innerHTML = `
+                        Vertices: ${this.vertices.toLocaleString()}<br>
+                        Triangles: ${this.triangles.toLocaleString()}<br>
+                        FPS: ${this.fps}
+                    `;
+                }
+            }
+
+            handleResize() {
+                const canvas = document.getElementById('threejs-canvas');
+                const width = canvas.clientWidth;
+                const height = canvas.clientHeight;
+
+                this.camera.aspect = width / height;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(width, height);
+            }
+
+            resetCamera() {
+                this.camera.position.set(5, 5, 5);
+                if (this.controls) {
+                    this.controls.target.set(0, 0, 0);
+                    this.controls.update();
+                }
+            }
+
+            animate(currentTime = 0) {
+                requestAnimationFrame((time) => this.animate(time));
+
+                // Update FPS
+                this.frameCount++;
+                if (currentTime - this.lastTime >= 1000) {
+                    this.fps = Math.round((this.frameCount * 1000) / (currentTime - this.lastTime));
+                    this.updateStats();
+                    this.frameCount = 0;
+                    this.lastTime = currentTime;
+                }
+
+                if (this.controls) {
+                    this.controls.update();
+                }
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // Preset configurations
+        const presets = {
+            tree: {
+                axiom: 'F',
+                rules: 'F -> F[+F]F[-F]F',
+                angle: 25,
+                iterations: 4
+            },
+            fern: {
+                axiom: 'X',
+                rules: 'X -> F[+X]F[-X]+X\nF -> FF',
+                angle: 25,
+                iterations: 5
+            },
+            dragon: {
+                axiom: 'FX',
+                rules: 'X -> X+YF+\nY -> -FX-Y',
+                angle: 90,
+                iterations: 8
+            },
+            bush: {
+                axiom: 'F',
+                rules: 'F -> FF+[+F-F-F]-[-F+F+F]',
+                angle: 22,
+                iterations: 4
+            },
+            coral: {
+                axiom: 'F',
+                rules: 'F -> F[+F]F[-F][F]',
+                angle: 20,
+                iterations: 4
+            },
+            spiral: {
+                axiom: 'F',
+                rules: 'F -> F+F--F+F',
+                angle: 60,
+                iterations: 4
+            }
+        };
+
+        // Global functions
+        window.loadPreset = function(presetName) {
+            const preset = presets[presetName];
+            if (!preset) return;
+
+            document.getElementById('axiom').value = preset.axiom;
+            document.getElementById('rules').value = preset.rules;
+            document.getElementById('angle').value = preset.angle;
+            document.getElementById('iterations').value = preset.iterations;
+
+            // Reset advanced parameters to defaults
+            document.getElementById('angle-variation').value = 0;
+            document.getElementById('length-variation').value = 0;
+            document.getElementById('leaf-probability').value = 0.7;
+            document.getElementById('leaf-threshold').value = 3;
+
+            // Update value displays
+            document.getElementById('angle-value').textContent = preset.angle + '°';
+            document.getElementById('iterations-value').textContent = preset.iterations;
+            document.getElementById('angle-variation-value').textContent = '0°';
+            document.getElementById('length-variation-value').textContent = '0.00';
+            document.getElementById('leaf-probability-value').textContent = '0.70';
+            document.getElementById('leaf-threshold-value').textContent = '3';
+
+            // Generate new L-System with preset
+            setTimeout(() => app.generateLSystem(), 100);
+        };
+
+        window.generateLSystem = function() {
+            app.generateLSystem();
+        };
+
+        window.exportModel = function() {
+            app.exportModel();
+        };
+
+        window.resetCamera = function() {
+            app.resetCamera();
+        };
+
+        // Initialize the application
+        const app = new ThreeJSLSystemRenderer();
+
+    </script>
+</body>
+</html>
