@@ -826,7 +826,8 @@ class LSystemApp {
         this.angleSlider.value = state.angle.toString();
         this.angleVariationSlider.value = state.angleVariation.toString();
         this.lengthVariationSlider.value = state.lengthVariation.toString();
-        this.lengthTaperingSlider.value = state.lengthTapering.toString();
+        this.lengthTaperingSlider.value =
+            state.lengthTapering?.toString() || "95";
 
         // Apply geometry parameters
         this.lengthSlider.value = state.length.toString();
