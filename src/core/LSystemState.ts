@@ -44,6 +44,7 @@ export interface LSystemConfig {
     angle: number;
     angleVariation: number;
     lengthVariation: number;
+    lengthTapering: number;
     leafProbability: number;
     leafGenerationThreshold: number;
 }

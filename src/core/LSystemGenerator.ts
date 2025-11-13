@@ -375,7 +375,7 @@ export class LSystemGenerator {
 
                     currentState.position = endPos;
                     currentState.thickness = Math.max(endThickness, 0.001); // Apply tapering to current state with minimum
-                    currentState.length *= 0.95; // Slight length reduction
+                    currentState.length *= config.lengthTapering; // Apply configurable length tapering
                     break;
                 }
 

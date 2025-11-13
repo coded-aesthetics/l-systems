@@ -145,6 +145,7 @@ export class LSystem {
         angle: number = 25,
         angleVariation: number = 0,
         lengthVariation: number = 0,
+        lengthTapering: number = 0.95,
         leafProbability: number = 0.7,
         leafGenerationThreshold: number = 3,
     ) {
@@ -152,6 +153,7 @@ export class LSystem {
             angle,
             angleVariation,
             lengthVariation,
+            lengthTapering,
             leafProbability,
             leafGenerationThreshold,
         };
@@ -169,6 +171,10 @@ export class LSystem {
 
     public setLengthVariation(variation: number): void {
         this.app.updateConfig({ lengthVariation: variation });
+    }
+
+    public setLengthTapering(tapering: number): void {
+        this.app.updateConfig({ lengthTapering: tapering });
     }
 
     public setLeafProbability(probability: number): void {

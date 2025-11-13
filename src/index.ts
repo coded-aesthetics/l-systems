@@ -23,6 +23,7 @@ interface SavedPlant {
     angle: number;
     angleVariation: number;
     lengthVariation: number;
+    lengthTapering: number;
     // Geometry parameters
     length: number;
     thickness: number;
@@ -59,6 +60,7 @@ class LSystemApp {
     private taperingSlider!: HTMLInputElement;
     private angleVariationSlider!: HTMLInputElement;
     private lengthVariationSlider!: HTMLInputElement;
+    private lengthTaperingSlider!: HTMLInputElement;
     private segmentsSlider!: HTMLInputElement;
     private leafProbabilitySlider!: HTMLInputElement;
     private leafThresholdSlider!: HTMLInputElement;
@@ -264,6 +266,9 @@ class LSystemApp {
         this.lengthVariationSlider = document.getElementById(
             "lengthVariation",
         ) as HTMLInputElement;
+        this.lengthTaperingSlider = document.getElementById(
+            "lengthTapering",
+        ) as HTMLInputElement;
         this.segmentsSlider = document.getElementById(
             "segments",
         ) as HTMLInputElement;
@@ -334,6 +339,11 @@ class LSystemApp {
             "lengthVariation-value",
             "%",
         );
+        this.setupSliderValueDisplay(
+            "lengthTapering",
+            "lengthTapering-value",
+            "%",
+        );
         this.setupSliderValueDisplay("segments", "segments-value");
         this.setupSliderValueDisplay("zoom", "zoom-value");
         this.setupSliderValueDisplay("rotationSpeed", "rotationSpeed-value");
@@ -398,6 +408,7 @@ class LSystemApp {
             this.taperingSlider,
             this.angleVariationSlider,
             this.lengthVariationSlider,
+            this.lengthTaperingSlider,
             this.segmentsSlider,
             this.leafProbabilitySlider,
             this.leafThresholdSlider,
@@ -590,6 +601,8 @@ class LSystemApp {
             const lengthVariation = parseFloat(
                 this.lengthVariationSlider.value,
             );
+            const lengthTapering =
+                parseFloat(this.lengthTaperingSlider.value) / 100;
             const length = parseFloat(this.lengthSlider.value);
             const thickness = parseFloat(this.thicknessSlider.value);
             const tapering = parseFloat(this.taperingSlider.value);
@@ -608,6 +621,7 @@ class LSystemApp {
                 angle,
                 angleVariation,
                 lengthVariation,
+                lengthTapering,
                 leafProbability,
                 leafThreshold,
             );
@@ -786,6 +800,7 @@ class LSystemApp {
             angle: parseFloat(this.angleSlider.value),
             angleVariation: parseFloat(this.angleVariationSlider.value),
             lengthVariation: parseFloat(this.lengthVariationSlider.value),
+            lengthTapering: parseFloat(this.lengthTaperingSlider.value),
             length: parseFloat(this.lengthSlider.value),
             thickness: parseFloat(this.thicknessSlider.value),
             tapering: parseFloat(this.taperingSlider.value),
@@ -811,6 +826,7 @@ class LSystemApp {
         this.angleSlider.value = state.angle.toString();
         this.angleVariationSlider.value = state.angleVariation.toString();
         this.lengthVariationSlider.value = state.lengthVariation.toString();
+        this.lengthTaperingSlider.value = state.lengthTapering.toString();
 
         // Apply geometry parameters
         this.lengthSlider.value = state.length.toString();
@@ -857,6 +873,7 @@ class LSystemApp {
             "lengthVariation-value",
             "%",
         );
+        this.updateValueDisplay("lengthTapering", "lengthTapering-value", "%");
         this.updateValueDisplay("length", "length-value");
         this.updateValueDisplay("thickness", "thickness-value");
         this.updateValueDisplay("tapering", "tapering-value");

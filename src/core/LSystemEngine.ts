@@ -3,9 +3,9 @@
  * Handles axiom, iterations, and rule application without geometry concerns
  */
 
-import { LSystemRule, LSystemConfig, GenerationState } from './LSystemState.js';
-import { RuleProcessor } from './RuleProcessor.js';
-import { SymbolParser } from '../parsing/SymbolParser.js';
+import { LSystemRule, LSystemConfig, GenerationState } from "./LSystemState.js";
+import { RuleProcessor } from "./RuleProcessor.js";
+import { SymbolParser } from "../parsing/SymbolParser.js";
 
 export class LSystemEngine {
     private axiom: string;
@@ -29,6 +29,7 @@ export class LSystemEngine {
             angle: 25,
             angleVariation: 0,
             lengthVariation: 0,
+            lengthTapering: 0.95,
             leafProbability: 0.7,
             leafGenerationThreshold: 3,
             ...config,

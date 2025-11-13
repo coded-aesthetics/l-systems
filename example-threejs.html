@@ -294,6 +294,9 @@
                 <label>Length Variation: <span class="value-display" id="length-variation-value">0.0</span></label>
                 <input type="range" id="length-variation" min="0" max="0.5" step="0.05" value="0">
 
+                <label>Length Tapering: <span class="value-display" id="length-tapering-value">95%</span></label>
+                <input type="range" id="length-tapering" min="50" max="100" step="1" value="95">
+
                 <label>Leaf Probability: <span class="value-display" id="leaf-probability-value">0.7</span></label>
                 <input type="range" id="leaf-probability" min="0" max="1.0" step="0.05" value="0.7">
 
@@ -550,7 +553,7 @@
 
             setupAdvancedParameterListeners() {
                 // Advanced parameter listeners
-                ['angle-variation', 'length-variation', 'leaf-probability', 'leaf-threshold'].forEach(id => {
+                ['angle-variation', 'length-variation', 'length-tapering', 'leaf-probability', 'leaf-threshold'].forEach(id => {
                     const input = document.getElementById(id);
                     const valueDisplay = document.getElementById(id + '-value');
 
@@ -559,6 +562,7 @@
                         let displayValue = value;
 
                         if (id === 'angle-variation') displayValue = value + '°';
+                        else if (id === 'length-tapering') displayValue = value + '%';
                         else if (id === 'length-variation' || id === 'leaf-probability') {
                             displayValue = value.toFixed(2);
                         }
@@ -659,6 +663,7 @@
                     // Get advanced parameters
                     const angleVariation = parseFloat(document.getElementById('angle-variation').value);
                     const lengthVariation = parseFloat(document.getElementById('length-variation').value);
+                    const lengthTapering = parseFloat(document.getElementById('length-tapering').value) / 100;
                     const leafProbability = parseFloat(document.getElementById('leaf-probability').value);
                     const leafThreshold = parseInt(document.getElementById('leaf-threshold').value);
 
@@ -670,6 +675,7 @@
                         angle: angle,
                         angleVariation: angleVariation,
                         lengthVariation: lengthVariation,
+                        lengthTapering: lengthTapering,
                         leafProbability: leafProbability,
                         leafGenerationThreshold: leafThreshold
                     };
@@ -834,55 +840,64 @@
                 axiom: 'F',
                 rules: 'F -> F[+F]F[-F]F',
                 angle: 25,
-                iterations: 4
+                iterations: 4,
+                lengthTapering: 0.95
             },
             fern: {
                 axiom: 'X',
                 rules: 'X -> F[+X]F[-X]+X\nF -> FF',
                 angle: 25,
-                iterations: 5
+                iterations: 5,
+                lengthTapering: 0.92
             },
             dragon: {
                 axiom: 'FX',
                 rules: 'X -> X+YF+\nY -> -FX-Y',
                 angle: 90,
-                iterations: 8
+                iterations: 8,
+                lengthTapering: 1.0
             },
             bush: {
                 axiom: 'F',
                 rules: 'F -> FF+[+F-F-F]-[-F+F+F]',
                 angle: 22,
-                iterations: 4
+                iterations: 4,
+                lengthTapering: 0.88
             },
             coral: {
                 axiom: 'F',
                 rules: 'F -> F[+F]F[-F][F]',
                 angle: 20,
-                iterations: 4
+                iterations: 4,
+                lengthTapering: 0.90
             },
             spiral: {
                 axiom: 'F',
                 rules: 'F -> F+F--F+F',
                 angle: 60,
-                iterations: 4
+                iterations: 4,
+                lengthTapering: 0.98
             },
             rainbowTree: {
                 axiom: 'F',
                 rules: 'F -> F{color:red}[+F{color:orange}L{color:yellow}][-F{color:green}L{color:blue}]F{color:purple}',
                 angle: 25,
-                iterations: 4
+                iterations: 4,
+                lengthTapering: 0.93
             },
             autumnTree: {
                 axiom: 'F',
                 rules: 'F -> F{color:bark_brown}[+F{color:autumn_red}L{color:autumn_orange}][-F{color:brown}L{color:autumn_yellow}]F{color:dark_green}',
                 angle: 30,
-                iterations: 4
+                iterations: 4,
+                lengthTapering: 0.91
             },
             tropicalPlant: {
                 axiom: 'F',
                 rules: 'F -> F{color:#8B4513}[+F{color:#228B22}L{color:#FF69B4}][-F{color:#32CD32}L{color:#FF1493}]F{color:#006400}',
                 angle: 35,
-                iterations: 3
+                iterations: 4,
+                lengthTapering: 0.89
             }
         };
 
@@ -896,9 +911,10 @@
             document.getElementById('angle').value = preset.angle;
             document.getElementById('iterations').value = preset.iterations;
 
-            // Reset advanced parameters to defaults
+            // Reset advanced parameters to defaults or preset values
             document.getElementById('angle-variation').value = 0;
             document.getElementById('length-variation').value = 0;
+            document.getElementById('length-tapering').value = preset.lengthTapering ? Math.round(preset.lengthTapering * 100) : 95;
             document.getElementById('leaf-probability').value = 0.7;
             document.getElementById('leaf-threshold').value = 3;
 
@@ -908,6 +924,8 @@
             // Update value displays
             document.getElementById('angle-value').textContent = preset.angle + '°';
             document.getElementById('iterations-value').textContent = preset.iterations;
+            document.getElementById('length-tapering-value').textContent =
+                (preset.lengthTapering ? Math.round(preset.lengthTapering * 100) : 95) + '%';
             document.getElementById('angle-variation-value').textContent = '0°';
             document.getElementById('length-variation-value').textContent = '0.00';
             document.getElementById('leaf-probability-value').textContent = '0.70';

@@ -411,6 +411,21 @@
                         value="0.2"
                     />
 
+                    <label for="length-tapering"
+                        >Length Tapering:
+                        <span class="value-display" id="length-tapering-value"
+                            >95%</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="length-tapering"
+                        min="50"
+                        max="100"
+                        step="1"
+                        value="95"
+                    />
+
                     <label for="leaf-probability"
                         >Leaf Probability:
                         <span class="value-display" id="leaf-probability-value"
@@ -649,6 +664,11 @@
                                 document.getElementById("length-variation")
                                     .value,
                             ),
+                            lengthTapering:
+                                parseFloat(
+                                    document.getElementById("length-tapering")
+                                        .value,
+                                ) / 100,
                             leafProbability: parseFloat(
                                 document.getElementById("leaf-probability")
                                     .value,
@@ -714,42 +734,49 @@
                         rules: "F -> F[+F]F[-F]F",
                         angle: 25,
                         iterations: 4,
+                        lengthTapering: 0.95,
                     },
                     fern: {
                         axiom: "X",
                         rules: "X -> F+[[X]-X]-F[-FX]+X\nF -> FF",
                         angle: 25,
                         iterations: 5,
+                        lengthTapering: 0.92,
                     },
                     bush: {
                         axiom: "F",
                         rules: "F -> F[+F]F[-F][F]",
                         angle: 20,
                         iterations: 4,
+                        lengthTapering: 0.9,
                     },
                     dragon: {
                         axiom: "FX",
                         rules: "X -> X+YF+\nY -> -FX-Y",
                         angle: 90,
                         iterations: 10,
+                        lengthTapering: 1.0,
                     },
                     rainbowTree: {
                         axiom: "F",
                         rules: "F -> F{color:red}[+F{color:orange}L{color:yellow}][-F{color:green}L{color:blue}]F{color:purple}",
                         angle: 25,
                         iterations: 4,
+                        lengthTapering: 0.93,
                     },
                     autumnTree: {
                         axiom: "F",
                         rules: "F -> F{color:bark_brown}[+F{color:autumn_red}L{color:autumn_orange}][-F{color:brown}L{color:autumn_yellow}]F{color:dark_green}",
                         angle: 30,
                         iterations: 4,
+                        lengthTapering: 0.91,
                     },
                     tropicalPlant: {
                         axiom: "F",
                         rules: "F -> F{color:#8B4513}[+F{color:#228B22}L{color:#FF69B4}][-F{color:#32CD32}L{color:#FF1493}]F{color:#006400}",
                         angle: 35,
-                        iterations: 3,
+                        iterations: 4,
+                        lengthTapering: 0.89,
                     },
                 };
 
@@ -760,6 +787,10 @@
                     document.getElementById("angle").value = preset.angle;
                     document.getElementById("iterations").value =
                         preset.iterations;
+                    document.getElementById("length-tapering").value =
+                        preset.lengthTapering
+                            ? Math.round(preset.lengthTapering * 100)
+                            : 95;
 
                     // All presets now use parameterized colors automatically
 
@@ -839,6 +870,7 @@
                     ["tapering", "tapering-value", ""],
                     ["angle-variation", "angle-variation-value", "°"],
                     ["length-variation", "length-variation-value", ""],
+                    ["length-tapering", "length-tapering-value", "%"],
                     ["leaf-probability", "leaf-probability-value", ""],
                     ["leaf-threshold", "leaf-threshold-value", ""],
                     ["roughness", "roughness-value", ""],
@@ -865,6 +897,7 @@
                     "tapering",
                     "angle-variation",
                     "length-variation",
+                    "length-tapering",
                     "leaf-probability",
                     "leaf-threshold",
                     "roughness",
@@ -889,6 +922,7 @@
                     "tapering",
                     "angle-variation",
                     "length-variation",
+                    "length-tapering",
                     "leaf-probability",
                     "leaf-threshold",
                 ];

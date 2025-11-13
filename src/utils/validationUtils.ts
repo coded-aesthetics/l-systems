@@ -2,9 +2,9 @@
  * Validation utilities for L-System input validation
  */
 
-import { LSystemRule, LSystemConfig } from '../core/LSystemState.js';
-import { SymbolParser } from '../parsing/SymbolParser.js';
-import { ColorParser } from '../parsing/ColorParser.js';
+import { LSystemRule, LSystemConfig } from "../core/LSystemState.js";
+import { SymbolParser } from "../parsing/SymbolParser.js";
+import { ColorParser } from "../parsing/ColorParser.js";
 
 export class ValidationUtils {
     /**
@@ -12,26 +12,29 @@ export class ValidationUtils {
      * @param axiom - Axiom string to validate
      * @returns Validation result with errors if any
      */
-    static validateAxiom(axiom: string): { isValid: boolean; errors: string[] } {
+    static validateAxiom(axiom: string): {
+        isValid: boolean;
+        errors: string[];
+    } {
         const errors: string[] = [];
 
-        if (!axiom || typeof axiom !== 'string') {
-            errors.push('Axiom must be a non-empty string');
+        if (!axiom || typeof axiom !== "string") {
+            errors.push("Axiom must be a non-empty string");
             return { isValid: false, errors };
         }
 
         if (axiom.trim().length === 0) {
-            errors.push('Axiom cannot be empty or whitespace only');
+            errors.push("Axiom cannot be empty or whitespace only");
         }
 
         // Check if axiom can be parsed
         if (!SymbolParser.isValidSymbol(axiom)) {
-            errors.push('Axiom contains invalid symbol syntax');
+            errors.push("Axiom contains invalid symbol syntax");
         }
 
         return {
             isValid: errors.length === 0,
-            errors
+            errors,
         };
     }
 
@@ -40,42 +43,57 @@ export class ValidationUtils {
      * @param rules - Array of rules to validate
      * @returns Validation result with errors if any
      */
-    static validateRules(rules: LSystemRule[]): { isValid: boolean; errors: string[] } {
+    static validateRules(rules: LSystemRule[]): {
+        isValid: boolean;
+        errors: string[];
+    } {
         const errors: string[] = [];
 
         if (!Array.isArray(rules)) {
-            errors.push('Rules must be an array');
+            errors.push("Rules must be an array");
             return { isValid: false, errors };
         }
 
         rules.forEach((rule, index) => {
-            if (!rule.from || typeof rule.from !== 'string') {
+            if (!rule.from || typeof rule.from !== "string") {
                 errors.push(`Rule ${index}: 'from' must be a non-empty string`);
             } else if (!SymbolParser.isValidSymbol(rule.from)) {
-                errors.push(`Rule ${index}: 'from' contains invalid symbol syntax`);
+                errors.push(
+                    `Rule ${index}: 'from' contains invalid symbol syntax`,
+                );
             }
 
-            if (!rule.to || typeof rule.to !== 'string') {
+            if (!rule.to || typeof rule.to !== "string") {
                 errors.push(`Rule ${index}: 'to' must be a non-empty string`);
             } else if (!SymbolParser.isValidSymbol(rule.to)) {
-                errors.push(`Rule ${index}: 'to' contains invalid symbol syntax`);
+                errors.push(
+                    `Rule ${index}: 'to' contains invalid symbol syntax`,
+                );
             }
 
             if (rule.probability !== undefined) {
-                if (typeof rule.probability !== 'number' ||
-                    rule.probability < 0 || rule.probability > 1) {
-                    errors.push(`Rule ${index}: probability must be a number between 0 and 1`);
+                if (
+                    typeof rule.probability !== "number" ||
+                    rule.probability < 0 ||
+                    rule.probability > 1
+                ) {
+                    errors.push(
+                        `Rule ${index}: probability must be a number between 0 and 1`,
+                    );
                 }
             }
 
-            if (rule.condition !== undefined && typeof rule.condition !== 'function') {
+            if (
+                rule.condition !== undefined &&
+                typeof rule.condition !== "function"
+            ) {
                 errors.push(`Rule ${index}: condition must be a function`);
             }
         });
 
         return {
             isValid: errors.length === 0,
-            errors
+            errors,
         };
     }
 
@@ -84,54 +102,94 @@ export class ValidationUtils {
      * @param config - Configuration object to validate
      * @returns Validation result with errors if any
      */
-    static validateConfig(config: Partial<LSystemConfig>): { isValid: boolean; errors: string[] } {
+    static validateConfig(config: Partial<LSystemConfig>): {
+        isValid: boolean;
+        errors: string[];
+    } {
         const errors: string[] = [];
 
         if (config.angle !== undefined) {
-            if (typeof config.angle !== 'number' || isNaN(config.angle)) {
-                errors.push('Angle must be a valid number');
+            if (typeof config.angle !== "number" || isNaN(config.angle)) {
+                errors.push("Angle must be a valid number");
             } else if (config.angle < 0 || config.angle > 360) {
-                errors.push('Angle must be between 0 and 360 degrees');
+                errors.push("Angle must be between 0 and 360 degrees");
             }
         }
 
         if (config.angleVariation !== undefined) {
-            if (typeof config.angleVariation !== 'number' || isNaN(config.angleVariation)) {
-                errors.push('Angle variation must be a valid number');
-            } else if (config.angleVariation < 0 || config.angleVariation > 180) {
-                errors.push('Angle variation must be between 0 and 180 degrees');
+            if (
+                typeof config.angleVariation !== "number" ||
+                isNaN(config.angleVariation)
+            ) {
+                errors.push("Angle variation must be a valid number");
+            } else if (
+                config.angleVariation < 0 ||
+                config.angleVariation > 180
+            ) {
+                errors.push(
+                    "Angle variation must be between 0 and 180 degrees",
+                );
             }
         }
 
         if (config.lengthVariation !== undefined) {
-            if (typeof config.lengthVariation !== 'number' || isNaN(config.lengthVariation)) {
-                errors.push('Length variation must be a valid number');
-            } else if (config.lengthVariation < 0 || config.lengthVariation > 100) {
-                errors.push('Length variation must be between 0 and 100 percent');
+            if (
+                typeof config.lengthVariation !== "number" ||
+                isNaN(config.lengthVariation)
+            ) {
+                errors.push("Length variation must be a valid number");
+            } else if (
+                config.lengthVariation < 0 ||
+                config.lengthVariation > 100
+            ) {
+                errors.push(
+                    "Length variation must be between 0 and 100 percent",
+                );
+            }
+        }
+
+        if (config.lengthTapering !== undefined) {
+            if (
+                typeof config.lengthTapering !== "number" ||
+                isNaN(config.lengthTapering)
+            ) {
+                errors.push("Length tapering must be a valid number");
+            } else if (config.lengthTapering < 0 || config.lengthTapering > 1) {
+                errors.push("Length tapering must be between 0 and 1");
             }
         }
 
         if (config.leafProbability !== undefined) {
-            if (typeof config.leafProbability !== 'number' || isNaN(config.leafProbability)) {
-                errors.push('Leaf probability must be a valid number');
-            } else if (config.leafProbability < 0 || config.leafProbability > 1) {
-                errors.push('Leaf probability must be between 0 and 1');
+            if (
+                typeof config.leafProbability !== "number" ||
+                isNaN(config.leafProbability)
+            ) {
+                errors.push("Leaf probability must be a valid number");
+            } else if (
+                config.leafProbability < 0 ||
+                config.leafProbability > 1
+            ) {
+                errors.push("Leaf probability must be between 0 and 1");
             }
         }
 
         if (config.leafGenerationThreshold !== undefined) {
-            if (typeof config.leafGenerationThreshold !== 'number' ||
+            if (
+                typeof config.leafGenerationThreshold !== "number" ||
                 isNaN(config.leafGenerationThreshold) ||
-                !Number.isInteger(config.leafGenerationThreshold)) {
-                errors.push('Leaf generation threshold must be a valid integer');
+                !Number.isInteger(config.leafGenerationThreshold)
+            ) {
+                errors.push(
+                    "Leaf generation threshold must be a valid integer",
+                );
             } else if (config.leafGenerationThreshold < 0) {
-                errors.push('Leaf generation threshold must be non-negative');
+                errors.push("Leaf generation threshold must be non-negative");
             }
         }
 
         return {
             isValid: errors.length === 0,
-            errors
+            errors,
         };
     }
 
@@ -140,11 +198,14 @@ export class ValidationUtils {
      * @param colorString - Color string to validate
      * @returns Validation result
      */
-    static validateColor(colorString: string): { isValid: boolean; errors: string[] } {
+    static validateColor(colorString: string): {
+        isValid: boolean;
+        errors: string[];
+    } {
         const errors: string[] = [];
 
-        if (!colorString || typeof colorString !== 'string') {
-            errors.push('Color must be a non-empty string');
+        if (!colorString || typeof colorString !== "string") {
+            errors.push("Color must be a non-empty string");
             return { isValid: false, errors };
         }
 
@@ -155,7 +216,7 @@ export class ValidationUtils {
 
         return {
             isValid: errors.length === 0,
-            errors
+            errors,
         };
     }
 
@@ -171,11 +232,11 @@ export class ValidationUtils {
         value: number,
         min: number,
         max: number,
-        name: string
+        name: string,
     ): { isValid: boolean; errors: string[] } {
         const errors: string[] = [];
 
-        if (typeof value !== 'number' || isNaN(value)) {
+        if (typeof value !== "number" || isNaN(value)) {
             errors.push(`${name} must be a valid number`);
         } else if (value < min || value > max) {
             errors.push(`${name} must be between ${min} and ${max}`);
@@ -183,7 +244,7 @@ export class ValidationUtils {
 
         return {
             isValid: errors.length === 0,
-            errors
+            errors,
         };
     }
 
@@ -192,22 +253,29 @@ export class ValidationUtils {
      * @param iterations - Number of iterations
      * @returns Validation result
      */
-    static validateIterations(iterations: number): { isValid: boolean; errors: string[] } {
+    static validateIterations(iterations: number): {
+        isValid: boolean;
+        errors: string[];
+    } {
         const errors: string[] = [];
 
-        if (typeof iterations !== 'number' ||
+        if (
+            typeof iterations !== "number" ||
             isNaN(iterations) ||
-            !Number.isInteger(iterations)) {
-            errors.push('Iterations must be a valid integer');
+            !Number.isInteger(iterations)
+        ) {
+            errors.push("Iterations must be a valid integer");
         } else if (iterations < 0) {
-            errors.push('Iterations must be non-negative');
+            errors.push("Iterations must be non-negative");
         } else if (iterations > 20) {
-            errors.push('Iterations should not exceed 20 to prevent performance issues');
+            errors.push(
+                "Iterations should not exceed 20 to prevent performance issues",
+            );
         }
 
         return {
             isValid: errors.length === 0,
-            errors
+            errors,
         };
     }
 
@@ -219,21 +287,25 @@ export class ValidationUtils {
      */
     static validateStringLength(
         lSystemString: string,
-        maxLength: number = 100000
+        maxLength: number = 100000,
     ): { isValid: boolean; errors: string[]; warnings: string[] } {
         const errors: string[] = [];
         const warnings: string[] = [];
 
         if (lSystemString.length > maxLength) {
-            errors.push(`L-System string too long (${lSystemString.length} > ${maxLength})`);
+            errors.push(
+                `L-System string too long (${lSystemString.length} > ${maxLength})`,
+            );
         } else if (lSystemString.length > maxLength * 0.8) {
-            warnings.push(`L-System string is very long (${lSystemString.length}), this may impact performance`);
+            warnings.push(
+                `L-System string is very long (${lSystemString.length}), this may impact performance`,
+            );
         }
 
         return {
             isValid: errors.length === 0,
             errors,
-            warnings
+            warnings,
         };
     }
 
@@ -244,14 +316,14 @@ export class ValidationUtils {
      * @returns Sanitized string
      */
     static sanitizeInput(input: string, maxLength: number = 1000): string {
-        if (typeof input !== 'string') {
-            return '';
+        if (typeof input !== "string") {
+            return "";
         }
 
         return input
             .trim()
             .substring(0, maxLength)
-            .replace(/[^\w\s\{\}\[\]\+\-\^\\\/:,#]/g, ''); // Keep only safe characters
+            .replace(/[^\w\s\{\}\[\]\+\-\^\\\/:,#]/g, ""); // Keep only safe characters
     }
 
     /**
@@ -266,7 +338,7 @@ export class ValidationUtils {
         axiom: string,
         rules: LSystemRule[],
         config: Partial<LSystemConfig>,
-        iterations: number
+        iterations: number,
     ): {
         isValid: boolean;
         errors: string[];
@@ -276,7 +348,7 @@ export class ValidationUtils {
             rules: ReturnType<typeof ValidationUtils.validateRules>;
             config: ReturnType<typeof ValidationUtils.validateConfig>;
             iterations: ReturnType<typeof ValidationUtils.validateIterations>;
-        }
+        };
     } {
         const axiomResult = this.validateAxiom(axiom);
         const rulesResult = this.validateRules(rules);
@@ -287,7 +359,7 @@ export class ValidationUtils {
             ...axiomResult.errors,
             ...rulesResult.errors,
             ...configResult.errors,
-            ...iterationsResult.errors
+            ...iterationsResult.errors,
         ];
 
         return {
@@ -298,8 +370,8 @@ export class ValidationUtils {
                 axiom: axiomResult,
                 rules: rulesResult,
                 config: configResult,
-                iterations: iterationsResult
-            }
+                iterations: iterationsResult,
+            },
         };
     }
 }

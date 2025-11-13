@@ -15,6 +15,7 @@ export interface LSystemConfig {
     angle: number;
     angleVariation?: number;
     lengthVariation?: number;
+    lengthTapering?: number;
     leafProbability?: number;
     leafGenerationThreshold?: number;
 }
@@ -69,6 +70,7 @@ export class LSystemsLibrary {
             angle: config.angle,
             angleVariation: config.angleVariation || 0,
             lengthVariation: config.lengthVariation || 0,
+            lengthTapering: config.lengthTapering || 0.95,
             leafProbability: config.leafProbability || 0.7,
             leafGenerationThreshold: config.leafGenerationThreshold || 3,
         };
