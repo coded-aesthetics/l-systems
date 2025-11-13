@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L-Systems - Parameterized Colors Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            font-family: 'Arial', sans-serif;
+            color: white;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .demo-card {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .demo-card h3 {
+            margin-top: 0;
+            color: #2a5298;
+            border-bottom: 2px solid #2a5298;
+            padding-bottom: 10px;
+        }
+
+        .canvas-container {
+            width: 100%;
+            height: 300px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-group {
+            margin: 15px 0;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #45a049, #3d8b40);
+        }
+
+        .code-example {
+            background: #1a1a1a;
+            color: #4CAF50;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .info-section {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .color-examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .color-example {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f5f5f5;
+        }
+
+        .color-swatch {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            border: 2px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Parameterized Colors Test</h1>
+            <p>Demonstrating per-symbol color control in L-Systems</p>
+        </div>
+
+        <div class="demo-grid">
+            <div class="demo-card">
+                <h3>🌈 Rainbow Tree</h3>
+                <div class="canvas-container" id="canvas1">
+                    <canvas id="rainbow-canvas" width="350" height="280"></canvas>
+                </div>
+                <div class="control-group">
+                    <label>Color Mode:</label>
+                    <select id="rainbow-color-mode">
+                        <option value="0">Default Colors</option>
+                        <option value="4">Parameterized Colors</option>
+                    </select>
+                    <button onclick="generateRainbowTree()">Generate Rainbow Tree</button>
+                </div>
+                <div class="code-example">F{color:red}[+F{color:orange}L{color:yellow}][-F{color:green}L{color:blue}]F{color:purple}</div>
+            </div>
+
+            <div class="demo-card">
+                <h3>🍂 Autumn Tree</h3>
+                <div class="canvas-container" id="canvas2">
+                    <canvas id="autumn-canvas" width="350" height="280"></canvas>
+                </div>
+                <div class="control-group">
+                    <label>Color Mode:</label>
+                    <select id="autumn-color-mode">
+                        <option value="0">Default Colors</option>
+                        <option value="4">Parameterized Colors</option>
+                    </select>
+                    <button onclick="generateAutumnTree()">Generate Autumn Tree</button>
+                </div>
+                <div class="code-example">F{color:bark_brown}[+F{color:autumn_red}L{color:autumn_orange}][-F{color:brown}L{color:autumn_yellow}]</div>
+            </div>
+
+            <div class="demo-card">
+                <h3>🌺 Tropical Plant</h3>
+                <div class="canvas-container" id="canvas3">
+                    <canvas id="tropical-canvas" width="350" height="280"></canvas>
+                </div>
+                <div class="control-group">
+                    <label>Color Mode:</label>
+                    <select id="tropical-color-mode">
+                        <option value="0">Default Colors</option>
+                        <option value="4">Parameterized Colors</option>
+                    </select>
+                    <button onclick="generateTropicalPlant()">Generate Tropical Plant</button>
+                </div>
+                <div class="code-example">F{color:#8B4513}[+F{color:#228B22}L{color:#FF69B4}][-F{color:#32CD32}L{color:#FF1493}]</div>
+            </div>
+
+            <div class="demo-card">
+                <h3>🎋 Gradient Fern</h3>
+                <div class="canvas-container" id="canvas4">
+                    <canvas id="fern-canvas" width="350" height="280"></canvas>
+                </div>
+                <div class="control-group">
+                    <label>Color Mode:</label>
+                    <select id="fern-color-mode">
+                        <option value="0">Default Colors</option>
+                        <option value="4">Parameterized Colors</option>
+                    </select>
+                    <button onclick="generateGradientFern()">Generate Gradient Fern</button>
+                </div>
+                <div class="code-example">X{color:dark_green} → F{color:#006400}[+X{color:#228B22}][-X{color:#32CD32}]FX{color:#90EE90}</div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>🎨 Available Color Options</h2>
+            <p>You can use any of these color formats in your L-System rules:</p>
+
+            <h3>Named Colors</h3>
+            <div class="color-examples">
+                <div class="color-example">
+                    <div class="color-swatch" style="background-color: #FF0000;"></div>
+                    <strong>red</strong><br>
+                    <code>L{color:red}</code>
+                </div>
+                <div class="color-example">
+                    <div class="color-swatch" style="background-color: #00FF00;"></div>
+                    <strong>green</strong><br>
+                    <code>L{color:green}</code>
+                </div>
+                <div class="color-example">
+                    <div class="color-swatch" style="background-color: #0000FF;"></div>
+                    <strong>blue</strong><br>
+                    <code>L{color:blue}</code>
+                </div>
+                <div class="color-example">
+                    <div class="color-swatch" style="background-color: rgba(102, 51, 25, 1);"></div>
+                    <strong>brown</strong><br>
+                    <code>F{color:brown}</code>
+                </div>
+                <div class="color-example">
+                    <div class="color-swatch" style="background-color: rgba(76, 178, 51, 1);"></div>
+                    <strong>leaf_green</strong><br>
+                    <code>L{color:leaf_green}</code>
+                </div>
+                <div class="color-example">
+                    <div class="color-swatch" style="background-color: rgba(76, 38, 12, 1);"></div>
+                    <strong>bark_brown</strong><br>
+                    <code>F{color:bark_brown}</code>
+                </div>
+                <div class="color-example">
+                    <div class="color-swatch" style="background-color: rgba(178, 51, 25, 1);"></div>
+                    <strong>autumn_red</strong><br>
+                    <code>L{color:autumn_red}</code>
+                </div>
+                <div class="color-example">
+                    <div class="color-swatch" style="background-color: rgba(204, 102, 25, 1);"></div>
+                    <strong>autumn_orange</strong><br>
+                    <code>L{color:autumn_orange}</code>
+                </div>
+                <div class="color-example">
+                    <div class="color-swatch" style="background-color: rgba(229, 178, 51, 1);"></div>
+                    <strong>autumn_yellow</strong><br>
+                    <code>L{color:autumn_yellow}</code>
+                </div>
+                <div class="color-example">
+                    <div class="color-swatch" style="background-color: rgba(25, 76, 25, 1);"></div>
+                    <strong>dark_green</strong><br>
+                    <code>F{color:dark_green}</code>
+                </div>
+            </div>
+
+            <h3>Hex Colors</h3>
+            <p>You can also use hex color codes:</p>
+            <div class="code-example">F{color:#FF0000}  // Red branch
+L{color:#00FF00}  // Green leaf
+F{color:#FFAA00}  // Orange branch
+L{color:#FF69B4}  // Hot pink leaf</div>
+
+            <h3>How It Works</h3>
+            <p>When <strong>Color Mode</strong> is set to <strong>"Parameterized Colors"</strong>:</p>
+            <ul>
+                <li>Each symbol can have its own color specified with <code>{color:value}</code></li>
+                <li>Colors are applied directly to the 3D geometry vertices</li>
+                <li>Both branches (F) and leaves (L) support individual colors</li>
+                <li>If no color is specified, default colors are used</li>
+            </ul>
+
+            <p>When <strong>Color Mode</strong> is set to <strong>"Default Colors"</strong>:</p>
+            <ul>
+                <li>All branches use the global branch color</li>
+                <li>All leaves use the global leaf color</li>
+                <li>Individual color parameters are ignored</li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module">
+        import { LSystemsLibrary } from './dist/index.js';
+
+        let apps = {};
+
+        function createRenderer(canvasId, colorMode = 0) {
+            const canvas = document.getElementById(canvasId);
+            return LSystemsLibrary.createRenderer({
+                canvas: canvas,
+                colorMode: colorMode
+            });
+        }
+
+        window.generateRainbowTree = function() {
+            const colorMode = parseInt(document.getElementById('rainbow-color-mode').value);
+
+            if (apps.rainbow) {
+                apps.rainbow.dispose();
+            }
+
+            apps.rainbow = createRenderer('rainbow-canvas', colorMode);
+
+            const config = {
+                axiom: "F",
+                rules: "F → F{color:red}[+F{color:orange}L{color:yellow}][-F{color:green}L{color:blue}]F{color:purple}",
+                angle: 25,
+                iterations: 4
+            };
+
+            apps.rainbow.generateLSystem(config);
+            apps.rainbow.startAnimation();
+        };
+
+        window.generateAutumnTree = function() {
+            const colorMode = parseInt(document.getElementById('autumn-color-mode').value);
+
+            if (apps.autumn) {
+                apps.autumn.dispose();
+            }
+
+            apps.autumn = createRenderer('autumn-canvas', colorMode);
+
+            const config = {
+                axiom: "F",
+                rules: "F → F{color:bark_brown}[+F{color:autumn_red}L{color:autumn_orange}][-F{color:brown}L{color:autumn_yellow}]F{color:dark_green}",
+                angle: 30,
+                iterations: 4
+            };
+
+            apps.autumn.generateLSystem(config);
+            apps.autumn.startAnimation();
+        };
+
+        window.generateTropicalPlant = function() {
+            const colorMode = parseInt(document.getElementById('tropical-color-mode').value);
+
+            if (apps.tropical) {
+                apps.tropical.dispose();
+            }
+
+            apps.tropical = createRenderer('tropical-canvas', colorMode);
+
+            const config = {
+                axiom: "F",
+                rules: "F → F{color:#8B4513}[+F{color:#228B22}L{color:#FF69B4}][-F{color:#32CD32}L{color:#FF1493}]F{color:#006400}",
+                angle: 35,
+                iterations: 3
+            };
+
+            apps.tropical.generateLSystem(config);
+            apps.tropical.startAnimation();
+        };
+
+        window.generateGradientFern = function() {
+            const colorMode = parseInt(document.getElementById('fern-color-mode').value);
+
+            if (apps.fern) {
+                apps.fern.dispose();
+            }
+
+            apps.fern = createRenderer('fern-canvas', colorMode);
+
+            const config = {
+                axiom: "X",
+                rules: [
+                    "X → F{color:#006400}[+X{color:#228B22}][-X{color:#32CD32}]FX{color:#90EE90}",
+                    "F → FF{color:#004000}"
+                ],
+                angle: 25,
+                iterations: 5
+            };
+
+            apps.fern.generateLSystem(config);
+            apps.fern.startAnimation();
+        };
+
+        // Generate initial examples
+        generateRainbowTree();
+        generateAutumnTree();
+        generateTropicalPlant();
+        generateGradientFern();
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            Object.values(apps).forEach(app => {
+                if (app && app.dispose) {
+                    app.dispose();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

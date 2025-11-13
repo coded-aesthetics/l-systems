@@ -13,8 +13,6 @@ import {
 
 export interface ThreeJSAdapterOptions {
     materialType?: "standard" | "phong" | "lambert" | "basic";
-    branchColor?: string | number;
-    leafColor?: string | number;
     castShadow?: boolean;
     receiveShadow?: boolean;
     transparent?: boolean;
@@ -40,10 +38,8 @@ export interface LSystemMeshGroup {
 }
 
 export class ThreeJSAdapter {
-    private static readonly DEFAULT_OPTIONS: ThreeJSAdapterOptions = {
+    private static readonly DEFAULT_OPTIONS: Required<ThreeJSAdapterOptions> = {
         materialType: "standard",
-        branchColor: 0x4a4a4a,
-        leafColor: 0x4caf50,
         castShadow: true,
         receiveShadow: true,
         transparent: false,
@@ -105,7 +101,7 @@ export class ThreeJSAdapter {
                 treeGeometry.branches.colors,
             );
 
-            const branchMaterial = this.createMaterial(opts, opts.branchColor!);
+            const branchMaterial = this.createMaterial(opts);
             branchMesh = new THREE.Mesh(branchGeometry, branchMaterial);
 
             branchMesh.castShadow = opts.castShadow!;
@@ -131,7 +127,7 @@ export class ThreeJSAdapter {
                 treeGeometry.leaves.colors,
             );
 
-            const leafMaterial = this.createMaterial(opts, opts.leafColor!);
+            const leafMaterial = this.createMaterial(opts);
             leafMaterial.transparent = true;
             leafMaterial.opacity = 0.8;
             leafMaterial.side = THREE.DoubleSide;
@@ -208,13 +204,18 @@ export class ThreeJSAdapter {
             );
         }
 
-        // Set vertex colors
+        // Set vertex colors (convert RGBA to RGB since ThreeJS doesn't use alpha in vertex colors)
         if (colors && colors.length > 0) {
+            const rgbColors = new Float32Array((colors.length / 4) * 3);
+            for (let i = 0, j = 0; i < colors.length; i += 4, j += 3) {
+                rgbColors[j] = colors[i]; // R
+                rgbColors[j + 1] = colors[i + 1]; // G
+                rgbColors[j + 2] = colors[i + 2]; // B
+                // Skip alpha channel (colors[i + 3])
+            }
             geometry.setAttribute(
                 "color",
-                colors instanceof Float32Array
-                    ? new THREE.Float32BufferAttribute(colors, 4)
-                    : new THREE.Float32BufferAttribute(colors, 4),
+                new THREE.Float32BufferAttribute(rgbColors, 3),
             );
         }
 
@@ -266,9 +267,9 @@ export class ThreeJSAdapter {
      */
     private static createMaterial(
         options: ThreeJSAdapterOptions,
-        color: string | number,
     ): THREE.Material {
-        const materialColor = new THREE.Color(color);
+        // Always use vertex colors and set material color to white to avoid color multiplication
+        const materialColor = new THREE.Color(0xffffff);
 
         switch (options.materialType) {
             case "standard":
@@ -278,6 +279,7 @@ export class ThreeJSAdapter {
                     metalness: options.metalness,
                     transparent: options.transparent,
                     opacity: options.opacity,
+                    vertexColors: true,
                 });
 
             case "phong":
@@ -286,6 +288,7 @@ export class ThreeJSAdapter {
                     shininess: options.shininess,
                     transparent: options.transparent,
                     opacity: options.opacity,
+                    vertexColors: true,
                 });
 
             case "lambert":
@@ -293,6 +296,7 @@ export class ThreeJSAdapter {
                     color: materialColor,
                     transparent: options.transparent,
                     opacity: options.opacity,
+                    vertexColors: true,
                 });
 
             case "basic":
@@ -300,6 +304,7 @@ export class ThreeJSAdapter {
                     color: materialColor,
                     transparent: options.transparent,
                     opacity: options.opacity,
+                    vertexColors: true,
                 });
 
             default:
@@ -307,6 +312,7 @@ export class ThreeJSAdapter {
                     color: materialColor,
                     roughness: options.roughness,
                     metalness: options.metalness,
+                    vertexColors: true,
                 });
         }
     }
@@ -318,18 +324,7 @@ export class ThreeJSAdapter {
         meshGroup: LSystemMeshGroup,
         options: Partial<ThreeJSAdapterOptions>,
     ): void {
-        if (meshGroup.branches && options.branchColor !== undefined) {
-            const branchMaterial = meshGroup.branches
-                .material as THREE.Material;
-            (branchMaterial as any).color = new THREE.Color(
-                options.branchColor,
-            );
-        }
-
-        if (meshGroup.leaves && options.leafColor !== undefined) {
-            const leafMaterial = meshGroup.leaves.material as THREE.Material;
-            (leafMaterial as any).color = new THREE.Color(options.leafColor);
-        }
+        // Materials always use vertex colors - no need to update material colors
 
         // Update other material properties
         if (options.opacity !== undefined) {

@@ -96,8 +96,6 @@ export class ThreeJSLSystemExample {
     public generateTree(): void {
         const options: ThreeJSAdapterOptions = {
             materialType: "standard",
-            branchColor: 0x8b4513, // Brown
-            leafColor: 0x228b22, // Forest green
             castShadow: true,
             receiveShadow: true,
         };
@@ -111,8 +109,6 @@ export class ThreeJSLSystemExample {
     public generateFern(): void {
         const options: ThreeJSAdapterOptions = {
             materialType: "phong",
-            branchColor: 0x2f4f2f, // Dark green
-            leafColor: 0x90ee90, // Light green
             castShadow: true,
             receiveShadow: true,
         };

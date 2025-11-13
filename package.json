@@ -9,9 +9,11 @@
         "start": "live-server --port=8080 --open=/index.html",
         "start:demo": "live-server --port=8080 --open=/example-library.html",
         "start:threejs": "live-server --port=8080 --open=/example-threejs.html",
+        "start:babylonjs": "live-server --port=8080 --open=/example-babylonjs.html",
         "clean": "rm -rf dist"
     },
     "dependencies": {
+        "@babylonjs/core": "^7.0.0",
         "@types/three": "^0.181.0",
         "gl-matrix": "^3.4.3",
         "three": "^0.181.1"

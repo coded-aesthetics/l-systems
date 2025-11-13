@@ -44,6 +44,13 @@ export {
     type LSystemMeshGroup,
 } from "./adapters/ThreeJSAdapter.js";
 
+// Babylon.js adapter exports
+export {
+    BabylonJSAdapter,
+    type BabylonJSAdapterOptions,
+    type BabylonMeshGroup,
+} from "./adapters/BabylonJSAdapter.js";
+
 // Utility exports for advanced usage
 export { LSystemGenerator } from "../core/LSystemGenerator.js";
 export { LSystem } from "../core/LSystem.js";

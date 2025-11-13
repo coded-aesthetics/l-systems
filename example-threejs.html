@@ -317,6 +317,8 @@
                 <label>Leaf Color:</label>
                 <input type="color" id="leaf-color" value="#4CAF50">
 
+                <!-- Color mode is now always parameterized colors -->
+
                 <label>Background:</label>
                 <select id="background-type">
                     <option value="gradient">Gradient</option>
@@ -334,6 +336,9 @@
                     <button onclick="loadPreset('bush')">Bush</button>
                     <button onclick="loadPreset('coral')">Coral</button>
                     <button onclick="loadPreset('spiral')">Spiral</button>
+                    <button onclick="loadPreset('rainbowTree')">Rainbow Tree</button>
+                    <button onclick="loadPreset('autumnTree')">Autumn Tree</button>
+                    <button onclick="loadPreset('tropicalPlant')">Tropical Plant</button>
                 </div>
             </div>
 
@@ -580,31 +585,39 @@
                 }
             }
 
-            createMaterial(type, color) {
-                const materialColor = new THREE.Color(color);
+            createMaterial(type) {
+                // Always use vertex colors and white material color to avoid color multiplication
+                const materialColor = new THREE.Color(0xffffff);
 
                 switch (type) {
                     case 'standard':
                         return new THREE.MeshStandardMaterial({
                             color: materialColor,
                             roughness: 0.7,
-                            metalness: 0.1
+                            metalness: 0.1,
+                            vertexColors: true
+                        });
+                    case 'basic':
+                        return new THREE.MeshBasicMaterial({
+                            color: materialColor,
+                            vertexColors: true
                         });
                     case 'phong':
                         return new THREE.MeshPhongMaterial({
                             color: materialColor,
-                            shininess: 30
+                            shininess: 100,
+                            vertexColors: true
                         });
                     case 'lambert':
                         return new THREE.MeshLambertMaterial({
-                            color: materialColor
-                        });
-                    case 'basic':
-                        return new THREE.MeshBasicMaterial({
-                            color: materialColor
+                            color: materialColor,
+                            vertexColors: true
                         });
                     default:
-                        return new THREE.MeshStandardMaterial({ color: materialColor });
+                        return new THREE.MeshStandardMaterial({
+                            color: materialColor,
+                            vertexColors: true
+                        });
                 }
             }
 
@@ -612,15 +625,13 @@
                 if (!this.lSystemMesh) return;
 
                 const materialType = document.getElementById('material-type').value;
-                const branchColor = document.getElementById('branch-color').value;
-                const leafColor = document.getElementById('leaf-color').value;
 
-                // Update branch material
-                this.lSystemMesh.material = this.createMaterial(materialType, branchColor);
+                // Update branch material (always uses vertex colors)
+                this.lSystemMesh.material = this.createMaterial(materialType);
 
-                // Update leaf materials
+                // Update leaf materials (always uses vertex colors)
                 this.leafMeshes.forEach(leafMesh => {
-                    leafMesh.material = this.createMaterial(materialType, leafColor);
+                    leafMesh.material = this.createMaterial(materialType);
                 });
             }
 
@@ -641,7 +652,7 @@
                     const thickness = parseFloat(document.getElementById('thickness').value);
                     const tapering = parseFloat(document.getElementById('tapering').value);
 
-                    // Get leaf color
+                    // Get leaf color (for fallback only - parameterized colors take precedence)
                     const leafColorHex = document.getElementById('leaf-color').value;
                     const leafColor = this.hexToRgb(leafColorHex);
 
@@ -671,7 +682,7 @@
                         leafColor: [leafColor.r / 255, leafColor.g / 255, leafColor.b / 255]
                     };
 
-                    // Generate mesh using ThreeJS adapter
+                    // Generate mesh using ThreeJS adapter (always uses parameterized colors)
                     const meshGroup = ThreeJSAdapter.createMeshFromLSystem(config, geometryParams, {
                         materialType: 'standard',
                         castShadow: true,
@@ -854,6 +865,24 @@
                 rules: 'F -> F+F--F+F',
                 angle: 60,
                 iterations: 4
+            },
+            rainbowTree: {
+                axiom: 'F',
+                rules: 'F -> F{color:red}[+F{color:orange}L{color:yellow}][-F{color:green}L{color:blue}]F{color:purple}',
+                angle: 25,
+                iterations: 4
+            },
+            autumnTree: {
+                axiom: 'F',
+                rules: 'F -> F{color:bark_brown}[+F{color:autumn_red}L{color:autumn_orange}][-F{color:brown}L{color:autumn_yellow}]F{color:dark_green}',
+                angle: 30,
+                iterations: 4
+            },
+            tropicalPlant: {
+                axiom: 'F',
+                rules: 'F -> F{color:#8B4513}[+F{color:#228B22}L{color:#FF69B4}][-F{color:#32CD32}L{color:#FF1493}]F{color:#006400}',
+                angle: 35,
+                iterations: 3
             }
         };
 
@@ -872,6 +901,9 @@
             document.getElementById('length-variation').value = 0;
             document.getElementById('leaf-probability').value = 0.7;
             document.getElementById('leaf-threshold').value = 3;
+
+            // Set color mode to parameterized for colorized presets
+            // All presets now use parameterized colors automatically
 
             // Update value displays
             document.getElementById('angle-value').textContent = preset.angle + '°';

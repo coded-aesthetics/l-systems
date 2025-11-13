@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Color Mode Functionality Test</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 20px;
+                background: linear-gradient(135deg, #1e3c72, #2a5298);
+                font-family: "Arial", sans-serif;
+                color: white;
+            }
+
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+
+            .header h1 {
+                font-size: 2.5em;
+                margin-bottom: 10px;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            }
+
+            .test-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+                gap: 30px;
+                margin-bottom: 30px;
+            }
+
+            .test-card {
+                background: rgba(255, 255, 255, 0.95);
+                color: #333;
+                border-radius: 15px;
+                padding: 20px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            }
+
+            .test-card h3 {
+                margin-top: 0;
+                color: #2a5298;
+                border-bottom: 2px solid #2a5298;
+                padding-bottom: 10px;
+            }
+
+            .canvas-container {
+                width: 100%;
+                height: 300px;
+                border-radius: 10px;
+                overflow: hidden;
+                margin: 15px 0;
+                background: #f0f0f0;
+                position: relative;
+            }
+
+            canvas {
+                width: 100%;
+                height: 100%;
+            }
+
+            .controls {
+                margin: 15px 0;
+            }
+
+            .controls label {
+                display: block;
+                margin-bottom: 5px;
+                font-weight: bold;
+            }
+
+            select,
+            button {
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                margin-bottom: 10px;
+            }
+
+            button {
+                background: linear-gradient(135deg, #4caf50, #45a049);
+                color: white;
+                border: none;
+                cursor: pointer;
+                font-weight: bold;
+            }
+
+            button:hover {
+                background: linear-gradient(135deg, #45a049, #3d8b40);
+            }
+
+            .code-example {
+                background: #1a1a1a;
+                color: #4caf50;
+                padding: 10px;
+                border-radius: 8px;
+                font-family: "Courier New", monospace;
+                margin: 10px 0;
+                font-size: 12px;
+                word-break: break-all;
+            }
+
+            .status {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                background: rgba(0, 0, 0, 0.7);
+                color: white;
+                padding: 5px 10px;
+                border-radius: 5px;
+                font-size: 12px;
+            }
+
+            .info-section {
+                background: rgba(255, 255, 255, 0.95);
+                color: #333;
+                padding: 30px;
+                border-radius: 15px;
+                margin: 30px 0;
+            }
+
+            .comparison {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                margin: 20px 0;
+            }
+
+            .comparison-item {
+                text-align: center;
+                padding: 10px;
+                border-radius: 8px;
+                background: #f5f5f5;
+            }
+
+            .comparison-item img {
+                max-width: 100%;
+                border-radius: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎨 Color Mode Functionality Test</h1>
+                <p>Testing parameterized colors in L-Systems rendering</p>
+            </div>
+
+            <div class="test-grid">
+                <!-- WebGL Native Test -->
+                <div class="test-card">
+                    <h3>🔥 WebGL Native (Working)</h3>
+                    <div class="canvas-container">
+                        <canvas
+                            id="webgl-canvas"
+                            width="350"
+                            height="280"
+                        ></canvas>
+                        <div class="status" id="webgl-status">Loading...</div>
+                    </div>
+                    <div class="controls">
+                        <label>Color Mode:</label>
+                        <select id="webgl-color-mode">
+                            <option value="0">Default Colors</option>
+                            <option value="1">Depth-based</option>
+                            <option value="2">Height-based</option>
+                            <option value="3">UV-based</option>
+                            <option value="4">Parameterized Colors</option>
+                        </select>
+                        <button onclick="generateWebGL()">Generate</button>
+                    </div>
+                    <div class="code-example">
+                        F{color:red}[+F{color:green}L{color:blue}][-F{color:yellow}]
+                    </div>
+                </div>
+
+                <!-- ThreeJS Test -->
+                <div class="test-card">
+                    <h3>🔺 ThreeJS (Enhanced)</h3>
+                    <div class="canvas-container">
+                        <canvas
+                            id="threejs-canvas"
+                            width="350"
+                            height="280"
+                        ></canvas>
+                        <div class="status" id="threejs-status">Loading...</div>
+                    </div>
+                    <div class="controls">
+                        <label>Color Mode:</label>
+                        <select id="threejs-color-mode">
+                            <option value="0">Default Colors</option>
+                            <option value="4">Parameterized Colors</option>
+                        </select>
+                        <button onclick="generateThreeJS()">Generate</button>
+                    </div>
+                    <div class="code-example">
+                        F{color:autumn_red}[+F{color:autumn_orange}L{color:autumn_yellow}]
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2>🧪 Test Results</h2>
+                <p>
+                    This page tests the color mode functionality across
+                    different rendering backends:
+                </p>
+
+                <h3>✅ What Should Work:</h3>
+                <ul>
+                    <li>
+                        <strong>WebGL Native:</strong> All color modes including
+                        parameterized colors
+                    </li>
+                    <li>
+                        <strong>ThreeJS:</strong> Should now support
+                        parameterized colors with our enhancements
+                    </li>
+                </ul>
+
+                <h3>🔍 How to Test:</h3>
+                <ol>
+                    <li>
+                        Select "Default Colors" mode - should show uniform
+                        branch/leaf colors
+                    </li>
+                    <li>
+                        Select "Parameterized Colors" mode - should show
+                        individual symbol colors
+                    </li>
+                    <li>Compare the visual difference between modes</li>
+                </ol>
+
+                <h3>🎯 Expected Behavior:</h3>
+                <div class="comparison">
+                    <div class="comparison-item">
+                        <h4>Default Mode</h4>
+                        <p>
+                            All branches: Gray<br />All leaves: Green<br />Ignores
+                            {color:...} parameters
+                        </p>
+                    </div>
+                    <div class="comparison-item">
+                        <h4>Parameterized Mode</h4>
+                        <p>
+                            Each symbol uses its own color<br />F{color:red} →
+                            Red branch<br />L{color:blue} → Blue leaf
+                        </p>
+                    </div>
+                </div>
+
+                <h3>🌈 Available Named Colors:</h3>
+                <div
+                    style="
+                        display: grid;
+                        grid-template-columns: repeat(
+                            auto-fit,
+                            minmax(150px, 1fr)
+                        );
+                        gap: 10px;
+                        margin: 20px 0;
+                    "
+                >
+                    <div><strong>red</strong> - #FF0000</div>
+                    <div><strong>green</strong> - #00FF00</div>
+                    <div><strong>blue</strong> - #0000FF</div>
+                    <div><strong>brown</strong> - Brown bark</div>
+                    <div><strong>leaf_green</strong> - Natural leaf color</div>
+                    <div><strong>bark_brown</strong> - Dark bark</div>
+                    <div><strong>autumn_red</strong> - Fall red</div>
+                    <div><strong>autumn_orange</strong> - Fall orange</div>
+                    <div><strong>autumn_yellow</strong> - Fall yellow</div>
+                    <div><strong>dark_green</strong> - Deep forest green</div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Mock implementations for testing
+            let webglRenderer = null;
+            let threejsRenderer = null;
+
+            // WebGL test - uses the actual library if available
+            window.generateWebGL = function () {
+                const canvas = document.getElementById("webgl-canvas");
+                const colorMode = parseInt(
+                    document.getElementById("webgl-color-mode").value,
+                );
+                const status = document.getElementById("webgl-status");
+
+                try {
+                    // Try to use the actual L-Systems library
+                    if (typeof LSystemsLibrary !== "undefined") {
+                        if (webglRenderer) {
+                            webglRenderer.dispose();
+                        }
+
+                        webglRenderer = LSystemsLibrary.createRenderer({
+                            canvas: canvas,
+                            colorMode: colorMode,
+                        });
+
+                        const config = {
+                            axiom: "F",
+                            rules: "F → F{color:red}[+F{color:green}L{color:blue}][-F{color:yellow}L{color:orange}]",
+                            angle: 25,
+                            iterations: 3,
+                        };
+
+                        webglRenderer.generateLSystem(config);
+                        status.textContent = `Mode: ${colorMode} - ${colorMode === 4 ? "Colors should be visible!" : "Default colors"}`;
+                    } else {
+                        // Fallback - draw a simple representation
+                        drawMockWebGL(canvas, colorMode);
+                        status.textContent = `Mock mode: ${colorMode} - ${colorMode === 4 ? "Would show colors" : "Default colors"}`;
+                    }
+                } catch (error) {
+                    console.error("WebGL test error:", error);
+                    status.textContent = "Error: " + error.message;
+                    drawMockWebGL(canvas, colorMode);
+                }
+            };
+
+            // ThreeJS test - demonstrates the enhanced functionality
+            window.generateThreeJS = function () {
+                const canvas = document.getElementById("threejs-canvas");
+                const colorMode = parseInt(
+                    document.getElementById("threejs-color-mode").value,
+                );
+                const status = document.getElementById("threejs-status");
+
+                try {
+                    // Try to use ThreeJS adapter if available
+                    if (
+                        typeof THREE !== "undefined" &&
+                        typeof ThreeJSAdapter !== "undefined"
+                    ) {
+                        // Clear previous scene
+                        if (threejsRenderer) {
+                            threejsRenderer.dispose();
+                        }
+
+                        // Create ThreeJS scene
+                        const scene = new THREE.Scene();
+                        const camera = new THREE.PerspectiveCamera(
+                            75,
+                            canvas.width / canvas.height,
+                            0.1,
+                            1000,
+                        );
+                        const renderer = new THREE.WebGLRenderer({
+                            canvas: canvas,
+                        });
+
+                        camera.position.z = 5;
+
+                        // Use enhanced ThreeJS adapter with color mode support
+                        const config = {
+                            axiom: "F",
+                            rules: [
+                                {
+                                    from: "F",
+                                    to: "F{color:autumn_red}[+F{color:autumn_orange}L{color:autumn_yellow}][-F{color:bark_brown}]",
+                                },
+                            ],
+                            angle: 25,
+                            iterations: 3,
+                        };
+
+                        const geometryParams = {
+                            length: 1.0,
+                            thickness: 0.05,
+                            tapering: 0.8,
+                            leafColor: [0.2, 0.8, 0.2],
+                        };
+
+                        const options = {
+                            materialType: "standard",
+                            branchColor: "#4a4a4a",
+                            leafColor: "#4CAF50",
+                            colorMode: colorMode, // This is our enhancement!
+                        };
+
+                        const meshGroup = ThreeJSAdapter.createMeshFromLSystem(
+                            config,
+                            geometryParams,
+                            options,
+                        );
+                        scene.add(meshGroup.group);
+
+                        // Simple render loop
+                        function animate() {
+                            requestAnimationFrame(animate);
+                            meshGroup.group.rotation.y += 0.01;
+                            renderer.render(scene, camera);
+                        }
+                        animate();
+
+                        threejsRenderer = { dispose: () => renderer.dispose() };
+                        status.textContent = `Enhanced ThreeJS - Mode: ${colorMode}`;
+                    } else {
+                        // Fallback
+                        drawMockThreeJS(canvas, colorMode);
+                        status.textContent = `Mock ThreeJS - Mode: ${colorMode} - ${colorMode === 4 ? "Enhanced with vertex colors" : "Default materials"}`;
+                    }
+                } catch (error) {
+                    console.error("ThreeJS test error:", error);
+                    status.textContent = "Error: " + error.message;
+                    drawMockThreeJS(canvas, colorMode);
+                }
+            };
+
+            // Mock drawing functions for when libraries aren't available
+            function drawMockWebGL(canvas, colorMode) {
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Set background
+                ctx.fillStyle = "#f0f0f0";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw mock tree structure
+                ctx.strokeWidth = 3;
+                ctx.lineCap = "round";
+
+                if (colorMode === 4) {
+                    // Parameterized colors - different colors for each segment
+                    drawBranch(
+                        ctx,
+                        canvas.width / 2,
+                        canvas.height - 20,
+                        canvas.width / 2,
+                        canvas.height - 80,
+                        "#ff0000",
+                    ); // red
+                    drawBranch(
+                        ctx,
+                        canvas.width / 2,
+                        canvas.height - 80,
+                        canvas.width / 2 - 40,
+                        canvas.height - 120,
+                        "#00ff00",
+                    ); // green
+                    drawBranch(
+                        ctx,
+                        canvas.width / 2,
+                        canvas.height - 80,
+                        canvas.width / 2 + 40,
+                        canvas.height - 120,
+                        "#ffff00",
+                    ); // yellow
+
+                    // Add leaves with different colors
+                    drawLeaf(
+                        ctx,
+                        canvas.width / 2 - 40,
+                        canvas.height - 120,
+                        "#0000ff",
+                    ); // blue
+                    drawLeaf(
+                        ctx,
+                        canvas.width / 2 + 40,
+                        canvas.height - 120,
+                        "#ffa500",
+                    ); // orange
+                } else {
+                    // Default colors - uniform
+                    const branchColor = "#4a4a4a";
+                    const leafColor = "#4CAF50";
+
+                    drawBranch(
+                        ctx,
+                        canvas.width / 2,
+                        canvas.height - 20,
+                        canvas.width / 2,
+                        canvas.height - 80,
+                        branchColor,
+                    );
+                    drawBranch(
+                        ctx,
+                        canvas.width / 2,
+                        canvas.height - 80,
+                        canvas.width / 2 - 40,
+                        canvas.height - 120,
+                        branchColor,
+                    );
+                    drawBranch(
+                        ctx,
+                        canvas.width / 2,
+                        canvas.height - 80,
+                        canvas.width / 2 + 40,
+                        canvas.height - 120,
+                        branchColor,
+                    );
+
+                    drawLeaf(
+                        ctx,
+                        canvas.width / 2 - 40,
+                        canvas.height - 120,
+                        leafColor,
+                    );
+                    drawLeaf(
+                        ctx,
+                        canvas.width / 2 + 40,
+                        canvas.height - 120,
+                        leafColor,
+                    );
+                }
+            }
+
+            function drawMockThreeJS(canvas, colorMode) {
+                // Similar to WebGL but with a different style to show it's ThreeJS
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Set background with gradient
+                const gradient = ctx.createLinearGradient(
+                    0,
+                    0,
+                    0,
+                    canvas.height,
+                );
+                gradient.addColorStop(0, "#87CEEB");
+                gradient.addColorStop(1, "#98FB98");
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Add "3D" effect with shadows
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = "rgba(0,0,0,0.3)";
+                ctx.lineWidth = 4;
+
+                if (colorMode === 4) {
+                    // Enhanced ThreeJS with vertex colors
+                    drawBranch(
+                        ctx,
+                        canvas.width / 2,
+                        canvas.height - 20,
+                        canvas.width / 2,
+                        canvas.height - 80,
+                        "#cc3300",
+                    ); // autumn red
+                    drawBranch(
+                        ctx,
+                        canvas.width / 2,
+                        canvas.height - 80,
+                        canvas.width / 2 - 40,
+                        canvas.height - 120,
+                        "#ff6600",
+                    ); // autumn orange
+                    drawBranch(
+                        ctx,
+                        canvas.width / 2,
+                        canvas.height - 80,
+                        canvas.width / 2 + 40,
+                        canvas.height - 120,
+                        "#8B4513",
+                    ); // bark brown
+
+                    drawLeaf(
+                        ctx,
+                        canvas.width / 2 - 40,
+                        canvas.height - 120,
+                        "#ffcc00",
+                    ); // autumn yellow
+                    drawLeaf(
+                        ctx,
+                        canvas.width / 2 + 40,
+                        canvas.height - 120,
+                        "#ff6600",
+                    ); // autumn orange
+                } else {
+                    // Default ThreeJS materials
+                    const branchColor = "#4a4a4a";
+                    const leafColor = "#4CAF50";
+
+                    drawBranch(
+                        ctx,
+                        canvas.width / 2,
+                        canvas.height - 20,
+                        canvas.width / 2,
+                        canvas.height - 80,
+                        branchColor,
+                    );
+                    drawBranch(
+                        ctx,
+                        canvas.width / 2,
+                        canvas.height - 80,
+                        canvas.width / 2 - 40,
+                        canvas.height - 120,
+                        branchColor,
+                    );
+                    drawBranch(
+                        ctx,
+                        canvas.width / 2,
+                        canvas.height - 80,
+                        canvas.width / 2 + 40,
+                        canvas.height - 120,
+                        branchColor,
+                    );
+
+                    drawLeaf(
+                        ctx,
+                        canvas.width / 2 - 40,
+                        canvas.height - 120,
+                        leafColor,
+                    );
+                    drawLeaf(
+                        ctx,
+                        canvas.width / 2 + 40,
+                        canvas.height - 120,
+                        leafColor,
+                    );
+                }
+
+                ctx.shadowBlur = 0;
+            }
+
+            function drawBranch(ctx, x1, y1, x2, y2, color) {
+                ctx.strokeStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+
+            function drawLeaf(ctx, x, y, color) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.ellipse(x, y, 8, 12, Math.PI / 4, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+
+            // Initialize with default mode
+            document.addEventListener("DOMContentLoaded", function () {
+                generateWebGL();
+                generateThreeJS();
+
+                // Add event listeners for real-time updates
+                document
+                    .getElementById("webgl-color-mode")
+                    .addEventListener("change", generateWebGL);
+                document
+                    .getElementById("threejs-color-mode")
+                    .addEventListener("change", generateThreeJS);
+            });
+        </script>
+    </body>
+</html>

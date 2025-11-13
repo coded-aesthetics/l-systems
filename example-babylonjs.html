@@ -1,0 +1,965 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>L-Systems with Babylon.js - Library Example</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                background: linear-gradient(135deg, #1e3c72, #2a5298);
+                font-family: "Arial", sans-serif;
+                overflow-x: hidden;
+            }
+
+            .header {
+                text-align: center;
+                padding: 20px;
+                color: white;
+                background: rgba(0, 0, 0, 0.3);
+                backdrop-filter: blur(10px);
+            }
+
+            .header h1 {
+                margin: 0;
+                font-size: 2.5em;
+                font-weight: 300;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            }
+
+            .header p {
+                margin: 10px 0 0;
+                font-size: 1.1em;
+                opacity: 0.9;
+            }
+
+            .container {
+                display: flex;
+                height: calc(100vh - 140px);
+                gap: 20px;
+                padding: 0 20px 20px;
+            }
+
+            .canvas-container {
+                flex: 1;
+                position: relative;
+                background: rgba(0, 0, 0, 0.1);
+                border-radius: 15px;
+                overflow: hidden;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            }
+
+            #babylonjs-canvas {
+                width: 100%;
+                height: 100%;
+                display: block;
+                outline: none;
+            }
+
+            .controls {
+                width: 350px;
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 15px;
+                padding: 25px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                backdrop-filter: blur(10px);
+                overflow-y: auto;
+                max-height: 100%;
+            }
+
+            .control-group {
+                margin-bottom: 25px;
+                padding-bottom: 20px;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            }
+
+            .control-group:last-child {
+                border-bottom: none;
+                margin-bottom: 0;
+            }
+
+            .control-group h3 {
+                margin: 0 0 15px;
+                color: #333;
+                font-size: 1.2em;
+                font-weight: 600;
+            }
+
+            label {
+                display: block;
+                margin-bottom: 8px;
+                color: #555;
+                font-weight: 500;
+                font-size: 0.9em;
+            }
+
+            input,
+            select,
+            textarea {
+                width: 100%;
+                padding: 10px;
+                border: 2px solid rgba(0, 0, 0, 0.1);
+                border-radius: 8px;
+                font-size: 14px;
+                transition: all 0.3s ease;
+                box-sizing: border-box;
+            }
+
+            input:focus,
+            select:focus,
+            textarea:focus {
+                outline: none;
+                border-color: #4caf50;
+                box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+            }
+
+            input[type="range"] {
+                -webkit-appearance: none;
+                height: 6px;
+                background: linear-gradient(90deg, #e0e0e0, #4caf50);
+                border-radius: 3px;
+                padding: 0;
+            }
+
+            input[type="range"]::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 18px;
+                height: 18px;
+                background: #4caf50;
+                border-radius: 50%;
+                cursor: pointer;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            }
+
+            input[type="range"]::-moz-range-thumb {
+                width: 18px;
+                height: 18px;
+                background: #4caf50;
+                border-radius: 50%;
+                cursor: pointer;
+                border: none;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            }
+
+            textarea {
+                min-height: 80px;
+                resize: vertical;
+                font-family: "Courier New", monospace;
+            }
+
+            button {
+                background: linear-gradient(135deg, #4caf50, #45a049);
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                margin: 5px 5px 5px 0;
+            }
+
+            button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+            }
+
+            button:active {
+                transform: translateY(0);
+            }
+
+            .preset-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                margin-top: 10px;
+            }
+
+            .preset-grid button {
+                margin: 0;
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+
+            .value-display {
+                display: inline-block;
+                margin-left: 10px;
+                font-weight: bold;
+                color: #4caf50;
+                font-size: 0.9em;
+            }
+
+            .loading {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-size: 1.2em;
+                text-align: center;
+                z-index: 100;
+            }
+
+            .loading::after {
+                content: "";
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                border-radius: 50%;
+                border-top-color: white;
+                animation: spin 1s linear infinite;
+                margin-left: 10px;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .stats {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                color: white;
+                font-size: 12px;
+                background: rgba(0, 0, 0, 0.5);
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-family: monospace;
+            }
+
+            .info-panel {
+                position: absolute;
+                bottom: 10px;
+                right: 10px;
+                background: rgba(0, 0, 0, 0.7);
+                color: white;
+                padding: 10px 15px;
+                border-radius: 8px;
+                font-size: 11px;
+                max-width: 200px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>L-Systems + Babylon.js</h1>
+            <p>Interactive 3D Fractal Rendering Library Example</p>
+        </div>
+
+        <div class="container">
+            <div class="canvas-container">
+                <canvas id="babylonjs-canvas"></canvas>
+                <div id="loading" class="loading" style="display: none">
+                    Generating L-System...
+                </div>
+                <div class="stats" id="stats">
+                    Vertices: 0<br />
+                    Triangles: 0<br />
+                    FPS: 0
+                </div>
+                <div class="info-panel">
+                    <strong>Controls:</strong><br />
+                    Mouse: Rotate camera<br />
+                    Wheel: Zoom<br />
+                    Arrows: Pan<br />
+                    <strong>Babylon.js Engine</strong>
+                </div>
+            </div>
+
+            <div class="controls">
+                <!-- L-System Configuration -->
+                <div class="control-group">
+                    <h3>L-System Rules</h3>
+
+                    <label for="axiom">Axiom:</label>
+                    <input type="text" id="axiom" value="F" />
+
+                    <label for="rules">Rules:</label>
+                    <textarea id="rules" rows="3">F -> F[+F]F[-F]F</textarea>
+
+                    <label for="iterations"
+                        >Iterations:
+                        <span class="value-display" id="iterations-value"
+                            >4</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="iterations"
+                        min="1"
+                        max="8"
+                        value="4"
+                    />
+
+                    <label for="angle"
+                        >Angle:
+                        <span class="value-display" id="angle-value"
+                            >25°</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="angle"
+                        min="5"
+                        max="90"
+                        value="25"
+                    />
+
+                    <!-- Preset buttons -->
+                    <div class="preset-grid">
+                        <button onclick="loadPreset('tree')">Tree</button>
+                        <button onclick="loadPreset('fern')">Fern</button>
+                        <button onclick="loadPreset('bush')">Bush</button>
+                        <button onclick="loadPreset('dragon')">Dragon</button>
+                        <button onclick="loadPreset('rainbowTree')">
+                            Rainbow Tree
+                        </button>
+                        <button onclick="loadPreset('autumnTree')">
+                            Autumn Tree
+                        </button>
+                        <button onclick="loadPreset('tropicalPlant')">
+                            Tropical Plant
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Geometry Parameters -->
+                <div class="control-group">
+                    <h3>Geometry</h3>
+
+                    <label for="length"
+                        >Length:
+                        <span class="value-display" id="length-value"
+                            >1.0</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="length"
+                        min="0.1"
+                        max="3"
+                        step="0.1"
+                        value="1.0"
+                    />
+
+                    <label for="thickness"
+                        >Thickness:
+                        <span class="value-display" id="thickness-value"
+                            >0.05</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="thickness"
+                        min="0.01"
+                        max="0.2"
+                        step="0.01"
+                        value="0.05"
+                    />
+
+                    <label for="tapering"
+                        >Tapering:
+                        <span class="value-display" id="tapering-value"
+                            >0.8</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="tapering"
+                        min="0.1"
+                        max="1"
+                        step="0.05"
+                        value="0.8"
+                    />
+                </div>
+
+                <!-- Advanced Parameters -->
+                <div class="control-group">
+                    <h3>Advanced Parameters</h3>
+
+                    <label for="angle-variation"
+                        >Angle Variation:
+                        <span class="value-display" id="angle-variation-value"
+                            >10°</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="angle-variation"
+                        min="0"
+                        max="45"
+                        value="10"
+                    />
+
+                    <label for="length-variation"
+                        >Length Variation:
+                        <span class="value-display" id="length-variation-value"
+                            >0.2</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="length-variation"
+                        min="0"
+                        max="0.5"
+                        step="0.1"
+                        value="0.2"
+                    />
+
+                    <label for="leaf-probability"
+                        >Leaf Probability:
+                        <span class="value-display" id="leaf-probability-value"
+                            >0.7</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="leaf-probability"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value="0.7"
+                    />
+
+                    <label for="leaf-threshold"
+                        >Leaf Threshold:
+                        <span class="value-display" id="leaf-threshold-value"
+                            >3</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="leaf-threshold"
+                        min="1"
+                        max="6"
+                        value="3"
+                    />
+                </div>
+
+                <!-- Material Settings -->
+                <div class="control-group">
+                    <h3>Materials</h3>
+
+                    <label for="material-type">Material Type:</label>
+                    <select id="material-type">
+                        <option value="pbr">PBR</option>
+                        <option value="standard">Standard</option>
+                        <option value="basic">Basic</option>
+                    </select>
+
+                    <label for="branch-color">Branch Color:</label>
+                    <input type="color" id="branch-color" value="#4a4a4a" />
+
+                    <label for="leaf-color">Leaf Color:</label>
+                    <input type="color" id="leaf-color" value="#4caf50" />
+
+                    <label for="color-mode">Color Mode:</label>
+                    <!-- Color mode is now always parameterized colors -->
+
+                    <label for="roughness"
+                        >Roughness:
+                        <span class="value-display" id="roughness-value"
+                            >0.7</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="roughness"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value="0.7"
+                    />
+
+                    <label for="metalness"
+                        >Metalness:
+                        <span class="value-display" id="metalness-value"
+                            >0.1</span
+                        ></label
+                    >
+                    <input
+                        type="range"
+                        id="metalness"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value="0.1"
+                    />
+                </div>
+
+                <!-- Actions -->
+                <div class="control-group">
+                    <h3>Actions</h3>
+                    <button onclick="generate()" style="width: 100%">
+                        Generate Tree
+                    </button>
+                    <button onclick="exportOBJ()">Export OBJ</button>
+                    <button onclick="resetCamera()">Reset Camera</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Babylon.js -->
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+
+        <!-- L-Systems Library -->
+        <script type="module">
+            import { LSystemsLibrary } from "./dist/lib/LSystemsLibrary.js";
+            import { BabylonJSAdapter } from "./dist/lib/adapters/BabylonJSAdapter.js";
+
+            // Global variables
+            let engine,
+                scene,
+                camera,
+                currentMeshGroup = null;
+            let fpsMonitor = null;
+
+            // Initialize Babylon.js scene
+            function initBabylonJS() {
+                const canvas = document.getElementById("babylonjs-canvas");
+                engine = new BABYLON.Engine(canvas, true, {
+                    preserveDrawingBuffer: true,
+                    stencil: true,
+                });
+
+                scene = new BABYLON.Scene(engine);
+                scene.clearColor = new BABYLON.Color3(0.1, 0.15, 0.25);
+
+                // Create camera
+                camera = new BABYLON.ArcRotateCamera(
+                    "camera",
+                    Math.PI / 4,
+                    Math.PI / 3,
+                    10,
+                    BABYLON.Vector3.Zero(),
+                    scene,
+                );
+                camera.attachControl(canvas, true);
+                camera.wheelPrecision = 50;
+                camera.lowerRadiusLimit = 0.5;
+                camera.upperRadiusLimit = 100;
+
+                // Enhanced lighting setup
+                const hemisphericLight = new BABYLON.HemisphericLight(
+                    "hemisphericLight",
+                    new BABYLON.Vector3(0, 1, 0),
+                    scene,
+                );
+                hemisphericLight.intensity = 0.6;
+                hemisphericLight.diffuse = new BABYLON.Color3(1, 1, 1);
+                hemisphericLight.groundColor = new BABYLON.Color3(
+                    0.3,
+                    0.4,
+                    0.5,
+                );
+
+                // Directional light for shadows
+                const directionalLight = new BABYLON.DirectionalLight(
+                    "directionalLight",
+                    new BABYLON.Vector3(-1, -1, -1),
+                    scene,
+                );
+                directionalLight.intensity = 0.8;
+                directionalLight.diffuse = new BABYLON.Color3(1, 0.9, 0.8);
+
+                // Additional fill light
+                const fillLight = new BABYLON.DirectionalLight(
+                    "fillLight",
+                    new BABYLON.Vector3(1, 0.5, 1),
+                    scene,
+                );
+                fillLight.intensity = 0.3;
+                fillLight.diffuse = new BABYLON.Color3(0.8, 0.9, 1);
+
+                // Shadow generator
+                const shadowGenerator = new BABYLON.ShadowGenerator(
+                    1024,
+                    directionalLight,
+                );
+                shadowGenerator.useExponentialShadowMap = true;
+
+                // Ground plane
+                const ground = BABYLON.MeshBuilder.CreateGround(
+                    "ground",
+                    { width: 20, height: 20 },
+                    scene,
+                );
+                const groundMaterial = new BABYLON.StandardMaterial(
+                    "groundMaterial",
+                    scene,
+                );
+                groundMaterial.diffuseColor = new BABYLON.Color3(0.4, 0.5, 0.4);
+                groundMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+                ground.material = groundMaterial;
+                ground.receiveShadows = true;
+                ground.position.y = -0.1;
+
+                // FPS monitoring
+                fpsMonitor = scene.onBeforeRenderObservable.add(() => {
+                    updateStats();
+                });
+
+                // Start render loop
+                engine.runRenderLoop(() => {
+                    scene.render();
+                });
+
+                // Handle window resize
+                window.addEventListener("resize", () => {
+                    engine.resize();
+                });
+
+                // Generate initial tree
+                generate();
+            }
+
+            // Generate tree function
+            function generate() {
+                const loadingDiv = document.getElementById("loading");
+                loadingDiv.style.display = "block";
+
+                // Small delay to show loading indicator
+                setTimeout(() => {
+                    try {
+                        // Dispose of existing mesh
+                        if (currentMeshGroup) {
+                            BabylonJSAdapter.dispose(currentMeshGroup);
+                        }
+
+                        // Get configuration from UI
+                        const config = {
+                            axiom: document.getElementById("axiom").value,
+                            rules: document.getElementById("rules").value,
+                            iterations: parseInt(
+                                document.getElementById("iterations").value,
+                            ),
+                            angle: parseFloat(
+                                document.getElementById("angle").value,
+                            ),
+                            angleVariation: parseFloat(
+                                document.getElementById("angle-variation")
+                                    .value,
+                            ),
+                            lengthVariation: parseFloat(
+                                document.getElementById("length-variation")
+                                    .value,
+                            ),
+                            leafProbability: parseFloat(
+                                document.getElementById("leaf-probability")
+                                    .value,
+                            ),
+                            leafGenerationThreshold: parseInt(
+                                document.getElementById("leaf-threshold").value,
+                            ),
+                        };
+
+                        const geometryParams = {
+                            length: parseFloat(
+                                document.getElementById("length").value,
+                            ),
+                            thickness: parseFloat(
+                                document.getElementById("thickness").value,
+                            ),
+                            tapering: parseFloat(
+                                document.getElementById("tapering").value,
+                            ),
+                            leafColor: [0.2, 0.8, 0.2],
+                        };
+
+                        const options = {
+                            materialType:
+                                document.getElementById("material-type").value,
+                            roughness: parseFloat(
+                                document.getElementById("roughness").value,
+                            ),
+                            metalness: parseFloat(
+                                document.getElementById("metalness").value,
+                            ),
+                        };
+
+                        // Generate mesh
+                        currentMeshGroup =
+                            BabylonJSAdapter.createMeshFromLSystem(
+                                config,
+                                geometryParams,
+                                options,
+                                scene,
+                            );
+
+                        // Fit camera to mesh
+                        BabylonJSAdapter.fitCameraToMesh(
+                            currentMeshGroup,
+                            camera,
+                        );
+
+                        loadingDiv.style.display = "none";
+                    } catch (error) {
+                        console.error("Error generating tree:", error);
+                        loadingDiv.style.display = "none";
+                        alert("Error generating tree: " + error.message);
+                    }
+                }, 100);
+            }
+
+            // Load preset configurations
+            function loadPreset(presetName) {
+                const presets = {
+                    tree: {
+                        axiom: "F",
+                        rules: "F -> F[+F]F[-F]F",
+                        angle: 25,
+                        iterations: 4,
+                    },
+                    fern: {
+                        axiom: "X",
+                        rules: "X -> F+[[X]-X]-F[-FX]+X\nF -> FF",
+                        angle: 25,
+                        iterations: 5,
+                    },
+                    bush: {
+                        axiom: "F",
+                        rules: "F -> F[+F]F[-F][F]",
+                        angle: 20,
+                        iterations: 4,
+                    },
+                    dragon: {
+                        axiom: "FX",
+                        rules: "X -> X+YF+\nY -> -FX-Y",
+                        angle: 90,
+                        iterations: 10,
+                    },
+                    rainbowTree: {
+                        axiom: "F",
+                        rules: "F -> F{color:red}[+F{color:orange}L{color:yellow}][-F{color:green}L{color:blue}]F{color:purple}",
+                        angle: 25,
+                        iterations: 4,
+                    },
+                    autumnTree: {
+                        axiom: "F",
+                        rules: "F -> F{color:bark_brown}[+F{color:autumn_red}L{color:autumn_orange}][-F{color:brown}L{color:autumn_yellow}]F{color:dark_green}",
+                        angle: 30,
+                        iterations: 4,
+                    },
+                    tropicalPlant: {
+                        axiom: "F",
+                        rules: "F -> F{color:#8B4513}[+F{color:#228B22}L{color:#FF69B4}][-F{color:#32CD32}L{color:#FF1493}]F{color:#006400}",
+                        angle: 35,
+                        iterations: 3,
+                    },
+                };
+
+                const preset = presets[presetName];
+                if (preset) {
+                    document.getElementById("axiom").value = preset.axiom;
+                    document.getElementById("rules").value = preset.rules;
+                    document.getElementById("angle").value = preset.angle;
+                    document.getElementById("iterations").value =
+                        preset.iterations;
+
+                    // All presets now use parameterized colors automatically
+
+                    // Update displays
+                    updateValueDisplays();
+
+                    // Generate automatically
+                    generate();
+                }
+            }
+
+            // Export to OBJ
+            function exportOBJ() {
+                if (!currentMeshGroup) {
+                    alert("No tree generated yet!");
+                    return;
+                }
+
+                try {
+                    const objContent =
+                        BabylonJSAdapter.exportToOBJ(currentMeshGroup);
+                    const blob = new Blob([objContent], { type: "text/plain" });
+                    const url = URL.createObjectURL(blob);
+
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "lsystem-tree.obj";
+                    a.click();
+
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error("Error exporting OBJ:", error);
+                    alert("Error exporting OBJ: " + error.message);
+                }
+            }
+
+            // Reset camera
+            function resetCamera() {
+                if (currentMeshGroup) {
+                    BabylonJSAdapter.fitCameraToMesh(currentMeshGroup, camera);
+                } else {
+                    camera.setTarget(BABYLON.Vector3.Zero());
+                    camera.radius = 10;
+                    camera.beta = Math.PI / 3;
+                    camera.alpha = Math.PI / 4;
+                }
+            }
+
+            // Update stats display
+            function updateStats() {
+                const statsDiv = document.getElementById("stats");
+                const fps = Math.round(engine.getFps());
+
+                if (currentMeshGroup) {
+                    const stats = currentMeshGroup.stats;
+                    statsDiv.innerHTML = `
+                    Vertices: ${stats.totalVertices.toLocaleString()}<br>
+                    Triangles: ${stats.totalTriangles.toLocaleString()}<br>
+                    FPS: ${fps}
+                `;
+                } else {
+                    statsDiv.innerHTML = `
+                    Vertices: 0<br>
+                    Triangles: 0<br>
+                    FPS: ${fps}
+                `;
+                }
+            }
+
+            // Update value displays
+            function updateValueDisplays() {
+                const updates = [
+                    ["iterations", "iterations-value", ""],
+                    ["angle", "angle-value", "°"],
+                    ["length", "length-value", ""],
+                    ["thickness", "thickness-value", ""],
+                    ["tapering", "tapering-value", ""],
+                    ["angle-variation", "angle-variation-value", "°"],
+                    ["length-variation", "length-variation-value", ""],
+                    ["leaf-probability", "leaf-probability-value", ""],
+                    ["leaf-threshold", "leaf-threshold-value", ""],
+                    ["roughness", "roughness-value", ""],
+                    ["metalness", "metalness-value", ""],
+                ];
+
+                updates.forEach(([inputId, displayId, suffix]) => {
+                    const input = document.getElementById(inputId);
+                    const display = document.getElementById(displayId);
+                    if (input && display) {
+                        display.textContent = input.value + suffix;
+                    }
+                });
+            }
+
+            // Setup event listeners
+            function setupEventListeners() {
+                // Update displays when sliders change
+                const sliders = [
+                    "iterations",
+                    "angle",
+                    "length",
+                    "thickness",
+                    "tapering",
+                    "angle-variation",
+                    "length-variation",
+                    "leaf-probability",
+                    "leaf-threshold",
+                    "roughness",
+                    "metalness",
+                ];
+
+                sliders.forEach((id) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener("input", updateValueDisplays);
+                    }
+                });
+
+                // Auto-generate on parameter changes
+                const autoGenerateElements = [
+                    "axiom",
+                    "rules",
+                    "iterations",
+                    "angle",
+                    "length",
+                    "thickness",
+                    "tapering",
+                    "angle-variation",
+                    "length-variation",
+                    "leaf-probability",
+                    "leaf-threshold",
+                ];
+
+                autoGenerateElements.forEach((id) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener("change", () => {
+                            setTimeout(generate, 300); // Debounce
+                        });
+                    }
+                });
+
+                // Material updates
+                const materialElements = [
+                    "material-type",
+                    "branch-color",
+                    "leaf-color",
+                    "color-mode",
+                    "roughness",
+                    "metalness",
+                ];
+
+                materialElements.forEach((id) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener("change", () => {
+                            if (currentMeshGroup) {
+                                const options = {
+                                    materialType:
+                                        document.getElementById("material-type")
+                                            .value,
+                                    roughness: parseFloat(
+                                        document.getElementById("roughness")
+                                            .value,
+                                    ),
+                                    metalness: parseFloat(
+                                        document.getElementById("metalness")
+                                            .value,
+                                    ),
+                                };
+                                BabylonJSAdapter.updateMaterials(
+                                    currentMeshGroup,
+                                    options,
+                                    scene,
+                                );
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Make functions global so buttons can access them
+            window.generate = generate;
+            window.loadPreset = loadPreset;
+            window.exportOBJ = exportOBJ;
+            window.resetCamera = resetCamera;
+
+            // Initialize when page loads
+            window.addEventListener("DOMContentLoaded", () => {
+                setupEventListeners();
+                updateValueDisplays();
+                initBabylonJS();
+            });
+
+            // Cleanup on page unload
+            window.addEventListener("beforeunload", () => {
+                if (engine) {
+                    engine.dispose();
+                }
+            });
+        </script>
+    </body>
+</html>

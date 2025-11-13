@@ -32,8 +32,6 @@ interface SavedPlant {
     leafProbability: number;
     leafThreshold: number;
     leafColor: string;
-    // Rendering options
-    colorMode: number;
     // Camera state
     zoom: number;
     rotationSpeed: number;
@@ -62,7 +60,6 @@ class LSystemApp {
     private angleVariationSlider!: HTMLInputElement;
     private lengthVariationSlider!: HTMLInputElement;
     private segmentsSlider!: HTMLInputElement;
-    private colorModeSelect!: HTMLSelectElement;
     private leafProbabilitySlider!: HTMLInputElement;
     private leafThresholdSlider!: HTMLInputElement;
     private leafColorPicker!: HTMLInputElement;
@@ -270,9 +267,6 @@ class LSystemApp {
         this.segmentsSlider = document.getElementById(
             "segments",
         ) as HTMLInputElement;
-        this.colorModeSelect = document.getElementById(
-            "colorMode",
-        ) as HTMLSelectElement;
         this.leafProbabilitySlider = document.getElementById(
             "leafProbability",
         ) as HTMLInputElement;
@@ -355,22 +349,7 @@ class LSystemApp {
             this.generateLSystem(),
         );
 
-        // Real-time updates for renderer parameters
-        this.colorModeSelect.addEventListener("change", () => {
-            if (this.renderer) {
-                const newColorMode = parseInt(this.colorModeSelect.value);
-                this.renderer.setColorMode(newColorMode);
-
-                // If switching to parameterized colors (mode 4), regenerate geometry
-                // to ensure color data is available
-                if (newColorMode === 4) {
-                    console.log(
-                        "Switching to parameterized colors - regenerating geometry",
-                    );
-                    setTimeout(() => this.generateLSystem(), 100);
-                }
-            }
-        });
+        // Color mode is now always parameterized colors - no UI control needed
 
         this.leafColorPicker.addEventListener("change", () => {
             if (this.renderer) {
@@ -576,7 +555,6 @@ class LSystemApp {
         try {
             this.renderer = new Renderer({
                 canvas: this.canvas,
-                colorMode: 0,
             });
 
             this.renderer.startAnimation();
@@ -731,11 +709,10 @@ class LSystemApp {
             "coloredFern",
             "rainbowBush",
         ];
+        // All presets now automatically use parameterized colors
         if (coloredPresets.includes(presetName)) {
-            this.colorModeSelect.value = "4"; // Parameterized Colors mode
-            this.colorModeSelect.dispatchEvent(new Event("change"));
             console.log(
-                `Auto-enabled parameterized colors for preset: ${presetName}`,
+                `Loaded colored preset: ${presetName} (parameterized colors always enabled)`,
             );
         }
 
@@ -816,7 +793,6 @@ class LSystemApp {
             leafProbability: parseInt(this.leafProbabilitySlider.value),
             leafThreshold: parseInt(this.leafThresholdSlider.value),
             leafColor: this.leafColorPicker.value,
-            colorMode: parseInt(this.colorModeSelect.value),
             zoom: cameraState.zoom,
             rotationSpeed: cameraState.rotationSpeed,
             manualRotationX: cameraState.manualRotationX,
@@ -847,8 +823,7 @@ class LSystemApp {
         this.leafThresholdSlider.value = state.leafThreshold.toString();
         this.leafColorPicker.value = state.leafColor;
 
-        // Apply rendering options
-        this.colorModeSelect.value = state.colorMode.toString();
+        // Parameterized colors are now always enabled
 
         // Apply camera state
         this.zoomSlider.value = state.zoom.toString();
@@ -1617,8 +1592,6 @@ Try these examples:
 
             // Force color mode to parameterized colors
             if (this.renderer) {
-                this.renderer.setColorMode(4);
-                this.colorModeSelect.value = "4";
                 this.renderer.updateGeometry(testGeometry);
                 console.log("✓ Updated renderer with test geometry");
             }

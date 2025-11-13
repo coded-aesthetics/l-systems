@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreeJS Color Debug</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #222;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .canvas-container {
+            width: 600px;
+            height: 400px;
+            border: 1px solid #444;
+        }
+        .debug-info {
+            flex: 1;
+            background: #333;
+            padding: 20px;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .debug-info h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        .debug-info pre {
+            background: #111;
+            padding: 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+    <script src="src/LSystemsLibrary.min.js?v=1"></script>
+</head>
+<body>
+    <h1>ThreeJS Vertex Color Debug</h1>
+
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+        <div class="debug-info">
+            <h3>Debug Information</h3>
+            <div></div>
+                <button onclick="testSimpleColors()">Test Simple Colors</button>
+                <button onclick="testParameterizedColors()">Test Parameterized Colors</button>
+                <button onclick="debugVertexColors()">Debug Vertex Colors</button>
+            </div>
+            <pre id="output">Click a button to start debugging...</pre>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer;
+        let currentMesh;
+        const output = document.getElementById('output');
+
+        function log(message) {
+            output.innerHTML += message + '\n';
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearLog() {
+            output.innerHTML = '';
+        }
+
+        // Initialize Three.js
+        function init() {
+            const canvas = document.getElementById('canvas');
+            const container = canvas.parentElement;
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: canvas });
+            renderer.setSize(container.offsetWidth, container.offsetHeight);
+            renderer.setClearColor(0x222222);
+
+            // Add some lighting
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(1, 1, 1);
+            scene.add(light);
+
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            scene.add(ambientLight);
+
+            camera.position.z = 5;
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (currentMesh) {
+                currentMesh.rotation.y += 0.01;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Test simple vertex colors without L-System
+        function testSimpleColors() {
+            clearLog();
+            log('=== Testing Simple Vertex Colors ===');
+
+            // Clear existing mesh
+            if (currentMesh) {
+                scene.remove(currentMesh);
+            }
+
+            // Create a simple triangle with vertex colors
+            const geometry = new THREE.BufferGeometry();
+
+            const vertices = new Float32Array([
+                -1, -1, 0,
+                 1, -1, 0,
+                 0,  1, 0
+            ]);
+
+            const colors = new Float32Array([
+                1, 0, 0, 1,  // Red
+                0, 1, 0, 1,  // Green
+                0, 0, 1, 1   // Blue
+            ]);
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+
+            log('Vertices: ' + vertices.length / 3);
+            log('Colors: ' + colors.length / 4);
+            log('Color data: [' + Array.from(colors).join(', ') + ']');
+
+            // Test with vertexColors: true
+            const material = new THREE.MeshBasicMaterial({
+                vertexColors: true,
+                side: THREE.DoubleSide
+            });
+
+            currentMesh = new THREE.Mesh(geometry, material);
+            scene.add(currentMesh);
+
+            log('Material vertexColors: ' + material.vertexColors);
+            log('Expected: Red-Green-Blue triangle');
+        }
+
+        // Test L-System with parameterized colors
+        function testParameterizedColors() {
+            clearLog();
+            log('=== Testing L-System Parameterized Colors ===');
+
+            // Clear existing mesh
+            if (currentMesh) {
+                scene.remove(currentMesh);
+            }
+
+            try {
+                const config = {
+                    axiom: 'F',
+                    rules: 'F=F{color:red}[+F{color:green}L{color:blue}][-F{color:yellow}L{color:purple}]',
+                    iterations: 2,
+                    angle: 25
+                };
+
+                const geometryParams = {
+                    length: 1.0,
+                    thickness: 0.1,
+                    tapering: 0.8,
+                    leafColor: [0, 1, 0]
+                };
+
+                const options = {
+                    materialType: 'basic',
+                    colorMode: 4  // Parameterized colors
+                };
+
+                log('Config: ' + JSON.stringify(config, null, 2));
+                log('Options: ' + JSON.stringify(options, null, 2));
+
+                const meshGroup = ThreeJSAdapter.createMeshFromLSystem(config, geometryParams, options);
+
+                scene.add(meshGroup.group);
+                currentMesh = meshGroup.group;
+
+                log('Mesh created successfully');
+                log('Stats: ' + JSON.stringify(meshGroup.stats, null, 2));
+
+                // Fit camera to see the result
+                const box = new THREE.Box3().setFromObject(currentMesh);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+
+                camera.position.set(center.x, center.y, center.z + maxDim * 2);
+                camera.lookAt(center);
+
+            } catch (error) {
+                log('ERROR: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        // Debug vertex color data from geometry
+        function debugVertexColors() {
+            clearLog();
+            log('=== Debugging Vertex Color Data ===');
+
+            if (!currentMesh) {
+                log('No mesh to debug. Run a test first.');
+                return;
+            }
+
+            currentMesh.traverse((child) => {
+                if (child.isMesh) {
+                    log('--- Mesh: ' + child.name + ' ---');
+                    log('Material type: ' + child.material.constructor.name);
+                    log('Material vertexColors: ' + child.material.vertexColors);
+                    log('Material color: ' + child.material.color?.getHexString());
+
+                    const geometry = child.geometry;
+                    const colorAttribute = geometry.getAttribute('color');
+
+                    if (colorAttribute) {
+                        log('Color attribute found:');
+                        log('  Array length: ' + colorAttribute.array.length);
+                        log('  Item size: ' + colorAttribute.itemSize);
+                        log('  Count: ' + colorAttribute.count);
+
+                        // Show first few color values
+                        const colors = colorAttribute.array;
+                        const sampleSize = Math.min(20, colors.length);
+                        log('  First ' + sampleSize + ' values: [' +
+                            Array.from(colors.slice(0, sampleSize)).map(v => v.toFixed(3)).join(', ') + ']');
+
+                        // Check for non-zero colors
+                        let nonZeroCount = 0;
+                        for (let i = 0; i < colors.length; i += 4) {
+                            if (colors[i] !== 0 || colors[i+1] !== 0 || colors[i+2] !== 0) {
+                                nonZeroCount++;
+                            }
+                        }
+                        log('  Non-zero colors: ' + nonZeroCount + ' / ' + (colors.length / 4));
+
+                    } else {
+                        log('No color attribute found');
+                    }
+
+                    log('');
+                }
+            });
+        }
+
+        // Initialize when page loads
+        init();
+    </script>
+</body>
+</html>

@@ -10,7 +10,6 @@ import { AnimationLoop } from "../controls/AnimationLoop.js";
 export interface RendererOptions {
     canvas: HTMLCanvasElement;
     segments?: number;
-    colorMode?: number;
 }
 
 export interface GeometryData {
@@ -68,10 +67,7 @@ export class Renderer {
             this.cameraController,
         );
 
-        // Set initial color mode
-        if (options.colorMode !== undefined) {
-            this.renderPipeline.setColorMode(options.colorMode);
-        }
+        // Color mode is now always parameterized colors
 
         // Initialize input handling
         this.inputHandler = new InputHandler(
@@ -111,15 +107,7 @@ export class Renderer {
         this.bufferManager.updateGeometry(geometry);
     }
 
-    public setColorMode(mode: number): void {
-        this.renderPipeline.setColorMode(mode);
-        // Force a re-render to apply the new color mode
-        requestAnimationFrame(() => this.render());
-    }
-
-    public getColorMode(): number {
-        return this.renderPipeline.getColorMode();
-    }
+    // Color mode methods removed - now always uses parameterized colors
 
     public setLeafColor(color: [number, number, number]): void {
         this.renderPipeline.setLeafColor(color);

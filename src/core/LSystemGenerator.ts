@@ -108,7 +108,7 @@ export class LSystemGenerator {
             thickness: thickness,
             depth: 0,
             generation: 0,
-            color: [0.4, 0.2, 0.1, 1.0], // Default brown
+            color: [0.3, 0.15, 0.05, 1.0], // Default bark_brown
         };
 
         let vertexCount = 0;
@@ -398,7 +398,7 @@ export class LSystemGenerator {
                                 1.0,
                             ];
                         } else {
-                            leafRGBA = [0.3, 0.7, 0.2, 1.0]; // Default green
+                            leafRGBA = [0, 1, 0, 1.0]; // Default green
                         }
                         addLeaf(
                             currentState.position,

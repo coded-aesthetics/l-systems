@@ -1,6 +1,6 @@
-import { ShaderManager, ShaderProgram } from './ShaderManager.js';
-import { BufferManager } from './BufferManager.js';
-import { CameraController } from '../controls/CameraController.js';
+import { ShaderManager, ShaderProgram } from "./ShaderManager.js";
+import { BufferManager } from "./BufferManager.js";
+import { CameraController } from "../controls/CameraController.js";
 
 export class RenderPipeline {
     private gl: WebGLRenderingContext;
@@ -8,14 +8,13 @@ export class RenderPipeline {
     private bufferManager: BufferManager;
     private cameraController: CameraController;
 
-    private colorMode: number = 0;
-    private leafColor: [number, number, number] = [0.18, 0.8, 0.13];
+    private leafColor: [number, number, number] = [0.0, 1.0, 0.0]; // Default green
 
     constructor(
         gl: WebGLRenderingContext,
         shaderManager: ShaderManager,
         bufferManager: BufferManager,
-        cameraController: CameraController
+        cameraController: CameraController,
     ) {
         this.gl = gl;
         this.shaderManager = shaderManager;
@@ -54,10 +53,9 @@ export class RenderPipeline {
         // Bind buffers and attributes
         this.bufferManager.bindBranchBuffers(branchProgram.attributes);
 
-        // Set vertex color usage uniform
-        const useVertexColors = this.colorMode === 4; // Mode 4 = Parameterized Colors
+        // Always use vertex colors
         if (branchProgram.uniforms.useVertexColors) {
-            gl.uniform1i(branchProgram.uniforms.useVertexColors, useVertexColors ? 1 : 0);
+            gl.uniform1i(branchProgram.uniforms.useVertexColors, 1);
         } else {
             console.error("Branch u_useVertexColors uniform location is null!");
         }
@@ -90,10 +88,9 @@ export class RenderPipeline {
         // Bind buffers and attributes
         this.bufferManager.bindLeafBuffers(leafProgram.attributes);
 
-        // Set vertex color usage uniform
-        const useVertexColors = this.colorMode === 4; // Mode 4 = Parameterized Colors
+        // Always use vertex colors
         if (leafProgram.uniforms.useVertexColors) {
-            gl.uniform1i(leafProgram.uniforms.useVertexColors, useVertexColors ? 1 : 0);
+            gl.uniform1i(leafProgram.uniforms.useVertexColors, 1);
         } else {
             console.error("Leaf u_useVertexColors uniform location is null!");
         }
@@ -121,13 +118,24 @@ export class RenderPipeline {
         const { uniforms } = program;
 
         // Update transformation matrices
-        gl.uniformMatrix4fv(uniforms.modelViewMatrix, false, this.cameraController.getModelViewMatrix());
-        gl.uniformMatrix4fv(uniforms.projectionMatrix, false, this.cameraController.getProjectionMatrix());
-        gl.uniformMatrix3fv(uniforms.normalMatrix, false, this.cameraController.getNormalMatrix());
+        gl.uniformMatrix4fv(
+            uniforms.modelViewMatrix,
+            false,
+            this.cameraController.getModelViewMatrix(),
+        );
+        gl.uniformMatrix4fv(
+            uniforms.projectionMatrix,
+            false,
+            this.cameraController.getProjectionMatrix(),
+        );
+        gl.uniformMatrix3fv(
+            uniforms.normalMatrix,
+            false,
+            this.cameraController.getNormalMatrix(),
+        );
 
         // Update rendering parameters
         gl.uniform1f(uniforms.time, time * 0.001);
-        gl.uniform1i(uniforms.colorMode, this.colorMode);
         gl.uniform3fv(uniforms.lightDirection, [0.5, 1.0, 0.3]);
     }
 
@@ -136,22 +144,26 @@ export class RenderPipeline {
         const { uniforms } = program;
 
         // Update transformation matrices
-        gl.uniformMatrix4fv(uniforms.modelViewMatrix, false, this.cameraController.getModelViewMatrix());
-        gl.uniformMatrix4fv(uniforms.projectionMatrix, false, this.cameraController.getProjectionMatrix());
-        gl.uniformMatrix3fv(uniforms.normalMatrix, false, this.cameraController.getNormalMatrix());
+        gl.uniformMatrix4fv(
+            uniforms.modelViewMatrix,
+            false,
+            this.cameraController.getModelViewMatrix(),
+        );
+        gl.uniformMatrix4fv(
+            uniforms.projectionMatrix,
+            false,
+            this.cameraController.getProjectionMatrix(),
+        );
+        gl.uniformMatrix3fv(
+            uniforms.normalMatrix,
+            false,
+            this.cameraController.getNormalMatrix(),
+        );
 
         // Update rendering parameters
         gl.uniform1f(uniforms.time, time * 0.001);
         gl.uniform3fv(uniforms.lightDirection, [0.5, 1.0, 0.3]);
         gl.uniform3fv(uniforms.leafColor, this.leafColor);
-    }
-
-    public setColorMode(mode: number): void {
-        this.colorMode = mode;
-    }
-
-    public getColorMode(): number {
-        return this.colorMode;
     }
 
     public setLeafColor(color: [number, number, number]): void {

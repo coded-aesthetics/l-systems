@@ -200,6 +200,34 @@ npm install
 npm run build
 ```
 
+### Running Demos
+
+#### Main Application
+```bash
+npm start
+```
+Open http://localhost:8080 to view the main L-Systems application.
+
+#### Three.js Library Demo
+```bash
+npm run start:threejs
+```
+Open http://localhost:8080 to view the Three.js integration example.
+
+#### Babylon.js Library Demo
+```bash
+npm run start:babylonjs
+```
+Open http://localhost:8080 to view the Babylon.js integration example.
+
+Both library demos feature:
+- Complete L-System parameter controls
+- Real-time 3D rendering with WebGL
+- Advanced parameters (angle/length variation, leaf probability)
+- Material controls (PBR/Standard/Basic materials)
+- Export functionality (OBJ format)
+- Performance monitoring (FPS, vertices, triangles)
+
 ### File Structure
 ```
 src/

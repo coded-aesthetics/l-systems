@@ -57,7 +57,6 @@ export const BRANCH_FRAGMENT_SHADER = `
     varying vec4 v_color;
 
     uniform float u_time;
-    uniform int u_colorMode;
     uniform bool u_useVertexColors;
     uniform vec3 u_lightDirection;
 
@@ -118,26 +117,18 @@ export const BRANCH_FRAGMENT_SHADER = `
     void main() {
         vec3 baseColor;
 
-        // Use vertex colors if available and enabled
+        // Always use vertex colors when available
         if (u_useVertexColors && v_color.a > 0.0) {
             baseColor = v_color.rgb;
 
-            // Apply height gradient to parameterized colors
+            // Apply subtle height gradient to parameterized colors
             // Blend with white based on height (higher = lighter)
             float normalizedHeight = (v_height + 1.0) * 0.5; // Convert from [-1,1] to [0,1]
             float whiteMixFactor = normalizedHeight * 0.1; // Adjust intensity (0.1 = 10% max white blend)
             baseColor = mix(baseColor, vec3(1.0, 1.0, 1.0), whiteMixFactor);
         } else {
-            // Select color based on mode
-            if (u_colorMode == 0) {
-                baseColor = getHeightGradientColor(v_height);
-            } else if (u_colorMode == 1) {
-                baseColor = getDepthColor(v_depth);
-            } else if (u_colorMode == 2) {
-                baseColor = getUniformColor();
-            } else {
-                baseColor = getAutumnColor(v_height, v_depth);
-            }
+            // Fallback to default bark brown color
+            baseColor = vec3(0.3, 0.15, 0.05);
         }
 
         // Simple lighting calculation
@@ -162,20 +153,19 @@ export const BRANCH_FRAGMENT_SHADER = `
 `;
 
 export const BRANCH_UNIFORMS = [
-    'u_modelViewMatrix',
-    'u_projectionMatrix',
-    'u_normalMatrix',
-    'u_time',
-    'u_colorMode',
-    'u_useVertexColors',
-    'u_lightDirection'
+    "u_modelViewMatrix",
+    "u_projectionMatrix",
+    "u_normalMatrix",
+    "u_time",
+    "u_useVertexColors",
+    "u_lightDirection",
 ];
 
 export const BRANCH_ATTRIBUTES = [
-    'a_position',
-    'a_normal',
-    'a_uv',
-    'a_depth',
-    'a_height',
-    'a_color'
+    "a_position",
+    "a_normal",
+    "a_uv",
+    "a_depth",
+    "a_height",
+    "a_color",
 ];
