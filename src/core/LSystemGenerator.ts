@@ -343,6 +343,12 @@ export class LSystemGenerator {
                 }
             }
 
+            const scaleParam = SymbolParser.extractNumber(token, "scale", 1.0);
+            let symbolScale = scaleParam || 1.0;
+
+            // Ensure scale is positive and not too small to prevent rendering issues
+            symbolScale = Math.max(0.01, symbolScale);
+
             switch (token.symbol) {
                 case "F":
                 case "f": {
@@ -402,7 +408,7 @@ export class LSystemGenerator {
                         }
                         addLeaf(
                             currentState.position,
-                            currentState.length,
+                            currentState.length * symbolScale,
                             leafRGBA,
                         );
                     }

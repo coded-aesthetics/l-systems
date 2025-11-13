@@ -1242,8 +1242,9 @@ F -> F[+F]F[-F]F</textarea
                         <strong>Basic Syntax:</strong>
                         <div class="example-code">
                             L{color:green} - Green leaf<br />
+                            L{scale:1.5} - 1.5x larger leaf<br />
+                            L{color:#FF0000,scale:0.8} - Small red leaf<br />
                             F{color:brown} - Brown branch<br />
-                            L{color:#FF0000} - Red leaf (hex)<br />
                             F{color:FABC34E4} - Semi-transparent branch (RGBA)
                         </div>
                     </div>
@@ -1252,10 +1253,18 @@ F -> F[+F]F[-F]F</textarea
                         <strong>In Rules:</strong>
                         <div class="example-code">
                             F ->
-                            F{color:bark_brown}[+L{color:leaf_green}][-L{color:autumn_red}]<br />
+                            F{color:bark_brown}[+L{color:leaf_green,scale:1.2}][-L{color:autumn_red,scale:0.9}]<br />
                             L{color:green} ->
-                            L{color:autumn_orange}[+L{color:autumn_yellow}]
+                            L{color:autumn_orange,scale:1.1}[+L{color:autumn_yellow,scale:0.7}]
                         </div>
+                    </div>
+
+                    <div class="example-box">
+                        <strong>Scale Parameter:</strong> Controls leaf size
+                        (default: 1.0)<br />
+                        • scale:0.5 = half size<br />
+                        • scale:2.0 = double size<br />
+                        • Combines with color: L{color:red,scale:1.5}
                     </div>
 
                     <div class="example-box">

@@ -56,6 +56,29 @@ F -> FF
 L -> L                      // Simple leaves
 
 // ===================
+// SCALE PARAMETER EXAMPLES
+// ===================
+
+// Small and large leaves mixed
+T -> F[&+L{scale:0.5}][&-L{scale:1.5}][^+L{scale:2.0}][^-L{scale:0.8}]
+F -> FF
+L{scale:0.5} -> L{scale:0.5}
+L{scale:0.8} -> L{scale:0.8}
+L{scale:1.5} -> L{scale:1.5}
+L{scale:2.0} -> L{scale:2.0}
+
+// Colored and scaled leaves
+C -> F[&+L{color:red,scale:1.2}][&-L{color:green,scale:0.7}][^+L{color:blue,scale:1.8}]
+F -> FF
+L{color:red,scale:1.2} -> L{color:red,scale:1.2}
+L{color:green,scale:0.7} -> L{color:green,scale:0.7}
+L{color:blue,scale:1.8} -> L{color:blue,scale:1.8}
+
+// Progressive scaling
+P -> F[&+L{scale:0.3}][&-L{scale:0.6}][^+L{scale:0.9}][^-L{scale:1.2}]
+F -> FF
+
+// ===================
 // USAGE NOTES
 // ===================
 // - L symbol generates leaf geometry
@@ -63,3 +86,5 @@ L -> L                      // Simple leaves
 // - Mix branch rules (A -> F[...A...]) with leaf rules (A -> F[...L...])
 // - Leaves are affected by wind animation in the renderer
 // - Adjust leaf probability and generation threshold in code for control
+// - Scale parameter controls leaf size: scale:1.0 is default, scale:2.0 is double size
+// - Both color and scale can be combined: L{color:red,scale:1.5}
