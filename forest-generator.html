@@ -1,0 +1,1324 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>L-System Forest Generator</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #2c3e50, #3498db);
+                color: #ecf0f1;
+                overflow: hidden;
+            }
+
+            .header {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: rgba(44, 62, 80, 0.95);
+                backdrop-filter: blur(10px);
+                padding: 15px 20px;
+                z-index: 1000;
+                border-bottom: 2px solid #3498db;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+                font-weight: 300;
+                color: #3498db;
+                text-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+            }
+
+            .main-container {
+                display: flex;
+                height: 100vh;
+                padding-top: 70px;
+            }
+
+            .controls-panel {
+                width: 400px;
+                background: rgba(52, 73, 94, 0.95);
+                backdrop-filter: blur(10px);
+                padding: 20px;
+                overflow-y: auto;
+                border-right: 2px solid #3498db;
+            }
+
+            .canvas-container {
+                flex: 1;
+                position: relative;
+                background: #1a252f;
+            }
+
+            #forest-canvas {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+
+            .control-section {
+                margin-bottom: 25px;
+                padding: 15px;
+                background: rgba(44, 62, 80, 0.7);
+                border-radius: 10px;
+                border-left: 4px solid #3498db;
+            }
+
+            .control-section h3 {
+                color: #3498db;
+                margin-bottom: 15px;
+                font-size: 1.1em;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+            .plant-item {
+                background: rgba(44, 62, 80, 0.8);
+                border: 1px solid #34495e;
+                border-radius: 8px;
+                padding: 12px;
+                margin-bottom: 10px;
+                transition: all 0.3s ease;
+            }
+
+            .plant-item:hover {
+                border-color: #3498db;
+                box-shadow: 0 0 15px rgba(52, 152, 219, 0.3);
+            }
+
+            .plant-item.selected {
+                border-color: #e74c3c;
+                background: rgba(231, 76, 60, 0.2);
+            }
+
+            .plant-checkbox {
+                margin-right: 10px;
+            }
+
+            .plant-name {
+                font-weight: bold;
+                color: #ecf0f1;
+                margin-bottom: 5px;
+            }
+
+            .plant-info {
+                font-size: 0.9em;
+                color: #bdc3c7;
+                margin-bottom: 8px;
+            }
+
+            .weight-control {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .weight-control label {
+                color: #95a5a6;
+                font-size: 0.9em;
+            }
+
+            .weight-control input[type="range"] {
+                flex: 1;
+                height: 6px;
+                border-radius: 3px;
+                background: #34495e;
+                outline: none;
+            }
+
+            .weight-control input[type="range"]::-webkit-slider-thumb {
+                appearance: none;
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                background: #3498db;
+                cursor: pointer;
+                border: 2px solid #2c3e50;
+            }
+
+            .weight-value {
+                color: #3498db;
+                font-weight: bold;
+                min-width: 40px;
+            }
+
+            label {
+                display: block;
+                margin-bottom: 5px;
+                color: #bdc3c7;
+                font-weight: 500;
+            }
+
+            input,
+            select {
+                width: 100%;
+                padding: 8px 12px;
+                background: rgba(52, 73, 94, 0.8);
+                border: 1px solid #34495e;
+                border-radius: 5px;
+                color: #ecf0f1;
+                font-size: 14px;
+                transition: border-color 0.3s ease;
+            }
+
+            input:focus,
+            select:focus {
+                outline: none;
+                border-color: #3498db;
+                box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+            }
+
+            input[type="range"] {
+                height: 6px;
+                border-radius: 3px;
+                background: #34495e;
+                outline: none;
+            }
+
+            input[type="range"]::-webkit-slider-thumb {
+                appearance: none;
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                background: #3498db;
+                cursor: pointer;
+                border: 2px solid #2c3e50;
+            }
+
+            button {
+                background: linear-gradient(135deg, #3498db, #2980b9);
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 25px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                transition: all 0.3s ease;
+                margin: 5px 0;
+                width: 100%;
+            }
+
+            button:hover {
+                background: linear-gradient(135deg, #2980b9, #21618c);
+                box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+            }
+
+            button:active {
+                transform: translateY(1px);
+            }
+
+            button:disabled {
+                background: #7f8c8d;
+                cursor: not-allowed;
+                box-shadow: none;
+            }
+
+            .generate-btn {
+                background: linear-gradient(135deg, #e74c3c, #c0392b);
+                font-size: 16px;
+                padding: 15px 25px;
+                margin-top: 20px;
+            }
+
+            .generate-btn:hover {
+                background: linear-gradient(135deg, #c0392b, #a93226);
+            }
+
+            .loading {
+                display: none;
+                text-align: center;
+                padding: 20px;
+                color: #3498db;
+            }
+
+            .loading::after {
+                content: "";
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border: 2px solid #3498db;
+                border-radius: 50%;
+                border-top-color: transparent;
+                animation: spin 1s linear infinite;
+                margin-left: 10px;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .controls-info {
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                background: rgba(44, 62, 80, 0.9);
+                padding: 15px;
+                border-radius: 10px;
+                font-size: 0.9em;
+                color: #bdc3c7;
+                z-index: 1000;
+            }
+
+            .stats {
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: rgba(44, 62, 80, 0.9);
+                padding: 15px;
+                border-radius: 10px;
+                font-size: 0.9em;
+                color: #bdc3c7;
+                z-index: 1000;
+            }
+
+            .no-plants-message {
+                text-align: center;
+                padding: 20px;
+                color: #e74c3c;
+                font-style: italic;
+            }
+
+            .input-row {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .input-row input {
+                flex: 1;
+            }
+
+            .value-display {
+                min-width: 60px;
+                text-align: center;
+                color: #3498db;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>🌲 L-System Forest Generator</h1>
+        </div>
+
+        <div class="main-container">
+            <div class="controls-panel">
+                <div class="control-section">
+                    <h3>Available Plants</h3>
+                    <div id="plants-list">
+                        <div class="loading">Loading plants...</div>
+                    </div>
+                    <button onclick="loadPlants()">Refresh Plants</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>Forest Parameters</h3>
+                    <label>Plant Count:</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="plantCount"
+                            min="10"
+                            max="500"
+                            value="100"
+                            oninput="updateValueDisplay('plantCount', this.value)"
+                        />
+                        <span id="plantCount-value" class="value-display"
+                            >100</span
+                        >
+                    </div>
+
+                    <label>Forest Size (units):</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="forestSize"
+                            min="50"
+                            max="1000"
+                            value="200"
+                            oninput="updateValueDisplay('forestSize', this.value)"
+                        />
+                        <span id="forestSize-value" class="value-display"
+                            >200</span
+                        >
+                    </div>
+
+                    <label>Minimum Distance Between Plants:</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="minDistance"
+                            min="1"
+                            max="20"
+                            value="5"
+                            oninput="updateValueDisplay('minDistance', this.value)"
+                        />
+                        <span id="minDistance-value" class="value-display"
+                            >5</span
+                        >
+                    </div>
+
+                    <label>Plant Scale Variation:</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="scaleVariation"
+                            min="0"
+                            max="100"
+                            value="30"
+                            oninput="updateValueDisplay('scaleVariation', this.value + '%')"
+                        />
+                        <span id="scaleVariation-value" class="value-display"
+                            >30%</span
+                        >
+                    </div>
+
+                    <label>Terrain Height Variation:</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="terrainHeight"
+                            min="0"
+                            max="20"
+                            value="5"
+                            oninput="updateValueDisplay('terrainHeight', this.value)"
+                        />
+                        <span id="terrainHeight-value" class="value-display"
+                            >5</span
+                        >
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Environment</h3>
+                    <label>Lighting:</label>
+                    <select id="lightingMode">
+                        <option value="day">Daylight</option>
+                        <option value="sunset">Sunset</option>
+                        <option value="night">Night</option>
+                        <option value="foggy">Foggy</option>
+                    </select>
+
+                    <label>Sky Color:</label>
+                    <input type="color" id="skyColor" value="#87CEEB" />
+
+                    <label>Ground Color:</label>
+                    <input type="color" id="groundColor" value="#228B22" />
+                </div>
+
+                <button
+                    class="generate-btn"
+                    onclick="generateForest()"
+                    id="generateBtn"
+                >
+                    Generate Forest
+                </button>
+                <button onclick="clearForest()">Clear Forest</button>
+                <button onclick="exportForest()">Export Scene</button>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="forest-canvas"></canvas>
+                <div class="loading" id="generation-loading">
+                    Generating forest...
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-info">
+            <strong>Controls:</strong><br />
+            WASD - Move | Mouse - Look | Shift - Run | Space - Up | C - Down
+        </div>
+
+        <div class="stats" id="stats">
+            <strong>Forest Stats:</strong><br />
+            Plants: 0<br />
+            Triangles: 0<br />
+            FPS: 0
+        </div>
+
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+                    "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+                }
+            }
+        </script>
+
+        <script type="module">
+            import * as THREE from "three";
+            import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+            import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
+
+            // Import the L-System library and ThreeJS adapter
+            import { LSystemsLibrary } from "./dist/lib/LSystemsLibrary.js";
+            import { ThreeJSAdapter } from "./dist/lib/adapters/ThreeJSAdapter.js";
+
+            class ForestGenerator {
+                constructor() {
+                    this.scene = null;
+                    this.camera = null;
+                    this.renderer = null;
+                    this.controls = null;
+                    this.availablePlants = [];
+                    this.selectedPlants = new Map();
+                    this.forestGroup = null;
+                    this.ground = null;
+                    this.animationId = null;
+                    this.stats = {
+                        plants: 0,
+                        triangles: 0,
+                        fps: 0,
+                    };
+                    this.clock = new THREE.Clock();
+                    this.frameCount = 0;
+                    this.lastTime = 0;
+
+                    this.init();
+                }
+
+                async init() {
+                    this.setupScene();
+                    this.setupCamera();
+                    this.setupRenderer();
+                    this.setupControls();
+                    this.setupLighting();
+                    this.createGround();
+                    this.setupEventListeners();
+                    this.animate();
+
+                    await this.loadPlants();
+                }
+
+                setupScene() {
+                    this.scene = new THREE.Scene();
+                    this.scene.fog = new THREE.Fog(0x87ceeb, 50, 500);
+                    this.forestGroup = new THREE.Group();
+                    this.scene.add(this.forestGroup);
+                }
+
+                setupCamera() {
+                    const canvas = document.getElementById("forest-canvas");
+                    this.camera = new THREE.PerspectiveCamera(
+                        75,
+                        canvas.clientWidth / canvas.clientHeight,
+                        0.1,
+                        1000,
+                    );
+                    this.camera.position.set(0, 10, 50);
+                }
+
+                setupRenderer() {
+                    const canvas = document.getElementById("forest-canvas");
+                    this.renderer = new THREE.WebGLRenderer({
+                        canvas: canvas,
+                        antialias: true,
+                        alpha: true,
+                    });
+                    this.renderer.setSize(
+                        canvas.clientWidth,
+                        canvas.clientHeight,
+                    );
+                    this.renderer.setPixelRatio(
+                        Math.min(window.devicePixelRatio, 2),
+                    );
+                    this.renderer.shadowMap.enabled = true;
+                    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                    this.renderer.setClearColor(0x87ceeb, 1);
+
+                    window.addEventListener("resize", () =>
+                        this.handleResize(),
+                    );
+                }
+
+                setupControls() {
+                    this.controls = new PointerLockControls(
+                        this.camera,
+                        this.renderer.domElement,
+                    );
+                    this.scene.add(this.controls.getObject());
+
+                    // Movement variables
+                    this.velocity = new THREE.Vector3();
+                    this.direction = new THREE.Vector3();
+                    this.moveForward = false;
+                    this.moveBackward = false;
+                    this.moveLeft = false;
+                    this.moveRight = false;
+                    this.moveUp = false;
+                    this.moveDown = false;
+                    this.canJump = false;
+                    this.isRunning = false;
+
+                    // Click to lock pointer
+                    this.renderer.domElement.addEventListener("click", () => {
+                        this.controls.lock();
+                    });
+
+                    // Keyboard controls
+                    document.addEventListener("keydown", (event) => {
+                        switch (event.code) {
+                            case "ArrowUp":
+                            case "KeyW":
+                                this.moveForward = true;
+                                break;
+                            case "ArrowLeft":
+                            case "KeyA":
+                                this.moveLeft = true;
+                                break;
+                            case "ArrowDown":
+                            case "KeyS":
+                                this.moveBackward = true;
+                                break;
+                            case "ArrowRight":
+                            case "KeyD":
+                                this.moveRight = true;
+                                break;
+                            case "Space":
+                                if (this.canJump === true)
+                                    this.velocity.y += 350;
+                                this.canJump = false;
+                                this.moveUp = true;
+                                break;
+                            case "KeyC":
+                                this.moveDown = true;
+                                break;
+                            case "ShiftLeft":
+                            case "ShiftRight":
+                                this.isRunning = true;
+                                break;
+                        }
+                    });
+
+                    document.addEventListener("keyup", (event) => {
+                        switch (event.code) {
+                            case "ArrowUp":
+                            case "KeyW":
+                                this.moveForward = false;
+                                break;
+                            case "ArrowLeft":
+                            case "KeyA":
+                                this.moveLeft = false;
+                                break;
+                            case "ArrowDown":
+                            case "KeyS":
+                                this.moveBackward = false;
+                                break;
+                            case "ArrowRight":
+                            case "KeyD":
+                                this.moveRight = false;
+                                break;
+                            case "Space":
+                                this.moveUp = false;
+                                break;
+                            case "KeyC":
+                                this.moveDown = false;
+                                break;
+                            case "ShiftLeft":
+                            case "ShiftRight":
+                                this.isRunning = false;
+                                break;
+                        }
+                    });
+                }
+
+                setupLighting() {
+                    // Ambient light
+                    const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+                    this.scene.add(ambientLight);
+
+                    // Directional light (sun)
+                    this.sunLight = new THREE.DirectionalLight(0xffffff, 1);
+                    this.sunLight.position.set(100, 100, 50);
+                    this.sunLight.castShadow = true;
+                    this.sunLight.shadow.mapSize.width = 2048;
+                    this.sunLight.shadow.mapSize.height = 2048;
+                    this.sunLight.shadow.camera.near = 0.5;
+                    this.sunLight.shadow.camera.far = 500;
+                    this.sunLight.shadow.camera.left = -200;
+                    this.sunLight.shadow.camera.right = 200;
+                    this.sunLight.shadow.camera.top = 200;
+                    this.sunLight.shadow.camera.bottom = -200;
+                    this.scene.add(this.sunLight);
+
+                    // Hemisphere light for softer lighting
+                    const hemisphereLight = new THREE.HemisphereLight(
+                        0x87ceeb,
+                        0x228b22,
+                        0.6,
+                    );
+                    this.scene.add(hemisphereLight);
+                }
+
+                createGround() {
+                    const groundGeometry = new THREE.PlaneGeometry(
+                        2000,
+                        2000,
+                        100,
+                        100,
+                    );
+                    const groundMaterial = new THREE.MeshLambertMaterial({
+                        color: document.getElementById("groundColor").value,
+                    });
+
+                    // Add some random height variation to vertices
+                    const positionAttribute =
+                        groundGeometry.getAttribute("position");
+                    for (let i = 0; i < positionAttribute.count; i++) {
+                        // Get current position
+                        const x = positionAttribute.getX(i);
+                        const y = positionAttribute.getY(i);
+                        const z = positionAttribute.getZ(i);
+
+                        // Add height variation to Z coordinate (which becomes Y after rotation)
+                        const height = Math.random() * 2 - 1;
+                        positionAttribute.setZ(i, height);
+                    }
+                    positionAttribute.needsUpdate = true;
+                    groundGeometry.computeVertexNormals();
+
+                    this.ground = new THREE.Mesh(
+                        groundGeometry,
+                        groundMaterial,
+                    );
+                    this.ground.rotation.x = -Math.PI / 2;
+                    this.ground.position.y = -2; // Lower the ground a bit
+                    this.ground.receiveShadow = true;
+                    this.scene.add(this.ground);
+                }
+
+                setupEventListeners() {
+                    // Lighting mode change
+                    document
+                        .getElementById("lightingMode")
+                        .addEventListener("change", (e) => {
+                            this.updateLighting(e.target.value);
+                        });
+
+                    // Color changes
+                    document
+                        .getElementById("skyColor")
+                        .addEventListener("change", (e) => {
+                            this.renderer.setClearColor(e.target.value, 1);
+                            this.scene.fog.color.setHex(
+                                e.target.value.replace("#", "0x"),
+                            );
+                        });
+
+                    document
+                        .getElementById("groundColor")
+                        .addEventListener("change", (e) => {
+                            this.ground.material.color.setHex(
+                                e.target.value.replace("#", "0x"),
+                            );
+                        });
+                }
+
+                updateLighting(mode) {
+                    switch (mode) {
+                        case "day":
+                            this.sunLight.color.setHex(0xffffff);
+                            this.sunLight.intensity = 1;
+                            this.sunLight.position.set(100, 100, 50);
+                            break;
+                        case "sunset":
+                            this.sunLight.color.setHex(0xff6b47);
+                            this.sunLight.intensity = 0.8;
+                            this.sunLight.position.set(200, 20, 50);
+                            break;
+                        case "night":
+                            this.sunLight.color.setHex(0x6666ff);
+                            this.sunLight.intensity = 0.2;
+                            this.sunLight.position.set(50, 200, 100);
+                            break;
+                        case "foggy":
+                            this.sunLight.color.setHex(0xcccccc);
+                            this.sunLight.intensity = 0.5;
+                            this.scene.fog.near = 10;
+                            this.scene.fog.far = 100;
+                            break;
+                    }
+                }
+
+                async loadPlants() {
+                    const plantsListEl = document.getElementById("plants-list");
+                    plantsListEl.innerHTML =
+                        '<div class="loading">Loading plants...</div>';
+
+                    try {
+                        const response = await fetch(
+                            "http://localhost:5001/api/plants",
+                        );
+
+                        if (!response.ok) {
+                            throw new Error("API not available");
+                        }
+
+                        this.availablePlants = await response.json();
+
+                        if (this.availablePlants.length === 0) {
+                            plantsListEl.innerHTML =
+                                '<div class="no-plants-message">No plants found in database</div>';
+                            return;
+                        }
+
+                        this.renderPlantsList();
+                    } catch (error) {
+                        console.warn("Failed to load plants:", error);
+                        plantsListEl.innerHTML =
+                            '<div class="no-plants-message">Failed to load plants. Make sure the API is running.</div>';
+                    }
+                }
+
+                renderPlantsList() {
+                    const plantsListEl = document.getElementById("plants-list");
+                    plantsListEl.innerHTML = "";
+
+                    this.availablePlants.forEach((plant) => {
+                        const plantItem = document.createElement("div");
+                        plantItem.className = "plant-item";
+
+                        plantItem.innerHTML = `
+                        <div>
+                            <input type="checkbox" class="plant-checkbox" id="plant-${plant.id}"
+                                   onchange="forestGenerator.togglePlant(${plant.id}, this.checked)">
+                            <div class="plant-name">${plant.name}</div>
+                            <div class="plant-info">
+                                Iterations: ${plant.iterations} | Angle: ${plant.angle}° |
+                                Created: ${new Date(plant.timestamp * 1000).toLocaleDateString()}
+                            </div>
+                            <div class="weight-control">
+                                <label>Weight:</label>
+                                <input type="range" min="1" max="100" value="50"
+                                       id="weight-${plant.id}"
+                                       onchange="forestGenerator.updatePlantWeight(${plant.id}, this.value)"
+                                       disabled>
+                                <span class="weight-value" id="weight-value-${plant.id}">50</span>
+                            </div>
+                        </div>
+                    `;
+
+                        plantsListEl.appendChild(plantItem);
+                    });
+                }
+
+                togglePlant(plantId, selected) {
+                    const plantItem = document
+                        .querySelector(`#plant-${plantId}`)
+                        .closest(".plant-item");
+                    const weightSlider = document.getElementById(
+                        `weight-${plantId}`,
+                    );
+
+                    if (selected) {
+                        const plant = this.availablePlants.find(
+                            (p) => p.id === plantId,
+                        );
+                        this.selectedPlants.set(plantId, {
+                            plant: plant,
+                            weight: parseInt(weightSlider.value),
+                        });
+                        plantItem.classList.add("selected");
+                        weightSlider.disabled = false;
+                    } else {
+                        this.selectedPlants.delete(plantId);
+                        plantItem.classList.remove("selected");
+                        weightSlider.disabled = true;
+                    }
+                }
+
+                updatePlantWeight(plantId, weight) {
+                    const valueEl = document.getElementById(
+                        `weight-value-${plantId}`,
+                    );
+                    valueEl.textContent = weight;
+
+                    if (this.selectedPlants.has(plantId)) {
+                        this.selectedPlants.get(plantId).weight =
+                            parseInt(weight);
+                    }
+                }
+
+                async generateForest() {
+                    if (this.selectedPlants.size === 0) {
+                        alert("Please select at least one plant type!");
+                        return;
+                    }
+
+                    const generateBtn = document.getElementById("generateBtn");
+                    const loadingEl =
+                        document.getElementById("generation-loading");
+
+                    generateBtn.disabled = true;
+                    loadingEl.style.display = "block";
+
+                    try {
+                        await this.clearForest();
+                        await this.createForest();
+                        this.updateStats();
+                    } catch (error) {
+                        console.error("Failed to generate forest:", error);
+                        alert(
+                            "Failed to generate forest. Check console for details.",
+                        );
+                    } finally {
+                        generateBtn.disabled = false;
+                        loadingEl.style.display = "none";
+                    }
+                }
+
+                async createForest() {
+                    const plantCount = parseInt(
+                        document.getElementById("plantCount").value,
+                    );
+                    const forestSize = parseInt(
+                        document.getElementById("forestSize").value,
+                    );
+                    const minDistance = parseInt(
+                        document.getElementById("minDistance").value,
+                    );
+                    const scaleVariation =
+                        parseInt(
+                            document.getElementById("scaleVariation").value,
+                        ) / 100;
+                    const terrainHeight = parseInt(
+                        document.getElementById("terrainHeight").value,
+                    );
+
+                    // Create weighted array for plant selection
+                    const weightedPlants = [];
+                    this.selectedPlants.forEach(({ plant, weight }) => {
+                        for (let i = 0; i < weight; i++) {
+                            weightedPlants.push(plant);
+                        }
+                    });
+
+                    const positions = this.generatePlantPositions(
+                        plantCount,
+                        forestSize,
+                        minDistance,
+                    );
+
+                    for (let i = 0; i < positions.length; i++) {
+                        const position = positions[i];
+                        const selectedPlant =
+                            weightedPlants[
+                                Math.floor(
+                                    Math.random() * weightedPlants.length,
+                                )
+                            ];
+
+                        try {
+                            const plantMesh =
+                                await this.generateLSystemMesh(selectedPlant);
+
+                            if (!plantMesh) {
+                                console.warn(
+                                    "Failed to generate mesh for plant:",
+                                    selectedPlant.name,
+                                );
+                                continue;
+                            }
+
+                            // Apply random scale variation
+                            const scaleMultiplier =
+                                1 + (Math.random() - 0.5) * scaleVariation * 2;
+                            plantMesh.scale.setScalar(scaleMultiplier);
+
+                            // Position the plant on the ground (ground is at y=-2)
+                            plantMesh.position.set(position.x, -2, position.z);
+
+                            // Random Y rotation
+                            plantMesh.rotation.y = Math.random() * Math.PI * 2;
+
+                            // Enable shadows
+                            plantMesh.traverse((child) => {
+                                if (child.isMesh) {
+                                    child.castShadow = true;
+                                    child.receiveShadow = true;
+                                }
+                            });
+
+                            // Store mesh group reference for proper disposal
+                            if (plantMesh.userData) {
+                                plantMesh.userData.plantName =
+                                    selectedPlant.name;
+                            }
+
+                            this.forestGroup.add(plantMesh);
+
+                            // Update progress occasionally
+                            if (i % 10 === 0) {
+                                await new Promise((resolve) =>
+                                    setTimeout(resolve, 1),
+                                );
+                            }
+                        } catch (error) {
+                            console.error(
+                                `Failed to generate plant ${selectedPlant.name}:`,
+                                error,
+                            );
+                        }
+                    }
+                }
+
+                generatePlantPositions(count, size, minDistance) {
+                    const positions = [];
+                    const maxAttempts = count * 10;
+                    let attempts = 0;
+
+                    while (positions.length < count && attempts < maxAttempts) {
+                        const x = (Math.random() - 0.5) * size;
+                        const z = (Math.random() - 0.5) * size;
+                        const y = 0;
+
+                        const newPos = new THREE.Vector3(x, y, z);
+                        let validPosition = true;
+
+                        // Check minimum distance to existing plants
+                        for (const existingPos of positions) {
+                            if (newPos.distanceTo(existingPos) < minDistance) {
+                                validPosition = false;
+                                break;
+                            }
+                        }
+
+                        if (validPosition) {
+                            positions.push(newPos);
+                        }
+
+                        attempts++;
+                    }
+
+                    return positions;
+                }
+
+                async generateLSystemMesh(plantConfig) {
+                    console.log(
+                        "Generating L-system mesh for plant:",
+                        plantConfig.name,
+                    );
+                    console.log("Plant config:", plantConfig);
+
+                    // Create L-System configuration for the adapter
+                    // Note: lengthTapering and leafProbability need to be 0-1, others can be 0-100
+                    const config = {
+                        axiom: plantConfig.axiom,
+                        rules: plantConfig.rules,
+                        iterations: plantConfig.iterations,
+                        angle: plantConfig.angle,
+                        angleVariation: plantConfig.angleVariation || 0,
+                        lengthVariation: Math.min(
+                            100,
+                            Math.max(0, plantConfig.lengthVariation || 0),
+                        ),
+                        lengthTapering: Math.min(
+                            1,
+                            Math.max(
+                                0,
+                                (plantConfig.lengthTapering || 90) / 100,
+                            ),
+                        ),
+                        leafProbability: Math.min(
+                            1,
+                            Math.max(
+                                0,
+                                (plantConfig.leafProbability || 30) / 100,
+                            ),
+                        ),
+                        leafGenerationThreshold:
+                            Math.floor(plantConfig.leafGenerationThreshold) ||
+                            1,
+                    };
+
+                    // Create geometry parameters
+                    const geometryParams = {
+                        length: plantConfig.length || 5,
+                        thickness: plantConfig.thickness || 0.1,
+                        tapering: plantConfig.tapering || 0.9,
+                        leafColor: [
+                            0.2 + Math.random() * 0.3,
+                            0.4 + Math.random() * 0.4,
+                            0.1 + Math.random() * 0.2,
+                        ],
+                    };
+
+                    console.log("L-system config:", config);
+                    console.log("Geometry params:", geometryParams);
+
+                    try {
+                        // Check if ThreeJSAdapter is available
+                        if (typeof ThreeJSAdapter === "undefined") {
+                            throw new Error("ThreeJSAdapter is not loaded");
+                        }
+
+                        // Generate mesh using ThreeJS adapter
+                        const meshGroup = ThreeJSAdapter.createMeshFromLSystem(
+                            config,
+                            geometryParams,
+                            {
+                                materialType: "standard",
+                                castShadow: true,
+                                receiveShadow: true,
+                            },
+                        );
+
+                        console.log(
+                            "Successfully created L-system mesh:",
+                            meshGroup,
+                        );
+                        return meshGroup.group;
+                    } catch (error) {
+                        console.error(
+                            "Failed to generate L-system with adapter for plant",
+                            plantConfig.name,
+                            "Error:",
+                            error,
+                        );
+                        console.log("Falling back to simple geometry");
+                        return this.generateSimplePlantMesh(plantConfig);
+                    }
+                }
+
+                generateSimplePlantMesh(plantConfig) {
+                    // Fallback: create a simple tree-like structure
+                    const group = new THREE.Group();
+
+                    // Trunk
+                    const trunkGeometry = new THREE.CylinderGeometry(
+                        0.1,
+                        0.2,
+                        3,
+                        8,
+                    );
+                    const trunkMaterial = new THREE.MeshLambertMaterial({
+                        color: 0x4a4a4a,
+                    });
+                    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                    trunk.position.y = 1.5;
+                    trunk.castShadow = true;
+                    trunk.receiveShadow = true;
+                    group.add(trunk);
+
+                    // Foliage
+                    const foliageGeometry = new THREE.SphereGeometry(
+                        1.5,
+                        12,
+                        8,
+                    );
+                    const foliageMaterial = new THREE.MeshLambertMaterial({
+                        color: new THREE.Color(
+                            0.2 + Math.random() * 0.3,
+                            0.4 + Math.random() * 0.4,
+                            0.1 + Math.random() * 0.2,
+                        ),
+                    });
+                    const foliage = new THREE.Mesh(
+                        foliageGeometry,
+                        foliageMaterial,
+                    );
+                    foliage.position.y = 3.5;
+                    foliage.castShadow = true;
+                    foliage.receiveShadow = true;
+                    group.add(foliage);
+
+                    return group;
+                }
+
+                async clearForest() {
+                    // Remove all plants from the forest group
+                    while (this.forestGroup.children.length > 0) {
+                        const child = this.forestGroup.children[0];
+                        this.forestGroup.remove(child);
+
+                        // Properly dispose of ThreeJS adapter created objects
+                        if (child.userData && child.userData.meshGroup) {
+                            ThreeJSAdapter.dispose(child.userData.meshGroup);
+                        } else {
+                            // Fallback disposal
+                            child.traverse((obj) => {
+                                if (obj.geometry) obj.geometry.dispose();
+                                if (obj.material) {
+                                    if (obj.material.map)
+                                        obj.material.map.dispose();
+                                    obj.material.dispose();
+                                }
+                            });
+                        }
+                    }
+                    this.stats.plants = 0;
+                    this.updateStats();
+                }
+
+                updateStats() {
+                    this.stats.plants = this.forestGroup.children.length;
+
+                    // Count triangles
+                    this.stats.triangles = 0;
+                    this.forestGroup.traverse((child) => {
+                        if (child.geometry && child.geometry.index) {
+                            this.stats.triangles +=
+                                child.geometry.index.count / 3;
+                        }
+                    });
+
+                    const statsEl = document.getElementById("stats");
+                    statsEl.innerHTML = `
+                    <strong>Forest Stats:</strong><br>
+                    Plants: ${this.stats.plants}<br>
+                    Triangles: ${Math.floor(this.stats.triangles)}<br>
+                    FPS: ${this.stats.fps}
+                `;
+                }
+
+                exportForest() {
+                    const exporter = new GLTFExporter();
+                    exporter.parse(this.forestGroup, (result) => {
+                        const output = JSON.stringify(result, null, 2);
+                        const blob = new Blob([output], {
+                            type: "application/json",
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = "forest.gltf";
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    });
+                }
+
+                updateMovement() {
+                    const delta = this.clock.getDelta();
+                    const speed = this.isRunning ? 50 : 25;
+
+                    // Get camera direction vectors
+                    const cameraObject = this.controls.getObject();
+                    const forward = new THREE.Vector3();
+                    const right = new THREE.Vector3();
+                    const up = new THREE.Vector3(0, 1, 0);
+
+                    // Get forward direction from camera
+                    cameraObject.getWorldDirection(forward);
+
+                    // Get right direction (perpendicular to forward)
+                    right.crossVectors(forward, up).normalize();
+
+                    // Calculate movement vector based on input
+                    const movement = new THREE.Vector3();
+
+                    if (this.moveForward) {
+                        movement.add(
+                            forward.clone().multiplyScalar(speed * delta),
+                        );
+                    }
+                    if (this.moveBackward) {
+                        movement.add(
+                            forward.clone().multiplyScalar(-speed * delta),
+                        );
+                    }
+                    if (this.moveLeft) {
+                        movement.add(
+                            right.clone().multiplyScalar(-speed * delta),
+                        );
+                    }
+                    if (this.moveRight) {
+                        movement.add(
+                            right.clone().multiplyScalar(speed * delta),
+                        );
+                    }
+                    if (this.moveUp) {
+                        movement.add(up.clone().multiplyScalar(speed * delta));
+                    }
+                    if (this.moveDown) {
+                        movement.add(up.clone().multiplyScalar(-speed * delta));
+                    }
+
+                    // Apply movement to camera
+                    cameraObject.position.add(movement);
+                }
+
+                handleResize() {
+                    const canvas = document.getElementById("forest-canvas");
+                    const width = canvas.clientWidth;
+                    const height = canvas.clientHeight;
+
+                    this.camera.aspect = width / height;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(width, height);
+                }
+
+                animate() {
+                    this.animationId = requestAnimationFrame(() =>
+                        this.animate(),
+                    );
+
+                    this.updateMovement();
+
+                    // Calculate FPS
+                    this.frameCount++;
+                    const currentTime = performance.now();
+                    if (currentTime - this.lastTime >= 1000) {
+                        this.stats.fps = Math.round(
+                            (this.frameCount * 1000) /
+                                (currentTime - this.lastTime),
+                        );
+                        this.frameCount = 0;
+                        this.lastTime = currentTime;
+                        this.updateStats();
+                    }
+
+                    this.renderer.render(this.scene, this.camera);
+                }
+            }
+
+            // Global functions
+            window.updateValueDisplay = function (id, value) {
+                const displayEl = document.getElementById(id + "-value");
+                if (displayEl) {
+                    displayEl.textContent = value;
+                }
+            };
+
+            window.loadPlants = function () {
+                if (window.forestGenerator) {
+                    window.forestGenerator.loadPlants();
+                }
+            };
+
+            window.generateForest = function () {
+                if (window.forestGenerator) {
+                    window.forestGenerator.generateForest();
+                }
+            };
+
+            window.clearForest = function () {
+                if (window.forestGenerator) {
+                    window.forestGenerator.clearForest();
+                }
+            };
+
+            window.exportForest = function () {
+                if (window.forestGenerator) {
+                    window.forestGenerator.exportForest();
+                }
+            };
+
+            // Initialize the forest generator
+            window.forestGenerator = new ForestGenerator();
+        </script>
+    </body>
+</html>
