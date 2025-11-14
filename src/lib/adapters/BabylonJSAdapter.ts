@@ -119,9 +119,6 @@ export class BabylonJSAdapter {
             );
             branchGeometry.material = branchMaterial;
 
-            if (opts.castShadow) {
-                branchGeometry.receiveShadows = true;
-            }
             if (opts.receiveShadow) {
                 branchGeometry.receiveShadows = true;
             }
@@ -155,9 +152,6 @@ export class BabylonJSAdapter {
             );
             leafGeometry.material = leafMaterial;
 
-            if (opts.castShadow) {
-                leafGeometry.receiveShadows = true;
-            }
             if (opts.receiveShadow) {
                 leafGeometry.receiveShadows = true;
             }
@@ -262,6 +256,7 @@ export class BabylonJSAdapter {
     ): any {
         // Always use vertex colors and set material color to white to avoid color multiplication
         const materialColor = BABYLON.Color3.White();
+        console.log(options);
 
         switch (options.materialType) {
             case "pbr":
@@ -272,7 +267,7 @@ export class BabylonJSAdapter {
                 pbrMaterial.backFaceCulling = false;
                 pbrMaterial.useVertexColors = true;
                 if (options.transparent) {
-                    pbrMaterial.alpha = options.opacity || 1.0;
+                    pbrMaterial.alpha = options.opacity || 0.85;
                 }
                 if (options.emissiveColor) {
                     pbrMaterial.emissiveColor = options.emissiveColor;

@@ -531,6 +531,8 @@
             let engine,
                 scene,
                 camera,
+                shadowGenerator,
+                directionalLight,
                 currentMeshGroup = null;
             let fpsMonitor = null;
 
@@ -578,13 +580,15 @@
                 );
 
                 // Directional light for shadows
-                const directionalLight = new BABYLON.DirectionalLight(
+                directionalLight = new BABYLON.DirectionalLight(
                     "directionalLight",
-                    new BABYLON.Vector3(-1, -1, -1),
+                    new BABYLON.Vector3(-1, -1.5, -1),
                     scene,
                 );
-                directionalLight.intensity = 0.8;
-                directionalLight.diffuse = new BABYLON.Color3(1, 0.9, 0.8);
+                directionalLight.intensity = 1.5;
+                directionalLight.diffuse = new BABYLON.Color3(1, 0.95, 0.9);
+                // Position will be set dynamically after tree generation
+                directionalLight.autoUpdateExtends = false;
 
                 // Additional fill light
                 const fillLight = new BABYLON.DirectionalLight(
@@ -595,12 +599,21 @@
                 fillLight.intensity = 0.3;
                 fillLight.diffuse = new BABYLON.Color3(0.8, 0.9, 1);
 
-                // Shadow generator
-                const shadowGenerator = new BABYLON.ShadowGenerator(
-                    1024,
+                directionalLight.autoUpdateExtends = true;
+                directionalLight.bias = 0.004;
+                directionalLight.shadowOrthoScale = 0.2;
+
+                // Shadow generator with improved settings
+                shadowGenerator = new BABYLON.ShadowGenerator(
+                    4096, // Higher resolution for better quality
                     directionalLight,
                 );
                 shadowGenerator.useExponentialShadowMap = true;
+                shadowGenerator.setDarkness(0.5); // Make shadows more visible
+                shadowGenerator.bias = 0.0001; // Fine-tune shadow acne
+                shadowGenerator.normalBias = 0.01; // Additional bias for complex geometry
+                shadowGenerator.frustumSize = 70; // Larger shadow coverage
+                shadowGenerator.forceBackFacesOnly = false; // Allow front face shadows
 
                 // Ground plane
                 const ground = BABYLON.MeshBuilder.CreateGround(
@@ -616,7 +629,6 @@
                 groundMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
                 ground.material = groundMaterial;
                 ground.receiveShadows = true;
-                ground.position.y = -0.1;
 
                 // FPS monitoring
                 fpsMonitor = scene.onBeforeRenderObservable.add(() => {
@@ -634,7 +646,7 @@
                 });
 
                 // Generate initial tree
-                generate();
+                const tree = generate();
             }
 
             // Generate tree function
@@ -643,91 +655,188 @@
                 loadingDiv.style.display = "block";
 
                 // Small delay to show loading indicator
-                setTimeout(() => {
+                try {
+                    // Dispose of existing mesh
+                    if (currentMeshGroup) {
+                        BabylonJSAdapter.dispose(currentMeshGroup);
+                    }
+
+                    // Get configuration from UI
+                    const config = {
+                        axiom: document.getElementById("axiom").value,
+                        rules: document.getElementById("rules").value,
+                        iterations: parseInt(
+                            document.getElementById("iterations").value,
+                        ),
+                        angle: parseFloat(
+                            document.getElementById("angle").value,
+                        ),
+                        angleVariation: parseFloat(
+                            document.getElementById("angle-variation").value,
+                        ),
+                        lengthVariation: parseFloat(
+                            document.getElementById("length-variation").value,
+                        ),
+                        lengthTapering:
+                            parseFloat(
+                                document.getElementById("length-tapering")
+                                    .value,
+                            ) / 100,
+                        leafProbability: parseFloat(
+                            document.getElementById("leaf-probability").value,
+                        ),
+                        leafGenerationThreshold: parseInt(
+                            document.getElementById("leaf-threshold").value,
+                        ),
+                    };
+
+                    const geometryParams = {
+                        length: parseFloat(
+                            document.getElementById("length").value,
+                        ),
+                        thickness: parseFloat(
+                            document.getElementById("thickness").value,
+                        ),
+                        tapering: parseFloat(
+                            document.getElementById("tapering").value,
+                        ),
+                        leafColor: [0.2, 0.8, 0.2],
+                    };
+
+                    const options = {
+                        materialType:
+                            document.getElementById("material-type").value,
+                        roughness: parseFloat(
+                            document.getElementById("roughness").value,
+                        ),
+                        metalness: parseFloat(
+                            document.getElementById("metalness").value,
+                        ),
+                    };
+
+                    // Generate mesh
+                    currentMeshGroup = BabylonJSAdapter.createMeshFromLSystem(
+                        config,
+                        geometryParams,
+                        options,
+                        scene,
+                    );
+
+                    // Clear existing shadow casters
+                    shadowGenerator.getShadowMap().renderList = [];
+
+                    // Add meshes as shadow casters
+                    if (currentMeshGroup.branches) {
+                        shadowGenerator.addShadowCaster(
+                            currentMeshGroup.branches,
+                        );
+                        currentMeshGroup.branches.receiveShadows = true;
+                    }
+
+                    if (currentMeshGroup.leaves) {
+                        shadowGenerator.addShadowCaster(
+                            currentMeshGroup.leaves,
+                        );
+                        currentMeshGroup.leaves.receiveShadows = true;
+                    }
+
+                    // Force shadow map refresh and ensure proper bounds
+                    shadowGenerator.getShadowMap().refreshRate =
+                        BABYLON.RenderTargetTexture.REFRESHRATE_RENDER_ONEVERYFRAME;
+
+                    // Manually set shadow map bounds to ensure full coverage
+                    let maxExtent = 5; // smaller default fallback
+                    let actualMaxExtent = 0;
+
                     try {
-                        // Dispose of existing mesh
-                        if (currentMeshGroup) {
-                            BabylonJSAdapter.dispose(currentMeshGroup);
+                        if (currentMeshGroup.branches) {
+                            const branchBounds =
+                                currentMeshGroup.branches.getBoundingInfo();
+                            const branchSize =
+                                branchBounds.boundingBox.extendSize;
+                            actualMaxExtent = Math.max(
+                                actualMaxExtent,
+                                branchSize.x,
+                                branchSize.y,
+                                branchSize.z,
+                            );
+                        }
+                        if (currentMeshGroup.leaves) {
+                            const leafBounds =
+                                currentMeshGroup.leaves.getBoundingInfo();
+                            const leafSize = leafBounds.boundingBox.extendSize;
+                            actualMaxExtent = Math.max(
+                                actualMaxExtent,
+                                leafSize.x,
+                                leafSize.y,
+                                leafSize.z,
+                            );
                         }
 
-                        // Get configuration from UI
-                        const config = {
-                            axiom: document.getElementById("axiom").value,
-                            rules: document.getElementById("rules").value,
-                            iterations: parseInt(
-                                document.getElementById("iterations").value,
-                            ),
-                            angle: parseFloat(
-                                document.getElementById("angle").value,
-                            ),
-                            angleVariation: parseFloat(
-                                document.getElementById("angle-variation")
-                                    .value,
-                            ),
-                            lengthVariation: parseFloat(
-                                document.getElementById("length-variation")
-                                    .value,
-                            ),
-                            lengthTapering:
-                                parseFloat(
-                                    document.getElementById("length-tapering")
-                                        .value,
-                                ) / 100,
-                            leafProbability: parseFloat(
-                                document.getElementById("leaf-probability")
-                                    .value,
-                            ),
-                            leafGenerationThreshold: parseInt(
-                                document.getElementById("leaf-threshold").value,
-                            ),
-                        };
+                        // Use actual mesh bounds if found, otherwise fallback
+                        maxExtent =
+                            actualMaxExtent > 0 ? actualMaxExtent : maxExtent;
+                        maxExtent *= 10; // Add maximum padding to prevent clipping
 
-                        const geometryParams = {
-                            length: parseFloat(
-                                document.getElementById("length").value,
-                            ),
-                            thickness: parseFloat(
-                                document.getElementById("thickness").value,
-                            ),
-                            tapering: parseFloat(
-                                document.getElementById("tapering").value,
-                            ),
-                            leafColor: [0.2, 0.8, 0.2],
-                        };
+                        console.log("Shadow bounds calculation:", {
+                            actualMeshExtent: actualMaxExtent,
+                            paddedMaxExtent: maxExtent,
+                            frustumSize: maxExtent,
+                            lightPosition: directionalLight.position.toString(),
+                            lightDirection:
+                                directionalLight.direction.toString(),
+                            treeBounds: currentMeshGroup.branches
+                                ? currentMeshGroup.branches
+                                      .getBoundingInfo()
+                                      .boundingBox.center.toString()
+                                : "N/A",
+                        });
 
-                        const options = {
-                            materialType:
-                                document.getElementById("material-type").value,
-                            roughness: parseFloat(
-                                document.getElementById("roughness").value,
-                            ),
-                            metalness: parseFloat(
-                                document.getElementById("metalness").value,
-                            ),
-                        };
+                        // Position the light relative to the tree center
+                        const treeCenter = currentMeshGroup.branches
+                            ? currentMeshGroup.branches.getBoundingInfo()
+                                  .boundingBox.center
+                            : BABYLON.Vector3.Zero();
 
-                        // Generate mesh
-                        currentMeshGroup =
-                            BabylonJSAdapter.createMeshFromLSystem(
-                                config,
-                                geometryParams,
-                                options,
-                                scene,
-                            );
-
-                        // Fit camera to mesh
-                        BabylonJSAdapter.fitCameraToMesh(
-                            currentMeshGroup,
-                            camera,
+                        // Position light above and offset from tree center
+                        const lightOffset = maxExtent * 0.8;
+                        directionalLight.position = new BABYLON.Vector3(
+                            treeCenter.x + lightOffset,
+                            treeCenter.y + lightOffset * 1.5,
+                            treeCenter.z + lightOffset,
                         );
 
-                        loadingDiv.style.display = "none";
-                    } catch (error) {
-                        console.error("Error generating tree:", error);
-                        loadingDiv.style.display = "none";
-                        alert("Error generating tree: " + error.message);
+                        // Set shadow generator to focus on tree center using shadow camera
+                        if (shadowGenerator.getShadowMap().activeCamera) {
+                            shadowGenerator.getShadowMap().activeCamera.position =
+                                directionalLight.position.clone();
+                            shadowGenerator
+                                .getShadowMap()
+                                .activeCamera.setTarget(treeCenter);
+                        }
+
+                        // Use the correct Babylon.js API with extra safety margin
+                        shadowGenerator.frustumSize = Math.max(maxExtent, 50);
+                    } catch (e) {
+                        console.warn(
+                            "Could not calculate custom shadow bounds:",
+                            e,
+                        );
+                        // Fallback to very large frustum size
+                        shadowGenerator.frustumSize = 100;
                     }
-                }, 100);
+
+                    // Fit camera to mesh
+                    BabylonJSAdapter.fitCameraToMesh(currentMeshGroup, camera);
+
+                    loadingDiv.style.display = "none";
+
+                    return currentMeshGroup;
+                } catch (error) {
+                    console.error("Error generating tree:", error);
+                    loadingDiv.style.display = "none";
+                    alert("Error generating tree: " + error.message);
+                }
             }
 
             // Load preset configurations
@@ -777,7 +886,9 @@
                     },
                     tropicalPlant: {
                         axiom: "F",
-                        rules: "F -> F{color:#8B4513}[+F{color:#228B22}L{color:#FF69B4}][-F{color:#32CD32}L{color:#FF1493}]F{color:#006400}",
+                        rules: `F -> F{color:#8B4513}[+F{color:#228B22}L{color:#FF69B4}][-F{color:#32CD32}L{color:#FF1493}]F{color:#006400}
+                        F -> F{color:#8B4513}[^F{color:#228B22}L{color:#FF69B4}][&F{color:#32CD32}L{color:#FF1493}]F{color:#006400}
+                        L -> L{color:#FF1493}`,
                         angle: 35,
                         iterations: 4,
                         lengthTapering: 0.89,
