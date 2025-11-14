@@ -509,6 +509,62 @@
 
                 <!-- Actions -->
                 <div class="control-group">
+                    <h3>Saved Plants</h3>
+                    <label>Plant Name:</label>
+                    <input
+                        type="text"
+                        id="plantName"
+                        placeholder="Enter plant name..."
+                        style="width: 100%; margin-bottom: 10px"
+                    />
+
+                    <label>Load from Database:</label>
+                    <select
+                        id="savedPlants"
+                        style="width: 100%; margin-bottom: 10px"
+                    >
+                        <option value="">Select a saved plant...</option>
+                    </select>
+
+                    <div style="margin-bottom: 10px">
+                        <button
+                            onclick="savePlant()"
+                            style="width: 48%; margin-right: 4%"
+                        >
+                            💾 Save Plant
+                        </button>
+                        <button onclick="updatePlant()" style="width: 48%">
+                            ✏️ Update Plant
+                        </button>
+                    </div>
+
+                    <div>
+                        <button
+                            onclick="loadSavedPlant()"
+                            style="width: 48%; margin-right: 4%"
+                        >
+                            📂 Load Plant
+                        </button>
+                        <button onclick="refreshPlantList()" style="width: 48%">
+                            🔄 Refresh List
+                        </button>
+                    </div>
+
+                    <div style="margin-top: 10px">
+                        <button
+                            onclick="deletePlant()"
+                            style="
+                                width: 100%;
+                                background-color: #dc3545;
+                                border-color: #dc3545;
+                            "
+                        >
+                            🗑️ Delete Selected Plant
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
                     <h3>Actions</h3>
                     <button onclick="generate()" style="width: 100%">
                         Generate Tree
@@ -1090,17 +1146,378 @@
                 });
             }
 
+            // API client for saved plants
+            const API_BASE_URL = "http://localhost:5001";
+
+            window.refreshPlantList = async function () {
+                const select = document.getElementById("savedPlants");
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/plants`);
+
+                    if (!response.ok) {
+                        console.warn(
+                            "API not available, plants list will be empty",
+                        );
+                        select.innerHTML =
+                            '<option value="">API not available</option>';
+                        return;
+                    }
+
+                    const plants = await response.json();
+
+                    // Clear existing options
+                    select.innerHTML =
+                        '<option value="">Select a saved plant...</option>';
+
+                    // Sort by timestamp (newest first)
+                    plants.sort((a, b) => b.timestamp - a.timestamp);
+
+                    // Add plant options
+                    plants.forEach((plant) => {
+                        const option = document.createElement("option");
+                        option.value = plant.name;
+                        const date = new Date(plant.timestamp).toLocaleString();
+                        option.textContent = `${plant.name} (${date})`;
+                        select.appendChild(option);
+                    });
+                } catch (error) {
+                    console.warn("Failed to load plants:", error);
+                    select.innerHTML =
+                        '<option value="">Connection failed</option>';
+                }
+            };
+
+            window.loadSavedPlant = async function () {
+                const select = document.getElementById("savedPlants");
+                const selectedName = select.value;
+
+                if (!selectedName) {
+                    alert("Please select a plant to load");
+                    return;
+                }
+
+                try {
+                    const response = await fetch(
+                        `${API_BASE_URL}/api/plants/${encodeURIComponent(selectedName)}`,
+                    );
+
+                    if (!response.ok) {
+                        throw new Error(
+                            `Failed to load plant: ${response.statusText}`,
+                        );
+                    }
+
+                    const plant = await response.json();
+
+                    // Apply plant configuration to UI
+                    document.getElementById("axiom").value = plant.axiom;
+                    document.getElementById("rules").value = plant.rules;
+                    document.getElementById("iterations").value =
+                        plant.iterations;
+                    document.getElementById("angle").value = plant.angle;
+                    document.getElementById("length").value =
+                        plant.length || 1.0;
+                    document.getElementById("thickness").value =
+                        plant.thickness || 0.05;
+                    document.getElementById("tapering").value =
+                        plant.tapering || 0.8;
+                    document.getElementById("length-tapering").value =
+                        plant.lengthTapering || 95;
+
+                    // Set advanced parameters
+                    document.getElementById("angle-variation").value =
+                        plant.angleVariation || 0;
+                    document.getElementById("length-variation").value =
+                        ((plant.lengthVariation || 0) / 100) * 0.5;
+                    document.getElementById("leaf-probability").value =
+                        (plant.leafProbability || 70) / 100;
+                    document.getElementById("leaf-threshold").value =
+                        plant.leafGenerationThreshold || 3;
+
+                    // Update value displays
+                    updateValueDisplays();
+
+                    // Generate the L-system with loaded configuration
+                    setTimeout(() => generate(), 100);
+                } catch (error) {
+                    console.error("Failed to load plant:", error);
+                    alert(`Failed to load plant: ${error.message}`);
+                }
+            };
+
+            // Save current plant configuration
+            window.savePlant = async function () {
+                const plantName = document
+                    .getElementById("plantName")
+                    .value.trim();
+
+                if (!plantName) {
+                    alert("Please enter a plant name");
+                    return;
+                }
+
+                try {
+                    const plantData = {
+                        name: plantName,
+                        axiom: document.getElementById("axiom").value,
+                        rules: document.getElementById("rules").value,
+                        iterations: parseInt(
+                            document.getElementById("iterations").value,
+                        ),
+                        angle: parseFloat(
+                            document.getElementById("angle").value,
+                        ),
+                        length: parseFloat(
+                            document.getElementById("length").value,
+                        ),
+                        thickness: parseFloat(
+                            document.getElementById("thickness").value,
+                        ),
+                        tapering: parseFloat(
+                            document.getElementById("tapering").value,
+                        ),
+                        angleVariation: parseFloat(
+                            document.getElementById("angleVariation").value,
+                        ),
+                        lengthVariation:
+                            parseFloat(
+                                document.getElementById("lengthVariation")
+                                    .value,
+                            ) * 100, // Convert back to 0-100 range
+                        lengthTapering: parseFloat(
+                            document.getElementById("lengthTapering").value,
+                        ), // Keep as percentage
+                        leafProbability:
+                            parseFloat(
+                                document.getElementById("leafProbability")
+                                    .value,
+                            ) * 100, // Convert to percentage
+                        leafGenerationThreshold: parseInt(
+                            document.getElementById("leafThreshold").value,
+                        ),
+                    };
+
+                    const response = await fetch(`${API_BASE_URL}/api/plants`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(plantData),
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(
+                            error.error || `HTTP ${response.status}`,
+                        );
+                    }
+
+                    const result = await response.json();
+                    alert(`Plant "${plantName}" saved successfully!`);
+
+                    // Refresh the plant list and select the newly saved plant
+                    await refreshPlantList();
+                    document.getElementById("savedPlants").value = plantName;
+                } catch (error) {
+                    console.error("Failed to save plant:", error);
+                    alert(`Failed to save plant: ${error.message}`);
+                }
+            };
+
+            // Update existing plant configuration
+            window.updatePlant = async function () {
+                const select = document.getElementById("savedPlants");
+                const selectedName = select.value;
+                const plantName = document
+                    .getElementById("plantName")
+                    .value.trim();
+
+                if (!selectedName && !plantName) {
+                    alert(
+                        "Please select a plant from the list or enter a plant name to update",
+                    );
+                    return;
+                }
+
+                const targetName = selectedName || plantName;
+
+                try {
+                    // First, get the plant ID by name
+                    const getResponse = await fetch(
+                        `${API_BASE_URL}/api/plants/${encodeURIComponent(targetName)}`,
+                    );
+                    if (!getResponse.ok) {
+                        throw new Error(`Plant "${targetName}" not found`);
+                    }
+
+                    const existingPlant = await getResponse.json();
+
+                    const plantData = {
+                        name: plantName || targetName, // Allow renaming if new name is provided
+                        axiom: document.getElementById("axiom").value,
+                        rules: document.getElementById("rules").value,
+                        iterations: parseInt(
+                            document.getElementById("iterations").value,
+                        ),
+                        angle: parseFloat(
+                            document.getElementById("angle").value,
+                        ),
+                        length: parseFloat(
+                            document.getElementById("length").value,
+                        ),
+                        thickness: parseFloat(
+                            document.getElementById("thickness").value,
+                        ),
+                        tapering: parseFloat(
+                            document.getElementById("tapering").value,
+                        ),
+                        angleVariation: parseFloat(
+                            document.getElementById("angleVariation").value,
+                        ),
+                        lengthVariation:
+                            parseFloat(
+                                document.getElementById("lengthVariation")
+                                    .value,
+                            ) * 100, // Convert back to 0-100 range
+                        lengthTapering: parseFloat(
+                            document.getElementById("lengthTapering").value,
+                        ), // Keep as percentage
+                        leafProbability:
+                            parseFloat(
+                                document.getElementById("leafProbability")
+                                    .value,
+                            ) * 100, // Convert to percentage
+                        leafGenerationThreshold: parseInt(
+                            document.getElementById("leafThreshold").value,
+                        ),
+                    };
+
+                    const response = await fetch(
+                        `${API_BASE_URL}/api/plants/${existingPlant.id}`,
+                        {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(plantData),
+                        },
+                    );
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(
+                            error.error || `HTTP ${response.status}`,
+                        );
+                    }
+
+                    const result = await response.json();
+                    alert(`Plant "${targetName}" updated successfully!`);
+
+                    // Refresh the plant list and select the updated plant
+                    await refreshPlantList();
+                    document.getElementById("savedPlants").value =
+                        plantData.name;
+                    document.getElementById("plantName").value = plantData.name;
+                } catch (error) {
+                    console.error("Failed to update plant:", error);
+                    alert(`Failed to update plant: ${error.message}`);
+                }
+            };
+
+            // Enhanced loadSavedPlant function to also populate the name field
+            const originalLoadSavedPlant = window.loadSavedPlant;
+            window.loadSavedPlant = async function () {
+                const select = document.getElementById("savedPlants");
+                const selectedName = select.value;
+
+                if (!selectedName) {
+                    alert("Please select a plant to load");
+                    return;
+                }
+
+                // Set the plant name field
+                document.getElementById("plantName").value = selectedName;
+
+                // Call the original load function
+                await originalLoadSavedPlant();
+            };
+
+            // Delete selected plant
+            window.deletePlant = async function () {
+                const select = document.getElementById("savedPlants");
+                const selectedName = select.value;
+
+                if (!selectedName) {
+                    alert("Please select a plant to delete");
+                    return;
+                }
+
+                if (
+                    !confirm(
+                        `Are you sure you want to delete "${selectedName}"? This action cannot be undone.`,
+                    )
+                ) {
+                    return;
+                }
+
+                try {
+                    // First, get the plant ID by name
+                    const getResponse = await fetch(
+                        `${API_BASE_URL}/api/plants/${encodeURIComponent(selectedName)}`,
+                    );
+                    if (!getResponse.ok) {
+                        throw new Error(`Plant "${selectedName}" not found`);
+                    }
+
+                    const existingPlant = await getResponse.json();
+
+                    const response = await fetch(
+                        `${API_BASE_URL}/api/plants/${existingPlant.id}`,
+                        {
+                            method: "DELETE",
+                        },
+                    );
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(
+                            error.error || `HTTP ${response.status}`,
+                        );
+                    }
+
+                    alert(`Plant "${selectedName}" deleted successfully!`);
+
+                    // Clear the name field if it matches the deleted plant
+                    if (
+                        document.getElementById("plantName").value ===
+                        selectedName
+                    ) {
+                        document.getElementById("plantName").value = "";
+                    }
+
+                    // Refresh the plant list
+                    await refreshPlantList();
+                } catch (error) {
+                    console.error("Failed to delete plant:", error);
+                    alert(`Failed to delete plant: ${error.message}`);
+                }
+            };
+
             // Make functions global so buttons can access them
             window.generate = generate;
             window.loadPreset = loadPreset;
             window.exportOBJ = exportOBJ;
             window.resetCamera = resetCamera;
+            window.loadSavedPlant = loadSavedPlant;
+            window.refreshPlantList = refreshPlantList;
 
             // Initialize when page loads
             window.addEventListener("DOMContentLoaded", () => {
                 setupEventListeners();
                 updateValueDisplays();
                 initBabylonJS();
+                refreshPlantList(); // Load saved plants list
             });
 
             // Cleanup on page unload

@@ -4,6 +4,7 @@ import {
     ParameterizedSymbolParser,
 } from "./core/LSystem.js";
 import { Renderer, GeometryData } from "./rendering/Renderer.js";
+import { apiWrapper } from "./api-wrapper.js";
 
 interface Preset {
     name: string;
@@ -237,6 +238,7 @@ class LSystemApp {
         this.initializeControls();
         this.setupEventListeners();
         this.initializeRenderer();
+        this.initializeApi();
         this.loadPreset("tree"); // Load default preset
     }
 
@@ -889,7 +891,7 @@ class LSystemApp {
         this.updateValueDisplay("rotationSpeed", "rotationSpeed-value");
     }
 
-    private savePlant(): void {
+    private async savePlant(): Promise<void> {
         const plantName = this.plantNameInput.value.trim();
         if (!plantName) {
             this.showMessage("Please enter a name for your plant", "error");
@@ -912,48 +914,15 @@ class LSystemApp {
 
         try {
             const state = this.getCurrentState();
-            const savedPlants = this.getSavedPlants();
+            const result = await apiWrapper.savePlant(state);
 
-            // Check if name already exists
-            const existingPlant = savedPlants.find((p) => p.name === plantName);
-            if (existingPlant) {
-                if (
-                    !confirm(
-                        `A plant named "${plantName}" already exists. Do you want to overwrite it?`,
-                    )
-                ) {
-                    return;
-                }
+            if (result.success) {
+                this.updateLoadOptions();
+                this.showMessage(result.message, "success");
+                this.plantNameInput.value = "";
+            } else {
+                this.showMessage(result.message, "error");
             }
-
-            // Remove existing plant with same name and add new one
-            const filteredPlants = savedPlants.filter(
-                (p) => p.name !== plantName,
-            );
-            filteredPlants.push(state);
-
-            // Check localStorage space
-            const dataString = JSON.stringify(filteredPlants);
-            if (dataString.length > 5000000) {
-                // ~5MB limit
-                this.showMessage(
-                    "Too many saved plants. Please export and delete some.",
-                    "error",
-                );
-                return;
-            }
-
-            localStorage.setItem("lsystem-saved-plants", dataString);
-            this.updateLoadOptions();
-
-            // Show success message
-            this.showMessage(
-                `Plant "${plantName}" saved successfully!`,
-                "success",
-            );
-
-            // Clear the name input for next save
-            this.plantNameInput.value = "";
         } catch (error) {
             console.error("Error saving plant:", error);
             this.showMessage(
@@ -1001,7 +970,7 @@ class LSystemApp {
         }
     }
 
-    private deletePlant(): void {
+    private async deletePlant(): Promise<void> {
         const selectedName = this.loadSelect.value;
         if (!selectedName) {
             this.showMessage("Please select a plant to delete", "error");
@@ -1017,25 +986,14 @@ class LSystemApp {
         }
 
         try {
-            const savedPlants = this.getSavedPlants();
-            const filteredPlants = savedPlants.filter(
-                (p) => p.name !== selectedName,
-            );
+            const result = await apiWrapper.deletePlant(selectedName);
 
-            if (filteredPlants.length === savedPlants.length) {
-                this.showMessage("Plant not found", "error");
-                return;
+            if (result.success) {
+                this.updateLoadOptions();
+                this.showMessage(result.message, "success");
+            } else {
+                this.showMessage(result.message, "error");
             }
-
-            localStorage.setItem(
-                "lsystem-saved-plants",
-                JSON.stringify(filteredPlants),
-            );
-            this.updateLoadOptions();
-            this.showMessage(
-                `Plant "${selectedName}" deleted successfully!`,
-                "success",
-            );
         } catch (error) {
             console.error("Error deleting plant:", error);
             this.showMessage("Failed to delete plant", "error");
@@ -1271,28 +1229,33 @@ class LSystemApp {
         }
     }
 
-    private updateLoadOptions(): void {
-        const savedPlants = this.getSavedPlants();
+    private async updateLoadOptions(): Promise<void> {
+        try {
+            const savedPlants = await apiWrapper.getSavedPlants();
 
-        // Clear existing options
-        this.loadSelect.innerHTML =
-            '<option value="">Select a plant...</option>';
+            // Clear existing options
+            this.loadSelect.innerHTML =
+                '<option value="">Select a plant...</option>';
 
-        // Sort plants by timestamp (newest first)
-        savedPlants.sort((a, b) => b.timestamp - a.timestamp);
+            // Sort plants by timestamp (newest first)
+            savedPlants.sort((a, b) => b.timestamp - a.timestamp);
 
-        // Add options for each saved plant
-        for (const plant of savedPlants) {
-            const option = document.createElement("option");
-            option.value = plant.name;
-            const date = new Date(plant.timestamp).toLocaleString();
-            option.textContent = `${plant.name} (${date})`;
-            this.loadSelect.appendChild(option);
+            // Add options for each saved plant
+            for (const plant of savedPlants) {
+                const option = document.createElement("option");
+                option.value = plant.name;
+                const date = new Date(plant.timestamp).toLocaleString();
+                option.textContent = `${plant.name} (${date})`;
+                this.loadSelect.appendChild(option);
+            }
+
+            // Update button states
+            this.deleteButton.disabled = true;
+            this.loadButton.disabled = true;
+        } catch (error) {
+            console.error("Error updating load options:", error);
+            this.showMessage("Failed to load plant list", "error");
         }
-
-        // Update button states
-        this.deleteButton.disabled = true;
-        this.loadButton.disabled = true;
     }
 
     private showMessage(
@@ -1729,6 +1692,11 @@ Try these examples:
         } catch (error) {
             console.error("Rule expansion debug failed:", error);
         }
+    }
+
+    private async initializeApi(): Promise<void> {
+        await apiWrapper.initialize();
+        this.updateLoadOptions();
     }
 }
 

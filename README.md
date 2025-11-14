@@ -4,7 +4,7 @@ A 3D interactive L-Systems plant generator with WebGL rendering, featuring real-
 
 ## Architecture
 
-This project has been refactored into a clean, modular architecture for better maintainability and extensibility:
+This project has been refactored into a clean, modular architecture for better maintainability and extensibility, with database-backed plant storage via a Flask API:
 
 ### Core Modules (`src/core/`)
 - **`LSystemState.ts`** - Core types and interfaces
@@ -48,14 +48,16 @@ This project has been refactored into a clean, modular architecture for better m
 - 3D leaf geometry with proper normals and lighting
 
 ### Save & Load System
-- **Local Storage**: Automatic persistence in browser storage
-- **Complete State Saving**: Preserves all parameters including:
+- **Database Storage**: SQLite database backend via Flask API for persistent storage
+- **Local Storage Fallback**: Automatic fallback to browser storage when API unavailable
+- **Automatic Migration**: Migrate existing localStorage plants to database
+- **Complete State Saving**: Preserves core L-system parameters including:
   - L-System rules and axiom
   - All geometry parameters (length, thickness, tapering)
-  - Leaf settings (color, probability, threshold)
-  - Camera position and zoom level
+  - Leaf settings (probability, threshold)
   - Rendering options
 - **Export/Import**: JSON-based backup and sharing system
+- **Cross-Device Access**: Share plant configurations across devices via API
 - **Validation**: Robust error handling and data validation
 
 ## Usage
@@ -85,9 +87,12 @@ This project has been refactored into a clean, modular architecture for better m
 
 ### Save & Load Plants
 1. **Saving**: Enter a name and click "Save Current Plant" or press `Ctrl+S`
+   - Automatically saves to database if API is available, otherwise uses localStorage
 2. **Loading**: Select from dropdown and click "Load" or press `Ctrl+O`
-3. **Export**: Click "Export All" or press `Ctrl+E` to download JSON backup
-4. **Import**: Click "Import" and select a JSON file to restore plants
+   - Loads from database or localStorage based on availability
+3. **Migration**: When API becomes available, you'll be prompted to migrate localStorage plants
+4. **Export**: Click "Export All" or press `Ctrl+E` to download JSON backup
+5. **Import**: Click "Import" and select a JSON file to restore plants
 
 ### Camera Controls
 - **Mouse Wheel**: Zoom in/out
@@ -192,9 +197,47 @@ Saved plants use JSON format with the following structure:
 - Configurable geometry detail (segments parameter)
 - Efficient camera matrix calculations
 
+## API Server Setup
+
+The application now includes a Flask API server for persistent plant storage across devices.
+
+### Starting the API Server
+
+#### Option 1: Using the startup script (recommended)
+```bash
+cd l-systems/api
+./start.sh
+```
+
+#### Option 2: Manual setup
+```bash
+cd l-systems/api
+pip install -r requirements.txt
+python app.py
+```
+
+The API server will start on `http://localhost:5001` and provides:
+- `GET /api/plants` - List all saved plants
+- `POST /api/plants` - Create or update a plant
+- `DELETE /api/plants/{id}` - Delete a plant
+- `POST /api/plants/migrate` - Migrate localStorage data
+- `GET /api/health` - Health check
+
+### Migration from localStorage
+
+When you first access the application with the API running, you'll be prompted to migrate any existing localStorage plants to the database. This is optional but recommended for persistent storage.
+
+### API Features
+
+- **Automatic Fallback**: App works with or without the API server
+- **Cross-Device Sync**: Save on one device, load on another
+- **Persistent Storage**: SQLite database survives browser data clearing
+- **Migration Tool**: Easy transfer from localStorage to database
+- **RESTful API**: Standard HTTP methods for all operations
+
 ## Development
 
-### Building
+### Building the Frontend
 ```bash
 npm install
 npm run build
@@ -227,14 +270,24 @@ Both library demos feature:
 - Material controls (PBR/Standard/Basic materials)
 - Export functionality (OBJ format)
 - Performance monitoring (FPS, vertices, triangles)
+- **Plant Loading**: Load saved plants from the API database
 
 ### File Structure
 ```
 src/
-  ├── index.ts          # Main application logic
-  ├── LSystem.ts        # L-System string generation & color parsing
-  ├── Renderer.ts       # WebGL 3D rendering with color support
-  └── shaders/          # GLSL vertex/fragment shaders
+  ├── index.ts              # Main application logic
+  ├── LSystem.ts            # L-System string generation & color parsing
+  ├── Renderer.ts           # WebGL 3D rendering with color support
+  ├── services/
+  │   └── ApiClient.ts      # API client for plant storage
+  ├── api-wrapper.ts        # API integration wrapper
+  └── shaders/              # GLSL vertex/fragment shaders
+api/
+  ├── app.py                # Flask API server
+  ├── requirements.txt      # Python dependencies
+  ├── migrate.py            # Migration script
+  ├── start.sh              # Startup script
+  └── README.md             # API documentation
 ```
 
 ### Implementation Summary
@@ -275,11 +328,19 @@ The save/load system is designed to be extensible:
 3. Add validation in `isValidPlantData()`
 
 ### Testing
+
+#### Color Features
 - Open `color-test.html` for comprehensive color feature testing
 - Use "📖 Color Examples" button in main app for syntax reference and auto-enable color mode
 - Try "➕ Insert Template" to add example colored rules to your L-system
 - Test with the new colored preset plants (🎨 Colored Tree, 🍂 Autumn Colors, etc.)
 - Check browser console for parsing validation results
+
+#### API Integration
+- Start the API server and test plant save/load functionality
+- Try the migration feature with existing localStorage data
+- Test the example frontends (Three.js and Babylon.js) plant loading
+- Use the API health check endpoint to verify connectivity
 
 ## License
 
