@@ -24,6 +24,8 @@ export class LSystemEngine {
         this.currentIteration = 0;
         this.generationHistory = [axiom];
 
+        console.log(config);
+
         // Set default configuration
         this.config = {
             angle: 25,

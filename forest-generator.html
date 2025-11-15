@@ -332,7 +332,7 @@
                             type="range"
                             id="plantCount"
                             min="10"
-                            max="500"
+                            max="5000"
                             value="100"
                             oninput="updateValueDisplay('plantCount', this.value)"
                         />
@@ -403,20 +403,47 @@
                 </div>
 
                 <div class="control-section">
-                    <h3>Environment</h3>
-                    <label>Lighting:</label>
-                    <select id="lightingMode">
-                        <option value="day">Daylight</option>
-                        <option value="sunset">Sunset</option>
-                        <option value="night">Night</option>
-                        <option value="foggy">Foggy</option>
-                    </select>
+                    <h3>Day/Night Cycle</h3>
+                    <label>Day Duration (minutes):</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="dayDuration"
+                            min="0.5"
+                            max="10"
+                            step="0.5"
+                            value="2"
+                            oninput="updateDayDuration(this.value)"
+                        />
+                        <span class="value-display" id="dayDurationValue"
+                            >2 min</span
+                        >
+                    </div>
 
-                    <label>Sky Color:</label>
-                    <input type="color" id="skyColor" value="#87CEEB" />
+                    <label>Time Speed:</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="timeSpeed"
+                            min="0.1"
+                            max="5"
+                            step="0.1"
+                            value="1"
+                            oninput="updateTimeSpeed(this.value)"
+                        />
+                        <span class="value-display" id="timeSpeedValue"
+                            >1x</span
+                        >
+                    </div>
 
-                    <label>Ground Color:</label>
-                    <input type="color" id="groundColor" value="#228B22" />
+                    <label>
+                        <input
+                            type="checkbox"
+                            id="pauseTime"
+                            onchange="toggleTimeFreeze(this.checked)"
+                        />
+                        Pause Time
+                    </label>
                 </div>
 
                 <button
@@ -435,12 +462,135 @@
                 <div class="loading" id="generation-loading">
                     Generating forest...
                 </div>
+                <div
+                    id="fly-mode-indicator"
+                    style="
+                        position: absolute;
+                        top: 10px;
+                        left: 10px;
+                        color: white;
+                        font-weight: bold;
+                        background: rgba(0, 0, 0, 0.7);
+                        padding: 5px 10px;
+                        border-radius: 5px;
+                        z-index: 1000;
+                    "
+                >
+                    WALK MODE
+                </div>
+                <div
+                    id="flashlight-indicator"
+                    style="
+                        position: absolute;
+                        top: 50px;
+                        left: 10px;
+                        color: white;
+                        font-weight: bold;
+                        background: rgba(0, 0, 0, 0.7);
+                        padding: 5px 10px;
+                        border-radius: 5px;
+                        z-index: 1000;
+                        display: none;
+                    "
+                >
+                    🔦 FLASHLIGHT ON
+                </div>
+                <div
+                    id="tutorial-popup"
+                    style="
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: rgba(0, 0, 0, 0.9);
+                        color: white;
+                        padding: 20px;
+                        border-radius: 10px;
+                        z-index: 2000;
+                        max-width: 400px;
+                        text-align: center;
+                        font-family: Arial, sans-serif;
+                        border: 2px solid #00ff00;
+                    "
+                >
+                    <h3>🌲 Forest Explorer Controls 🌲</h3>
+                    <div style="text-align: left; margin: 15px 0">
+                        <strong>Movement:</strong><br />
+                        • WASD - Walk around<br />
+                        • Mouse - Look around<br />
+                        • Shift - Hold to run (uses stamina)<br />
+                        • Space - Jump<br /><br />
+
+                        <strong>Modes:</strong><br />
+                        • F - Toggle Fly Mode<br />
+                        • C - Move down (fly mode only)<br /><br />
+
+                        <strong>Flashlight:</strong><br />
+                        • L - Toggle flashlight on/off<br />
+                        • Perfect for night and fog!<br /><br />
+
+                        <strong>Tips:</strong><br />
+                        • Watch your stamina bar!<br />
+                        • Green stamina = full energy<br />
+                        • Red stamina = tired<br />
+                        • Use flashlight in heavy fog<br />
+                    </div>
+                    <button
+                        onclick="document.getElementById('tutorial-popup').style.display='none'"
+                        style="
+                            background: #00ff00;
+                            color: black;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-weight: bold;
+                        "
+                    >
+                        Got it!
+                    </button>
+                </div>
+                <div
+                    id="stamina-bar"
+                    style="
+                        position: absolute;
+                        top: 50px;
+                        left: 10px;
+                        width: 150px;
+                        height: 15px;
+                        background: rgba(0, 0, 0, 0.7);
+                        border: 2px solid white;
+                        border-radius: 8px;
+                        z-index: 1000;
+                        overflow: hidden;
+                    "
+                >
+                    <div
+                        id="stamina-fill"
+                        style="
+                            height: 100%;
+                            width: 100%;
+                            background: linear-gradient(
+                                90deg,
+                                #00ff00,
+                                #ffff00,
+                                #ff0000
+                            );
+                            transition: width 0.2s ease;
+                        "
+                    ></div>
+                </div>
             </div>
         </div>
 
         <div class="controls-info">
             <strong>Controls:</strong><br />
-            WASD - Move | Mouse - Look | Shift - Run | Space - Up | C - Down
+            WASD - Move | Mouse - Look | Shift - Run | Space - Jump/Up | C -
+            Down | F - Toggle Fly Mode | R - Toggle Sprint | H - Help<br />
+            <em
+                >Walk Mode: Stay on ground with gravity and jumping | Fly Mode:
+                Free flight</em
+            >
         </div>
 
         <div class="stats" id="stats">
@@ -488,6 +638,66 @@
                     this.frameCount = 0;
                     this.lastTime = 0;
 
+                    // Movement physics variables
+                    this.gravity = -30;
+                    this.jumpForce = 10;
+                    this.groundLevel = -2;
+                    this.flyMode = false;
+                    this.raycaster = new THREE.Raycaster();
+                    this.jumpCooldown = 0;
+                    this.isLanding = false;
+                    this.landingTime = 0;
+                    this.stamina = 100;
+                    this.maxStamina = 100;
+                    this.staminaRegenRate = 20;
+                    this.runStaminaDrain = 30;
+                    this.jumpStaminaCost = 15;
+
+                    // Footstep system
+                    this.lastFootstepTime = 0;
+                    this.footstepInterval = 0.5; // Time between footsteps when walking
+                    this.runFootstepInterval = 0.3; // Time between footsteps when running
+                    this.totalDistanceMoved = 0;
+
+                    // Sprint toggle
+                    this.sprintToggled = false;
+                    this.autoRun = false;
+
+                    // Environmental feedback
+                    this.lastTerrainType = "normal";
+                    this.windEffect = new THREE.Vector3();
+                    this.bobAmount = 0;
+                    this.bobSpeed = 0;
+
+                    // Day/Night cycle properties
+                    this.dayDuration = 120000; // 2 minutes in milliseconds
+                    this.dayStartTime = Date.now();
+                    this.sunRadius = 300;
+                    this.sunHeight = 100;
+                    this.sunMesh = null;
+                    this.moonMesh = null;
+                    this.hemisphereLight = null;
+
+                    // Fog properties
+                    this.fogEnabled = true;
+                    this.fogCycleTime = 20000; // 20 seconds cycle for longer fog states
+                    this.fogStartTime = Date.now();
+                    this.baseFogDensity = 0.002;
+                    this.maxFogDensity = 0.8;
+
+                    // Time control properties
+                    this.timeSpeed = 1.0;
+                    this.timePaused = false;
+                    this.lastUpdateTime = Date.now();
+
+                    // Flashlight properties
+                    this.flashlight = null;
+                    this.flashlightEnabled = false;
+                    this.flashlightIntensity = 8; // Much brighter for longer range
+                    this.flashlightDistance = 300; // Much longer beam
+                    this.flashlightAngle = Math.PI * 0.12; // Slightly wider cone
+                    this.flashlightPenumbra = 0.3; // Softer edge for fog
+
                     this.init();
                 }
 
@@ -498,6 +708,7 @@
                     this.setupControls();
                     this.setupLighting();
                     this.createGround();
+                    this.initializePlayerPosition();
                     this.setupEventListeners();
                     this.animate();
 
@@ -519,7 +730,7 @@
                         0.1,
                         1000,
                     );
-                    this.camera.position.set(0, 10, 50);
+                    this.camera.position.set(0, 1.6, 50);
                 }
 
                 setupRenderer() {
@@ -527,7 +738,7 @@
                     this.renderer = new THREE.WebGLRenderer({
                         canvas: canvas,
                         antialias: true,
-                        alpha: true,
+                        alpha: false,
                     });
                     this.renderer.setSize(
                         canvas.clientWidth,
@@ -537,6 +748,9 @@
                         Math.min(window.devicePixelRatio, 2),
                     );
                     this.renderer.shadowMap.enabled = true;
+
+                    // Ensure fog is supported
+                    this.renderer.setClearColor(0x87ceeb, 1);
                     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                     this.renderer.setClearColor(0x87ceeb, 1);
 
@@ -561,8 +775,9 @@
                     this.moveRight = false;
                     this.moveUp = false;
                     this.moveDown = false;
-                    this.canJump = false;
+                    this.canJump = true;
                     this.isRunning = false;
+                    this.onGround = true;
 
                     // Click to lock pointer
                     this.renderer.domElement.addEventListener("click", () => {
@@ -589,17 +804,45 @@
                                 this.moveRight = true;
                                 break;
                             case "Space":
-                                if (this.canJump === true)
-                                    this.velocity.y += 350;
-                                this.canJump = false;
-                                this.moveUp = true;
+                                event.preventDefault();
+                                if (
+                                    !this.flyMode &&
+                                    this.onGround &&
+                                    this.canJump &&
+                                    this.jumpCooldown <= 0 &&
+                                    this.stamina >= this.jumpStaminaCost
+                                ) {
+                                    this.velocity.y = this.jumpForce;
+                                    this.onGround = false;
+                                    this.canJump = false;
+                                    this.jumpCooldown = 0.3; // 300ms cooldown
+                                    this.isLanding = false;
+                                    this.stamina -= this.jumpStaminaCost;
+                                    this.updateStaminaBar();
+                                } else if (this.flyMode) {
+                                    this.moveUp = true;
+                                }
                                 break;
                             case "KeyC":
                                 this.moveDown = true;
                                 break;
                             case "ShiftLeft":
                             case "ShiftRight":
-                                this.isRunning = true;
+                                if (this.sprintToggled) {
+                                    this.sprintToggled = false;
+                                    this.isRunning = false;
+                                } else {
+                                    this.isRunning = true;
+                                }
+                                break;
+                            case "KeyF":
+                                this.toggleFlyMode();
+                                break;
+                            case "KeyR":
+                                this.toggleSprintMode();
+                                break;
+                            case "KeyH":
+                                this.showTutorial();
                                 break;
                         }
                     });
@@ -623,26 +866,30 @@
                                 this.moveRight = false;
                                 break;
                             case "Space":
-                                this.moveUp = false;
+                                if (this.flyMode) {
+                                    this.moveUp = false;
+                                }
                                 break;
                             case "KeyC":
                                 this.moveDown = false;
                                 break;
                             case "ShiftLeft":
                             case "ShiftRight":
-                                this.isRunning = false;
+                                if (!this.sprintToggled) {
+                                    this.isRunning = false;
+                                }
                                 break;
                         }
                     });
                 }
 
                 setupLighting() {
-                    // Ambient light
-                    const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+                    // Ambient light - brighter for better night visibility
+                    const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
                     this.scene.add(ambientLight);
 
                     // Directional light (sun)
-                    this.sunLight = new THREE.DirectionalLight(0xffffff, 1);
+                    this.sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
                     this.sunLight.position.set(100, 100, 50);
                     this.sunLight.castShadow = true;
                     this.sunLight.shadow.mapSize.width = 2048;
@@ -656,12 +903,74 @@
                     this.scene.add(this.sunLight);
 
                     // Hemisphere light for softer lighting
-                    const hemisphereLight = new THREE.HemisphereLight(
+                    this.hemisphereLight = new THREE.HemisphereLight(
                         0x87ceeb,
                         0x228b22,
                         0.6,
                     );
-                    this.scene.add(hemisphereLight);
+                    this.scene.add(this.hemisphereLight);
+
+                    // Create visible sun and moon
+                    this.createSun();
+                    this.createMoon();
+
+                    // Setup dramatic fog that's very visible
+                    this.scene.fog = new THREE.Fog(0xcce7f0, 20, 200);
+
+                    // Create flashlight
+                    this.createFlashlight();
+
+                    // Set initial background color
+                    this.renderer.setClearColor(0x87ceeb, 1);
+                }
+
+                createSun() {
+                    // Create simple sun sphere
+                    const sunGeometry = new THREE.SphereGeometry(8, 16, 16);
+                    const sunMaterial = new THREE.MeshStandardMaterial({
+                        color: 0xffff00,
+                        emissive: 0xffff00,
+                        emissiveIntensity: 0.8,
+                    });
+                    this.sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
+                    this.scene.add(this.sunMesh);
+                }
+
+                createMoon() {
+                    // Create simple moon sphere
+                    const moonGeometry = new THREE.SphereGeometry(6, 16, 16);
+                    const moonMaterial = new THREE.MeshStandardMaterial({
+                        color: 0xe6e6e6,
+                        emissive: 0x444444,
+                        emissiveIntensity: 0.3,
+                    });
+                    this.moonMesh = new THREE.Mesh(moonGeometry, moonMaterial);
+                    this.scene.add(this.moonMesh);
+                }
+
+                createFlashlight() {
+                    // Create a spot light for the flashlight
+                    this.flashlight = new THREE.SpotLight(
+                        0xfff4e6, // Warm white light for better fog visibility
+                        this.flashlightIntensity,
+                        this.flashlightDistance,
+                        this.flashlightAngle,
+                        this.flashlightPenumbra,
+                    );
+
+                    // Enable shadows for the flashlight
+                    this.flashlight.castShadow = true;
+                    this.flashlight.shadow.mapSize.width = 1024;
+                    this.flashlight.shadow.mapSize.height = 1024;
+                    this.flashlight.shadow.camera.near = 0.1;
+                    this.flashlight.shadow.camera.far = this.flashlightDistance;
+
+                    // Reduce light decay for more gradual falloff
+                    this.flashlight.decay = 1; // Less dramatic falloff (default is 2)
+
+                    // Start with flashlight off
+                    this.flashlight.visible = false;
+                    this.scene.add(this.flashlight);
                 }
 
                 createGround() {
@@ -672,7 +981,7 @@
                         100,
                     );
                     const groundMaterial = new THREE.MeshLambertMaterial({
-                        color: document.getElementById("groundColor").value,
+                        color: 0x228b22,
                     });
 
                     // Add some random height variation to vertices
@@ -702,56 +1011,66 @@
                 }
 
                 setupEventListeners() {
-                    // Lighting mode change
-                    document
-                        .getElementById("lightingMode")
-                        .addEventListener("change", (e) => {
-                            this.updateLighting(e.target.value);
-                        });
+                    // Event listeners for day/night cycle controls are handled by global functions
+                    // No additional event listeners needed here since controls use oninput/onchange
 
-                    // Color changes
-                    document
-                        .getElementById("skyColor")
-                        .addEventListener("change", (e) => {
-                            this.renderer.setClearColor(e.target.value, 1);
-                            this.scene.fog.color.setHex(
-                                e.target.value.replace("#", "0x"),
-                            );
-                        });
-
-                    document
-                        .getElementById("groundColor")
-                        .addEventListener("change", (e) => {
-                            this.ground.material.color.setHex(
-                                e.target.value.replace("#", "0x"),
-                            );
-                        });
+                    // Add keyboard event listener for flashlight toggle
+                    document.addEventListener("keydown", (event) => {
+                        if (event.key === "l" || event.key === "L") {
+                            this.toggleFlashlight();
+                        }
+                    });
                 }
 
-                updateLighting(mode) {
-                    switch (mode) {
-                        case "day":
-                            this.sunLight.color.setHex(0xffffff);
-                            this.sunLight.intensity = 1;
-                            this.sunLight.position.set(100, 100, 50);
-                            break;
-                        case "sunset":
-                            this.sunLight.color.setHex(0xff6b47);
-                            this.sunLight.intensity = 0.8;
-                            this.sunLight.position.set(200, 20, 50);
-                            break;
-                        case "night":
-                            this.sunLight.color.setHex(0x6666ff);
-                            this.sunLight.intensity = 0.2;
-                            this.sunLight.position.set(50, 200, 100);
-                            break;
-                        case "foggy":
-                            this.sunLight.color.setHex(0xcccccc);
-                            this.sunLight.intensity = 0.5;
-                            this.scene.fog.near = 10;
-                            this.scene.fog.far = 100;
-                            break;
+                toggleFlashlight() {
+                    this.flashlightEnabled = !this.flashlightEnabled;
+                    this.flashlight.visible = this.flashlightEnabled;
+
+                    // Update UI indicator
+                    const indicator = document.getElementById(
+                        "flashlight-indicator",
+                    );
+                    if (this.flashlightEnabled) {
+                        indicator.style.display = "block";
+                    } else {
+                        indicator.style.display = "none";
                     }
+
+                    // Show notification
+                    const notification = document.createElement("div");
+                    notification.style.position = "fixed";
+                    notification.style.top = "20px";
+                    notification.style.right = "20px";
+                    notification.style.background = "rgba(0, 0, 0, 0.8)";
+                    notification.style.color = "white";
+                    notification.style.padding = "10px 15px";
+                    notification.style.borderRadius = "5px";
+                    notification.style.zIndex = "1000";
+                    notification.style.fontFamily = "Arial, sans-serif";
+                    notification.textContent = `Flashlight ${this.flashlightEnabled ? "ON" : "OFF"} (Press L to toggle)`;
+                    document.body.appendChild(notification);
+
+                    // Remove notification after 2 seconds
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 2000);
+                }
+
+                updateFlashlight() {
+                    if (!this.flashlight || !this.flashlightEnabled) return;
+
+                    // Position flashlight at camera position
+                    this.flashlight.position.copy(this.camera.position);
+
+                    // Point flashlight in camera direction
+                    const direction = new THREE.Vector3();
+                    this.camera.getWorldDirection(direction);
+                    this.flashlight.target.position.copy(
+                        this.camera.position.clone().add(direction),
+                    );
+                    this.flashlight.target.updateMatrixWorld();
                 }
 
                 async loadPlants() {
@@ -1176,12 +1495,82 @@
                         }
                     });
 
+                    // Calculate current time of day
+                    const currentTime = Date.now();
+                    const elapsed =
+                        (currentTime - this.dayStartTime) % this.dayDuration;
+                    const timeOfDay = elapsed / this.dayDuration;
+                    const hours = Math.floor(timeOfDay * 24);
+                    const minutes = Math.floor((timeOfDay * 24 * 60) % 60);
+                    const timeString = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+
+                    // Determine period of day based on sun position
+                    const currentSunAngle =
+                        timeOfDay * Math.PI * 2 - Math.PI / 2;
+                    const currentSunY =
+                        Math.sin(currentSunAngle) * this.sunRadius +
+                        this.sunHeight;
+
+                    let period = "Night";
+                    const dayIntensityForPeriod = Math.max(
+                        0,
+                        currentSunY / this.sunRadius,
+                    );
+                    const sunsetFactor = Math.max(
+                        0,
+                        1 - dayIntensityForPeriod * 3,
+                    );
+
+                    if (currentSunY > this.sunRadius * 0.5) {
+                        period = "Day";
+                    } else if (currentSunY > 0) {
+                        period = timeOfDay < 0.5 ? "Dawn" : "Dusk";
+                    } else {
+                        period = "Night";
+                    }
+
+                    // Calculate fog intensity
+                    const fogCurrent =
+                        (Date.now() - this.fogStartTime) % this.fogCycleTime;
+                    const fogCycle =
+                        this.fogCycleTime > 0
+                            ? fogCurrent / this.fogCycleTime
+                            : 0;
+
+                    // Same calculation as in updateFog for consistency
+                    const mainWave =
+                        Math.sin(fogCycle * Math.PI * 2) * 0.5 + 0.5;
+                    const secondaryWave =
+                        Math.sin(fogCycle * Math.PI * 4.3) * 0.3 + 0.3;
+                    const tertiaryWave =
+                        Math.sin(fogCycle * Math.PI * 7.1) * 0.2 + 0.2;
+                    const combinedWave =
+                        mainWave * 0.6 +
+                        secondaryWave * 0.3 +
+                        tertiaryWave * 0.1;
+                    const randomSeed =
+                        Math.sin(fogCycle * Math.PI * 1.7) * 0.4 + 0.6;
+
+                    const fogIntensity = Math.round(
+                        combinedWave * randomSeed * 100,
+                    );
+
+                    // Determine weather condition
+                    let weather = "Clear";
+                    if (fogIntensity > 70) weather = "Very Foggy";
+                    else if (fogIntensity > 40) weather = "Foggy";
+                    else if (fogIntensity > 20) weather = "Misty";
+
                     const statsEl = document.getElementById("stats");
                     statsEl.innerHTML = `
                     <strong>Forest Stats:</strong><br>
                     Plants: ${this.stats.plants}<br>
                     Triangles: ${Math.floor(this.stats.triangles)}<br>
-                    FPS: ${this.stats.fps}
+                    FPS: ${this.stats.fps}<br><br>
+                    <strong>Environment:</strong><br>
+                    Time: ${timeString} (${period})<br>
+                    Weather: ${weather}<br>
+                    Fog: ${fogIntensity}%
                 `;
                 }
 
@@ -1203,7 +1592,56 @@
 
                 updateMovement() {
                     const delta = this.clock.getDelta();
-                    const speed = this.isRunning ? 50 : 25;
+                    this.lastFootstepTime += delta;
+
+                    // Update head bobbing
+                    this.updateHeadBob(delta);
+
+                    // Handle stamina system
+                    if (
+                        this.isRunning &&
+                        !this.flyMode &&
+                        (this.moveForward ||
+                            this.moveBackward ||
+                            this.moveLeft ||
+                            this.moveRight)
+                    ) {
+                        // Drain stamina when running
+                        this.stamina = Math.max(
+                            0,
+                            this.stamina - this.runStaminaDrain * delta,
+                        );
+                        if (this.stamina <= 0) {
+                            this.isRunning = false; // Force stop running when exhausted
+                        }
+                    } else {
+                        // Regenerate stamina when not running
+                        this.stamina = Math.min(
+                            this.maxStamina,
+                            this.stamina + this.staminaRegenRate * delta,
+                        );
+                    }
+                    this.updateStaminaBar();
+
+                    // Adjust speed based on stamina
+                    let speed = 10; // Base walking speed
+                    if (this.isRunning && this.stamina > 0) {
+                        speed = 20; // Running speed
+                    } else if (this.stamina < 20) {
+                        speed = 15; // Tired walking speed
+                    }
+
+                    // Update jump cooldown and landing effects
+                    if (this.jumpCooldown > 0) {
+                        this.jumpCooldown -= delta;
+                    }
+
+                    if (this.isLanding) {
+                        this.landingTime -= delta;
+                        if (this.landingTime <= 0) {
+                            this.isLanding = false;
+                        }
+                    }
 
                     // Get camera direction vectors
                     const cameraObject = this.controls.getObject();
@@ -1214,10 +1652,16 @@
                     // Get forward direction from camera
                     cameraObject.getWorldDirection(forward);
 
+                    // For ground movement, ignore Y component of forward vector
+                    if (!this.flyMode) {
+                        forward.y = 0;
+                        forward.normalize();
+                    }
+
                     // Get right direction (perpendicular to forward)
                     right.crossVectors(forward, up).normalize();
 
-                    // Calculate movement vector based on input
+                    // Calculate horizontal movement vector based on input
                     const movement = new THREE.Vector3();
 
                     if (this.moveForward) {
@@ -1240,15 +1684,374 @@
                             right.clone().multiplyScalar(speed * delta),
                         );
                     }
-                    if (this.moveUp) {
-                        movement.add(up.clone().multiplyScalar(speed * delta));
-                    }
-                    if (this.moveDown) {
-                        movement.add(up.clone().multiplyScalar(-speed * delta));
+
+                    // Handle vertical movement based on mode
+                    if (this.flyMode) {
+                        // In fly mode, allow direct up/down movement
+                        if (this.moveUp) {
+                            movement.add(
+                                up.clone().multiplyScalar(speed * delta),
+                            );
+                        }
+                        if (this.moveDown) {
+                            movement.add(
+                                up.clone().multiplyScalar(-speed * delta),
+                            );
+                        }
+                    } else {
+                        // In walking mode, apply gravity and ground collision
+                        this.velocity.y += this.gravity * delta;
+
+                        // Get ground height at current and next position
+                        const currentPos = cameraObject.position;
+                        const nextX = currentPos.x + movement.x;
+                        const nextZ = currentPos.z + movement.z;
+
+                        const groundHeight = this.getGroundHeight(nextX, nextZ);
+                        const minHeight = groundHeight + 1.6; // Player eye height above ground
+
+                        // Apply vertical velocity
+                        const newY = currentPos.y + this.velocity.y * delta;
+
+                        if (newY <= minHeight) {
+                            // Hit ground - landing detection
+                            const wasInAir = !this.onGround;
+                            cameraObject.position.y = minHeight;
+                            this.velocity.y = 0;
+                            this.onGround = true;
+                            this.canJump = true;
+
+                            // Landing feedback
+                            if (wasInAir && !this.flyMode) {
+                                this.isLanding = true;
+                                this.landingTime = 0.1;
+                                // Add subtle camera shake on landing
+                                const shakeMagnitude = Math.min(
+                                    Math.abs(this.velocity.y) * 0.01,
+                                    0.1,
+                                );
+                                cameraObject.position.x +=
+                                    (Math.random() - 0.5) * shakeMagnitude;
+                                cameraObject.position.z +=
+                                    (Math.random() - 0.5) * shakeMagnitude;
+                            }
+                        } else {
+                            // In air
+                            movement.y = this.velocity.y * delta;
+                            this.onGround = false;
+                        }
                     }
 
-                    // Apply movement to camera
-                    cameraObject.position.add(movement);
+                    // Apply horizontal movement to camera with boundary checking
+                    const oldPosition = cameraObject.position.clone();
+                    const newPosition = cameraObject.position
+                        .clone()
+                        .add(movement);
+
+                    // Keep player within world bounds (ground is 2000x2000 centered at origin)
+                    const worldBounds = 900; // Leave some margin from the 1000 radius
+                    newPosition.x = Math.max(
+                        -worldBounds,
+                        Math.min(worldBounds, newPosition.x),
+                    );
+                    newPosition.z = Math.max(
+                        -worldBounds,
+                        Math.min(worldBounds, newPosition.z),
+                    );
+
+                    cameraObject.position.copy(newPosition);
+
+                    // Handle footstep effects
+                    if (!this.flyMode && this.onGround) {
+                        const horizontalMovement = new THREE.Vector3(
+                            newPosition.x - oldPosition.x,
+                            0,
+                            newPosition.z - oldPosition.z,
+                        );
+                        const distanceMoved = horizontalMovement.length();
+
+                        if (distanceMoved > 0.01) {
+                            // Only if actually moving
+                            this.totalDistanceMoved += distanceMoved;
+
+                            const currentInterval = this.isRunning
+                                ? this.runFootstepInterval
+                                : this.footstepInterval;
+
+                            if (this.lastFootstepTime >= currentInterval) {
+                                this.playFootstep();
+                                this.lastFootstepTime = 0;
+                            }
+                        }
+                    }
+
+                    // Add subtle wind effect in fly mode
+                    if (this.flyMode && Math.random() < 0.01) {
+                        this.windEffect.set(
+                            (Math.random() - 0.5) * 0.02,
+                            (Math.random() - 0.5) * 0.01,
+                            (Math.random() - 0.5) * 0.02,
+                        );
+                        cameraObject.position.add(this.windEffect);
+                    }
+                }
+
+                getGroundHeight(x, z) {
+                    // Cast ray downward to find ground height
+                    this.raycaster.set(
+                        new THREE.Vector3(x, 100, z),
+                        new THREE.Vector3(0, -1, 0),
+                    );
+                    const intersects = this.raycaster.intersectObject(
+                        this.ground,
+                        true,
+                    );
+
+                    if (intersects.length > 0) {
+                        return intersects[0].point.y;
+                    }
+
+                    // Return default ground level if no intersection found
+                    return this.groundLevel;
+                }
+
+                toggleFlyMode() {
+                    this.flyMode = !this.flyMode;
+
+                    // Reset velocity when switching modes
+                    this.velocity.set(0, 0, 0);
+
+                    // Show mode indicator
+                    const indicator =
+                        document.getElementById("fly-mode-indicator");
+                    if (indicator) {
+                        indicator.textContent = this.flyMode
+                            ? "FLY MODE ON"
+                            : "WALK MODE";
+                        indicator.style.color = this.flyMode
+                            ? "#00ff00"
+                            : "#ffffff";
+                    }
+
+                    // Reset position when switching to walk mode
+                    if (!this.flyMode) {
+                        const cameraObject = this.controls.getObject();
+                        const groundHeight = this.getGroundHeight(
+                            cameraObject.position.x,
+                            cameraObject.position.z,
+                        );
+                        cameraObject.position.y = groundHeight + 1.6;
+                        this.onGround = true;
+                        this.canJump = true;
+                    }
+
+                    console.log(
+                        this.flyMode ? "Fly mode enabled" : "Walk mode enabled",
+                    );
+                }
+
+                initializePlayerPosition() {
+                    // Place camera at proper height above ground at starting position
+                    const cameraObject = this.controls.getObject();
+
+                    // Wait for ground to be created, then position camera
+                    setTimeout(() => {
+                        const groundHeight = this.getGroundHeight(
+                            cameraObject.position.x,
+                            cameraObject.position.z,
+                        );
+                        cameraObject.position.y = groundHeight + 1.6;
+                        this.onGround = true;
+                        this.canJump = true;
+                        this.jumpCooldown = 0;
+                        this.isLanding = false;
+                        this.landingTime = 0;
+                        this.velocity.set(0, 0, 0);
+                    }, 100);
+                }
+
+                updateStaminaBar() {
+                    const staminaFill = document.getElementById("stamina-fill");
+                    const staminaBar = document.getElementById("stamina-bar");
+
+                    if (staminaFill && staminaBar) {
+                        const percentage =
+                            (this.stamina / this.maxStamina) * 100;
+                        staminaFill.style.width = percentage + "%";
+
+                        // Change color based on stamina level
+                        if (percentage > 60) {
+                            staminaFill.style.background = "#00ff00";
+                        } else if (percentage > 30) {
+                            staminaFill.style.background = "#ffff00";
+                        } else {
+                            staminaFill.style.background = "#ff4444";
+                        }
+
+                        // Hide stamina bar in fly mode
+                        staminaBar.style.display = this.flyMode
+                            ? "none"
+                            : "block";
+                    }
+                }
+
+                playFootstep() {
+                    // Visual footstep effect - create small dust particles
+                    if (this.scene && this.ground) {
+                        const cameraPos = this.controls.getObject().position;
+                        const groundHeight = this.getGroundHeight(
+                            cameraPos.x,
+                            cameraPos.z,
+                        );
+
+                        // Create small particle effect at feet position
+                        const particleGeometry = new THREE.SphereGeometry(
+                            0.05,
+                            4,
+                            4,
+                        );
+                        const particleMaterial = new THREE.MeshBasicMaterial({
+                            color: 0x8b7355, // Dust color
+                            transparent: true,
+                            opacity: 0.6,
+                        });
+
+                        for (let i = 0; i < 3; i++) {
+                            const particle = new THREE.Mesh(
+                                particleGeometry,
+                                particleMaterial,
+                            );
+                            particle.position.set(
+                                cameraPos.x + (Math.random() - 0.5) * 0.3,
+                                groundHeight + 0.1,
+                                cameraPos.z + (Math.random() - 0.5) * 0.3,
+                            );
+
+                            this.scene.add(particle);
+
+                            // Animate particle upward and fade out
+                            const startY = particle.position.y;
+                            const startOpacity = particleMaterial.opacity;
+                            const animationDuration = 1000; // 1 second
+                            const startTime = Date.now();
+
+                            const animateParticle = () => {
+                                const elapsed = Date.now() - startTime;
+                                const progress = elapsed / animationDuration;
+
+                                if (progress < 1) {
+                                    particle.position.y =
+                                        startY + progress * 0.5;
+                                    particle.material.opacity =
+                                        startOpacity * (1 - progress);
+                                    requestAnimationFrame(animateParticle);
+                                } else {
+                                    this.scene.remove(particle);
+                                    particleGeometry.dispose();
+                                    particleMaterial.dispose();
+                                }
+                            };
+
+                            animateParticle();
+                        }
+                    }
+
+                    // Audio feedback (console log for now, could add actual audio later)
+                    if (this.isRunning) {
+                        console.log("👟 Running footstep");
+                    } else {
+                        console.log("🚶 Walking footstep");
+                    }
+
+                    // Environmental audio feedback
+                    const cameraPos = this.controls.getObject().position;
+                    const terrainType = this.getTerrainType(
+                        cameraPos.x,
+                        cameraPos.z,
+                    );
+
+                    if (terrainType !== this.lastTerrainType) {
+                        console.log(`🌍 Terrain changed: ${terrainType}`);
+                        this.lastTerrainType = terrainType;
+                    }
+                }
+
+                toggleSprintMode() {
+                    this.sprintToggled = !this.sprintToggled;
+
+                    if (this.sprintToggled) {
+                        this.isRunning = true;
+                        console.log("🏃 Sprint mode ON - Hold to walk slowly");
+
+                        // Show temporary message
+                        const indicator =
+                            document.getElementById("fly-mode-indicator");
+                        const originalText = indicator.textContent;
+                        const originalColor = indicator.style.color;
+
+                        indicator.textContent = "SPRINT MODE ON";
+                        indicator.style.color = "#ffaa00";
+
+                        setTimeout(() => {
+                            if (this.sprintToggled) {
+                                indicator.textContent = originalText;
+                                indicator.style.color = originalColor;
+                            }
+                        }, 2000);
+                    } else {
+                        console.log("🚶 Sprint mode OFF - Normal controls");
+                    }
+                }
+
+                showTutorial() {
+                    const tutorial = document.getElementById("tutorial-popup");
+                    if (tutorial) {
+                        tutorial.style.display = "block";
+                    }
+                }
+
+                updateHeadBob(delta) {
+                    if (
+                        !this.flyMode &&
+                        this.onGround &&
+                        (this.moveForward ||
+                            this.moveBackward ||
+                            this.moveLeft ||
+                            this.moveRight)
+                    ) {
+                        // Calculate bob intensity based on movement speed
+                        const bobIntensity = this.isRunning ? 0.08 : 0.04;
+                        this.bobSpeed = this.isRunning ? 12 : 8;
+
+                        this.bobAmount += this.bobSpeed * delta;
+
+                        // Apply subtle head bob
+                        const cameraObject = this.controls.getObject();
+                        const bobOffset =
+                            Math.sin(this.bobAmount) * bobIntensity;
+
+                        // Only apply if we're actually moving
+                        if (this.velocity.length() > 0.1) {
+                            cameraObject.position.y += bobOffset * 0.1;
+                        }
+                    } else {
+                        // Gradually reduce bobbing when not moving
+                        this.bobAmount *= 0.95;
+                    }
+                }
+
+                getTerrainType(x, z) {
+                    // Simple terrain type detection based on height variation
+                    const height = this.getGroundHeight(x, z);
+                    const baseHeight = this.groundLevel;
+
+                    if (height > baseHeight + 0.5) {
+                        return "hill";
+                    } else if (height < baseHeight - 0.3) {
+                        return "valley";
+                    } else {
+                        return "normal";
+                    }
                 }
 
                 handleResize() {
@@ -1267,6 +2070,9 @@
                     );
 
                     this.updateMovement();
+                    this.updateDayNightCycle();
+                    this.updateFog();
+                    this.updateFlashlight();
 
                     // Calculate FPS
                     this.frameCount++;
@@ -1282,6 +2088,211 @@
                     }
 
                     this.renderer.render(this.scene, this.camera);
+                }
+
+                updateDayNightCycle() {
+                    const currentTime = Date.now();
+
+                    // Handle time pause
+                    if (this.timePaused) {
+                        // Keep updating the start time while paused to maintain current time
+                        this.dayStartTime =
+                            currentTime -
+                            (this.dayStartTime - this.lastUpdateTime);
+                        this.lastUpdateTime = currentTime;
+                        return;
+                    }
+
+                    // Apply time speed multiplier
+                    const deltaTime =
+                        (currentTime - this.lastUpdateTime) * this.timeSpeed;
+                    this.lastUpdateTime = currentTime;
+
+                    // Adjust day start time based on speed
+                    this.dayStartTime -= deltaTime * (this.timeSpeed - 1);
+
+                    const elapsed =
+                        (currentTime - this.dayStartTime) % this.dayDuration;
+                    const timeOfDay =
+                        this.dayDuration > 0 ? elapsed / this.dayDuration : 0; // 0 = dawn, 0.5 = noon, 1 = dawn again
+
+                    // Calculate sun position in an arc across the sky
+                    // timeOfDay 0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset, 1 = midnight
+                    // We want sun to be highest at noon (0.5), so shift the sine wave
+                    const sunAngle = timeOfDay * Math.PI * 2 - Math.PI / 2; // Start at bottom, peak at noon
+                    const sunX = Math.cos(sunAngle) * this.sunRadius;
+                    const sunY =
+                        Math.sin(sunAngle) * this.sunRadius + this.sunHeight;
+                    const sunZ = Math.sin(sunAngle) * this.sunRadius * 0.3; // Slight Z variation
+
+                    // Update sun light position
+                    this.sunLight.position.set(sunX, Math.max(sunY, -50), sunZ);
+
+                    // Update visible sun position
+                    if (this.sunMesh) {
+                        this.sunMesh.position.set(
+                            sunX * 0.8,
+                            Math.max(sunY * 0.8, -40),
+                            sunZ * 0.8,
+                        );
+
+                        // Make sun visible only when above horizon
+                        this.sunMesh.visible = sunY > 0;
+                    }
+
+                    // Update moon position (opposite to sun)
+                    if (this.moonMesh) {
+                        const moonX = -sunX * 0.7;
+                        const moonY = -sunY * 0.7 + this.sunHeight * 0.5;
+                        const moonZ = -sunZ * 0.7;
+
+                        this.moonMesh.position.set(
+                            moonX,
+                            Math.max(moonY, -30),
+                            moonZ,
+                        );
+
+                        // Make moon visible only during night (when sun is below horizon)
+                        this.moonMesh.visible = sunY <= 0 && moonY > -20;
+
+                        // Adjust moon brightness based on how dark it is
+                        const moonBrightness = Math.max(
+                            0,
+                            -Math.sin(sunAngle) * 0.5 + 0.2,
+                        );
+
+                        // Update moon brightness - make it more visible
+                        this.moonMesh.material.emissiveIntensity = Math.max(
+                            0.4,
+                            moonBrightness * 1.5,
+                        );
+                    }
+
+                    // Calculate lighting intensity based on sun height
+                    // When sunY > 0, it's day time
+                    const dayIntensity = Math.max(0, sunY / this.sunRadius);
+                    const nightIntensity = Math.max(
+                        0,
+                        (-sunY / this.sunRadius) * 0.3,
+                    );
+
+                    // Ensure minimum light intensity for better night visibility
+                    const minLightIntensity = 0.4;
+                    this.sunLight.intensity = Math.max(
+                        minLightIntensity,
+                        dayIntensity * 1.2 + nightIntensity,
+                    );
+
+                    // Update sun color based on time of day - simple transitions
+                    if (dayIntensity > 0) {
+                        // Daytime - simple white to warm white transition
+                        const warmth = Math.max(0, 1 - dayIntensity * 2);
+                        this.sunLight.color.setRGB(
+                            1,
+                            1 - warmth * 0.1,
+                            1 - warmth * 0.2,
+                        );
+
+                        // Simple sun mesh color
+                        this.sunMesh.material.color.setRGB(1, 1, 0.8);
+                        this.sunMesh.material.emissive.setRGB(1, 1, 0.8);
+                    } else {
+                        // Nighttime - blue moonlight
+                        this.sunLight.color.setRGB(0.7, 0.8, 1.0);
+                        // Ensure decent nighttime visibility
+                        this.sunLight.intensity = Math.max(
+                            0.5,
+                            this.sunLight.intensity,
+                        );
+                    }
+
+                    // Update hemisphere light for sky colors
+                    if (sunY > 0) {
+                        // Day sky
+                        const skyIntensity = Math.min(0.8, dayIntensity + 0.2);
+                        this.hemisphereLight.color.setHex(0x87ceeb); // Sky blue
+                        this.hemisphereLight.groundColor.setHex(0x228b22); // Forest green
+                        this.hemisphereLight.intensity = skyIntensity;
+                    } else {
+                        // Night sky - much brighter for better gameplay
+                        this.hemisphereLight.color.setHex(0x6080b0); // Light blue-gray
+                        this.hemisphereLight.groundColor.setHex(0x304050); // Medium dark
+                        this.hemisphereLight.intensity = Math.max(
+                            0.4,
+                            nightIntensity + 0.3,
+                        );
+                    }
+
+                    // Update background color and fog color to match
+                    if (sunY > 0) {
+                        // Daytime - smooth interpolation between bright blue and darker blue
+                        const brightness = Math.min(
+                            1,
+                            Math.max(0.3, dayIntensity + 0.3),
+                        );
+
+                        // Bright sky blue to medium blue - smooth transition
+                        const red = Math.floor(135 * brightness); // 0x87
+                        const green = Math.floor(206 * brightness); // 0xce
+                        const blue = Math.floor(235 * brightness); // 0xeb
+                        const skyColor = (red << 16) | (green << 8) | blue;
+
+                        this.renderer.setClearColor(skyColor, 1);
+                        this.scene.fog.color.setHex(skyColor); // Match fog to sky color
+                    } else {
+                        // Night - dark blue background for better experience
+                        const nightColor = 0x2a2a50;
+                        this.renderer.setClearColor(nightColor, 1);
+                        this.scene.fog.color.setHex(nightColor); // Match fog to night sky color
+                    }
+                }
+
+                updateFog() {
+                    if (!this.scene.fog || !this.fogEnabled) return;
+
+                    const currentTime = Date.now();
+                    const elapsed =
+                        (currentTime - this.fogStartTime) % this.fogCycleTime;
+                    const fogCycle =
+                        this.fogCycleTime > 0 ? elapsed / this.fogCycleTime : 0; // 0 to 1
+
+                    // Create fog pattern that reaches higher intensities more often
+                    const mainWave =
+                        Math.sin(fogCycle * Math.PI * 2) * 0.5 + 0.5;
+                    const secondaryWave =
+                        Math.sin(fogCycle * Math.PI * 3.1) * 0.4 + 0.4;
+                    const tertiaryWave =
+                        Math.sin(fogCycle * Math.PI * 5.7) * 0.3 + 0.3;
+
+                    // Combine waves for higher intensity fog
+                    const combinedWave =
+                        mainWave * 0.5 +
+                        secondaryWave * 0.3 +
+                        tertiaryWave * 0.2;
+
+                    // Boost fog intensity to reach higher values more often
+                    const boostedWave = Math.pow(combinedWave, 0.2); // Makes higher values more likely
+                    const randomSeed =
+                        Math.sin(fogCycle * Math.PI * 1.3) * 0.3 + 0.7;
+
+                    const fogIntensity = boostedWave * randomSeed;
+
+                    // Apply extremely dramatic fog changes (near/far)
+                    const clearFar = 400;
+                    const foggyFar = 5;
+                    const clearNear = 30;
+                    const foggyNear = 1;
+
+                    // More fog = shorter visibility distance
+                    this.scene.fog.far =
+                        clearFar - (clearFar - foggyFar) * fogIntensity;
+                    this.scene.fog.near =
+                        clearNear - (clearNear - foggyNear) * fogIntensity;
+
+                    // Debug: Enable to see fog values in console
+                    console.log(
+                        `Fog: intensity=${fogIntensity.toFixed(2)}, near=${this.scene.fog.near.toFixed(1)}, far=${this.scene.fog.far.toFixed(1)}`,
+                    );
                 }
             }
 
@@ -1314,6 +2325,33 @@
             window.exportForest = function () {
                 if (window.forestGenerator) {
                     window.forestGenerator.exportForest();
+                }
+            };
+
+            window.updateDayDuration = function (value) {
+                if (window.forestGenerator) {
+                    window.forestGenerator.dayDuration =
+                        parseFloat(value) * 60000; // Convert minutes to milliseconds
+                    document.getElementById("dayDurationValue").textContent =
+                        value + " min";
+                }
+            };
+
+            window.updateTimeSpeed = function (value) {
+                if (window.forestGenerator) {
+                    window.forestGenerator.timeSpeed = parseFloat(value);
+                    document.getElementById("timeSpeedValue").textContent =
+                        value + "x";
+                }
+            };
+
+            window.toggleTimeFreeze = function (paused) {
+                if (window.forestGenerator) {
+                    window.forestGenerator.timePaused = paused;
+                    if (!paused) {
+                        // Reset the last update time to prevent time jumps
+                        window.forestGenerator.lastUpdateTime = Date.now();
+                    }
                 }
             };
 

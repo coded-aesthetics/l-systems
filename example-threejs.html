@@ -280,7 +280,7 @@
                 <input type="range" id="length" min="0.1" max="3.0" step="0.1" value="1.0">
 
                 <label>Thickness: <span class="value-display" id="thickness-value">0.05</span></label>
-                <input type="range" id="thickness" min="0.01" max="0.2" step="0.01" value="0.05">
+                <input type="range" id="thickness" min="0.01" max="0.8" step="0.01" value="0.15">
 
                 <label>Tapering: <span class="value-display" id="tapering-value">0.8</span></label>
                 <input type="range" id="tapering" min="0.1" max="1.0" step="0.01" value="0.8">
@@ -292,7 +292,7 @@
                 <input type="range" id="angle-variation" min="0" max="45" step="1" value="0">
 
                 <label>Length Variation: <span class="value-display" id="length-variation-value">0.0</span></label>
-                <input type="range" id="length-variation" min="0" max="0.5" step="0.05" value="0">
+                <input type="range" id="length-variation" min="0" max="50" step="1" value="0">
 
                 <label>Length Tapering: <span class="value-display" id="length-tapering-value">95%</span></label>
                 <input type="range" id="length-tapering" min="50" max="100" step="1" value="95">
@@ -741,7 +741,7 @@
                     this.updateStats();
 
                     // Fit camera to object
-                    this.fitCameraToObject();
+                    //this.fitCameraToObject();
 
                 } catch (error) {
                     console.error('Error generating L-System:', error);
