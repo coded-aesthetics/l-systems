@@ -21,7 +21,7 @@ export enum TerrainType {
     FLAT = "flat",
     HILLY = "hilly",
     MOUNTAINOUS = "mountainous",
-    ROLLING = "rolling"
+    ROLLING = "rolling",
 }
 
 export class TerrainSystem {
@@ -54,7 +54,7 @@ export class TerrainSystem {
             color: 0x228b22,
             level: -2,
             textureRepeat: 50,
-            ...config
+            ...config,
         };
 
         // Terrain generation parameters
@@ -76,7 +76,7 @@ export class TerrainSystem {
             this.config.size,
             this.config.size,
             this.config.segments,
-            this.config.segments
+            this.config.segments,
         );
 
         // Generate height variations
@@ -95,7 +95,9 @@ export class TerrainSystem {
         // Add to scene
         this.scene.add(this.terrain);
 
-        console.log(`Terrain created: ${this.config.size}x${this.config.size}, ${this.config.segments} segments`);
+        console.log(
+            `Terrain created: ${this.config.size}x${this.config.size}, ${this.config.segments} segments`,
+        );
     }
 
     private generateHeightMap(geometry: THREE.PlaneGeometry): void {
@@ -115,7 +117,10 @@ export class TerrainSystem {
             const normalizedY = (y + this.config.size / 2) / this.config.size;
 
             // Generate height based on terrain type
-            let height = this.generateHeightAtPosition(normalizedX, normalizedY);
+            let height = this.generateHeightAtPosition(
+                normalizedX,
+                normalizedY,
+            );
 
             // Apply height variation multiplier
             height *= this.config.heightVariation;
@@ -158,7 +163,8 @@ export class TerrainSystem {
         let frequency = this.noiseScale;
 
         for (let i = 0; i < this.octaves; i++) {
-            height += this.simpleNoise(x * frequency, y * frequency) * amplitude;
+            height +=
+                this.simpleNoise(x * frequency, y * frequency) * amplitude;
             amplitude *= this.persistence;
             frequency *= this.lacunarity;
         }
@@ -205,9 +211,27 @@ export class TerrainSystem {
     }
 
     private createTerrainMaterial(): THREE.Material {
-        // Create basic material with grass color
-        const material = new THREE.MeshLambertMaterial({
+        // Load grass texture
+        const textureLoader = new THREE.TextureLoader();
+        const grassTexture = textureLoader.load("/gray_rocks_diff_2k.jpg");
+
+        // Configure texture settings
+        grassTexture.wrapS = THREE.RepeatWrapping;
+        grassTexture.wrapT = THREE.RepeatWrapping;
+        grassTexture.repeat.set(
+            this.config.textureRepeat || 50,
+            this.config.textureRepeat || 50,
+        );
+        grassTexture.generateMipmaps = true;
+        grassTexture.minFilter = THREE.LinearMipmapLinearFilter;
+        grassTexture.magFilter = THREE.LinearFilter;
+
+        // Create material with texture - upgrade to MeshStandardMaterial for better lighting
+        const material = new THREE.MeshStandardMaterial({
+            map: grassTexture,
             color: this.config.color,
+            roughness: 0.8,
+            metalness: 0.0,
         });
 
         return material;
@@ -244,7 +268,12 @@ export class TerrainSystem {
         const normalizedZ = (z + this.config.size / 2) / this.config.size;
 
         // Clamp to terrain bounds
-        if (normalizedX < 0 || normalizedX > 1 || normalizedZ < 0 || normalizedZ > 1) {
+        if (
+            normalizedX < 0 ||
+            normalizedX > 1 ||
+            normalizedZ < 0 ||
+            normalizedZ > 1
+        ) {
             return this.config.level;
         }
 
@@ -253,7 +282,10 @@ export class TerrainSystem {
         const gridZ = Math.floor(normalizedZ * this.config.segments);
 
         // Get height from height map (with bounds checking)
-        const index = Math.min(gridZ * (this.config.segments + 1) + gridX, this.heightMap.length - 1);
+        const index = Math.min(
+            gridZ * (this.config.segments + 1) + gridX,
+            this.heightMap.length - 1,
+        );
         const height = this.heightMap[index] || 0;
 
         return this.config.level + height;
@@ -288,9 +320,13 @@ export class TerrainSystem {
     public setTerrainColor(color: number): void {
         this.config.color = color;
         if (this.terrain && this.terrain.material) {
-            (this.terrain.material as THREE.MeshLambertMaterial).color.setHex(color);
+            (this.terrain.material as THREE.MeshLambertMaterial).color.setHex(
+                color,
+            );
         }
-        console.log(`Terrain color set to: #${color.toString(16).padStart(6, '0')}`);
+        console.log(
+            `Terrain color set to: #${color.toString(16).padStart(6, "0")}`,
+        );
     }
 
     public regenerateTerrain(): void {
@@ -306,14 +342,20 @@ export class TerrainSystem {
 
     public isPositionOnTerrain(x: number, z: number): boolean {
         const halfSize = this.config.size / 2;
-        return x >= -halfSize && x <= halfSize && z >= -halfSize && z <= halfSize;
+        return (
+            x >= -halfSize && x <= halfSize && z >= -halfSize && z <= halfSize
+        );
     }
 
     public getTerrainBounds(): { min: THREE.Vector3; max: THREE.Vector3 } {
         const halfSize = this.config.size / 2;
         return {
             min: new THREE.Vector3(-halfSize, this.config.level, -halfSize),
-            max: new THREE.Vector3(halfSize, this.config.level + this.config.heightVariation, halfSize)
+            max: new THREE.Vector3(
+                halfSize,
+                this.config.level + this.config.heightVariation,
+                halfSize,
+            ),
         };
     }
 
@@ -328,7 +370,10 @@ export class TerrainSystem {
             const height = this.getGroundHeight(x, z);
 
             // Check if position is reasonable (not too steep)
-            if (height > this.config.level - 1 && height < this.config.level + this.config.heightVariation + 1) {
+            if (
+                height > this.config.level - 1 &&
+                height < this.config.level + this.config.heightVariation + 1
+            ) {
                 return new THREE.Vector3(x, height, z);
             }
         }
@@ -338,16 +383,20 @@ export class TerrainSystem {
     }
 
     public getStats(): TerrainStats {
-        const triangles = this.terrain ?
-            (this.terrain.geometry as THREE.PlaneGeometry).parameters.widthSegments *
-            (this.terrain.geometry as THREE.PlaneGeometry).parameters.heightSegments * 2 : 0;
+        const triangles = this.terrain
+            ? (this.terrain.geometry as THREE.PlaneGeometry).parameters
+                  .widthSegments *
+              (this.terrain.geometry as THREE.PlaneGeometry).parameters
+                  .heightSegments *
+              2
+            : 0;
 
         return {
             size: this.config.size,
             segments: this.config.segments,
             triangles,
             heightVariation: this.config.heightVariation,
-            terrainType: this.terrainType
+            terrainType: this.terrainType,
         };
     }
 
@@ -369,7 +418,7 @@ export class TerrainSystem {
             // Dispose geometry and material
             this.terrain.geometry.dispose();
             if (Array.isArray(this.terrain.material)) {
-                this.terrain.material.forEach(material => material.dispose());
+                this.terrain.material.forEach((material) => material.dispose());
             } else {
                 this.terrain.material.dispose();
             }

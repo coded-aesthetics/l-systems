@@ -183,19 +183,42 @@ export class LightingSystem {
         this.sunMesh.position.set(sunX, sunY + 50, sunZ);
         this.sunLight.position.copy(this.sunMesh.position);
 
-        // Position moon (opposite to sun)
-        const moonAngle = sunAngle + Math.PI;
-        const moonX = Math.cos(moonAngle - Math.PI / 2) * this.sunRadius;
-        const moonY = Math.sin(moonAngle - Math.PI / 2) * this.sunHeight;
-        this.moonMesh.position.set(moonX, moonY + 50, sunZ);
+        // Update moon position (opposite to sun)
+        if (this.moonMesh) {
+            const moonX = -sunX * 0.7;
+            const moonY = -sunY * 0.7 + this.sunHeight * 0.5;
+            const moonZ = -sunZ * 0.7;
+
+            this.moonMesh.position.set(moonX, Math.max(moonY, -30), moonZ);
+
+            // Make moon visible only during night (when sun is below horizon)
+            this.moonMesh.visible = sunY <= 0 && moonY > -20;
+
+            // Adjust moon brightness based on how dark it is
+            const moonBrightness = Math.max(0, -Math.sin(sunAngle) * 0.5 + 0.2);
+
+            // Update moon brightness - make it more visible
+            (
+                this.moonMesh.material as THREE.MeshStandardMaterial
+            ).emissiveIntensity = Math.max(0.4, moonBrightness * 1.5);
+        }
 
         // Calculate lighting intensity based on sun height
         const sunHeight = sunY;
         const dayIntensity = Math.max(0, Math.min(1, (sunHeight + 20) / 40));
         const nightIntensity = 1 - dayIntensity;
 
-        // Adjust sun light intensity
-        this.sunLight.intensity = dayIntensity * 1.2;
+        // Adjust sun light intensity and color for magical moonlight
+        if (dayIntensity > 0.5) {
+            // Daytime - warm sunlight
+            this.sunLight.color.setRGB(1.0, 0.95, 0.8);
+            this.sunLight.intensity = dayIntensity * 1.2;
+        } else {
+            // Nighttime - blue moonlight
+            this.sunLight.color.setRGB(0.7, 0.8, 1.0);
+            // Ensure decent nighttime visibility
+            this.sunLight.intensity = Math.max(0.5, dayIntensity * 1.2);
+        }
 
         // Adjust hemisphere light
         this.hemisphereLight.intensity = 0.3 + dayIntensity * 0.5;
@@ -213,9 +236,8 @@ export class LightingSystem {
             this.scene.fog.color = currentSkyColor.clone();
         }
 
-        // Control sun/moon visibility
+        // Control sun visibility
         this.sunMesh.visible = dayIntensity > 0.1;
-        this.moonMesh.visible = nightIntensity > 0.1;
     }
 
     private updateFog(): void {
