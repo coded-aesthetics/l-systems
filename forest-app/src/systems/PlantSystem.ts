@@ -33,6 +33,7 @@ export class PlantSystem {
     private selectedPlants: Map<number, SelectedPlant>;
     private loadingElement: HTMLElement | null;
     private forestGroup: THREE.Group | null;
+    private barkTexture: THREE.Texture | null;
 
     // L-Systems integration - will be loaded dynamically
     private LSystemsLibrary: any;
@@ -43,10 +44,14 @@ export class PlantSystem {
         this.selectedPlants = new Map();
         this.loadingElement = null;
         this.forestGroup = null;
+        this.barkTexture = null;
 
         // L-Systems integration - will be loaded dynamically
         this.LSystemsLibrary = null;
         this.ThreeJSAdapter = null;
+
+        // Load bark texture
+        this.loadBarkTexture();
     }
 
     public async init(forestGroup: THREE.Group): Promise<void> {
@@ -419,6 +424,9 @@ export class PlantSystem {
                 },
             );
 
+            // Apply bark texture to all branch/trunk materials
+            this.applyBarkTextureToMesh(meshGroup);
+
             if (meshGroup && meshGroup.group) {
                 const group = meshGroup.group;
 
@@ -466,9 +474,7 @@ export class PlantSystem {
             );
 
             console.log("Creating trunk material...");
-            const trunkMaterial = new THREE.MeshLambertMaterial({
-                color: 0x8b4513,
-            });
+            const trunkMaterial = this.createBarkMaterial();
 
             console.log("Creating trunk mesh...");
             const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
@@ -487,8 +493,10 @@ export class PlantSystem {
             );
 
             console.log("Creating foliage material...");
-            const foliageMaterial = new THREE.MeshLambertMaterial({
+            const foliageMaterial = new THREE.MeshStandardMaterial({
                 color: 0x228b22,
+                roughness: 0.8,
+                metalness: 0.0,
             });
 
             console.log("Creating foliage mesh...");
@@ -536,8 +544,25 @@ export class PlantSystem {
                     const mesh = obj as any;
                     if (mesh.geometry) mesh.geometry.dispose();
                     if (mesh.material) {
-                        if (mesh.material.map) mesh.material.map.dispose();
-                        mesh.material.dispose();
+                        if (Array.isArray(mesh.material)) {
+                            mesh.material.forEach((material: any) => {
+                                if (
+                                    material.map &&
+                                    material.map !== this.barkTexture
+                                ) {
+                                    material.map.dispose();
+                                }
+                                material.dispose();
+                            });
+                        } else {
+                            if (
+                                mesh.material.map &&
+                                mesh.material.map !== this.barkTexture
+                            ) {
+                                mesh.material.map.dispose();
+                            }
+                            mesh.material.dispose();
+                        }
                     }
                 });
             }
@@ -563,10 +588,139 @@ export class PlantSystem {
         return Math.floor(triangles);
     }
 
+    private loadBarkTexture(): void {
+        const textureLoader = new THREE.TextureLoader();
+        this.barkTexture = textureLoader.load("/bark_willow_02_diff_2k.jpg");
+
+        // Configure bark texture settings
+        this.barkTexture.wrapS = THREE.RepeatWrapping;
+        this.barkTexture.wrapT = THREE.RepeatWrapping;
+        this.barkTexture.generateMipmaps = true;
+        this.barkTexture.minFilter = THREE.LinearMipmapLinearFilter;
+        this.barkTexture.magFilter = THREE.LinearFilter;
+    }
+
+    private createBarkMaterial(): THREE.MeshStandardMaterial {
+        const material = new THREE.MeshStandardMaterial({
+            map: this.barkTexture,
+            color: 0xffffff, // Use white to show texture colors naturally
+            roughness: 0.9,
+            metalness: 0.0,
+        });
+
+        return material;
+    }
+
+    private applyBarkTextureToMesh(meshGroup: any): void {
+        // Handle different adapter return structures
+        let targetGroup: THREE.Group | null = null;
+
+        console.log("Attempting to apply bark texture to:", meshGroup);
+
+        if (meshGroup && typeof meshGroup.traverse === "function") {
+            // Direct THREE.Group
+            targetGroup = meshGroup;
+        } else if (
+            meshGroup &&
+            meshGroup.group &&
+            typeof meshGroup.group.traverse === "function"
+        ) {
+            // Wrapped in object with .group property
+            targetGroup = meshGroup.group;
+        } else if (
+            meshGroup &&
+            meshGroup.mesh &&
+            typeof meshGroup.mesh.traverse === "function"
+        ) {
+            // Wrapped in object with .mesh property
+            targetGroup = meshGroup.mesh;
+        } else if (meshGroup instanceof THREE.Object3D) {
+            // Try as THREE.Object3D
+            targetGroup = meshGroup as THREE.Group;
+        }
+
+        if (!targetGroup) {
+            console.warn(
+                "Unable to traverse meshGroup for bark texture application. Type:",
+                typeof meshGroup,
+                "Properties:",
+                Object.keys(meshGroup || {}),
+            );
+            return;
+        }
+
+        console.log("Traversing target group:", targetGroup);
+
+        let textureApplied = false;
+        targetGroup.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+                const material = child.material;
+                console.log("Found mesh with material:", material);
+
+                // Handle both standard and array materials
+                const materials = Array.isArray(material)
+                    ? material
+                    : [material];
+
+                materials.forEach((mat) => {
+                    if (
+                        mat instanceof THREE.MeshStandardMaterial ||
+                        mat instanceof THREE.MeshLambertMaterial
+                    ) {
+                        const color = mat.color;
+                        const r = color.r;
+                        const g = color.g;
+                        const b = color.b;
+
+                        // More lenient brown detection - if it's darker and not bright green
+                        const isWood =
+                            r > 0.2 && g > 0.1 && b > 0.05 && !(g > r && g > b);
+
+                        if (isWood) {
+                            console.log(
+                                "Applying bark texture to wood material",
+                            );
+
+                            // Convert to standard material if needed
+                            if (mat instanceof THREE.MeshLambertMaterial) {
+                                const standardMat =
+                                    new THREE.MeshStandardMaterial({
+                                        map: this.barkTexture,
+                                        color: 0xffffff,
+                                        roughness: 0.9,
+                                        metalness: 0.0,
+                                    });
+                                child.material = standardMat;
+                            } else {
+                                mat.map = this.barkTexture;
+                                mat.color.setHex(0xffffff);
+                                mat.roughness = 0.9;
+                                mat.metalness = 0.0;
+                                mat.needsUpdate = true;
+                            }
+                            textureApplied = true;
+                        }
+                    }
+                });
+            }
+        });
+
+        console.log(
+            "Bark texture application completed. Applied:",
+            textureApplied,
+        );
+    }
+
     public dispose(): void {
         this.clearForest();
         this.selectedPlants.clear();
         this.availablePlants = [];
+
+        // Dispose bark texture
+        if (this.barkTexture) {
+            this.barkTexture.dispose();
+            this.barkTexture = null;
+        }
 
         if (this.loadingElement) {
             this.loadingElement.innerHTML = "";
