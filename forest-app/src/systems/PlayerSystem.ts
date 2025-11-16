@@ -1,7 +1,82 @@
 import * as THREE from "three";
 
+interface PlayerStats {
+    stamina: number;
+    maxStamina: number;
+    flyMode: boolean;
+    onGround: boolean;
+    isRunning: boolean;
+    position: {
+        x: number;
+        y: number;
+        z: number;
+    };
+}
+
 export class PlayerSystem {
-    constructor(scene, camera, controls, ground) {
+    private scene: THREE.Scene;
+    private camera: THREE.PerspectiveCamera;
+    private controls: any; // PointerLockControls
+    private ground: THREE.Mesh;
+
+    // Movement physics variables
+    private gravity: number;
+    private jumpForce: number;
+    private groundLevel: number;
+    private flyMode: boolean;
+    private raycaster: THREE.Raycaster;
+    private jumpCooldown: number;
+    private isLanding: boolean;
+    private landingTime: number;
+
+    // Stamina system
+    private stamina: number;
+    private maxStamina: number;
+    private staminaRegenRate: number;
+    private runStaminaDrain: number;
+    private jumpStaminaCost: number;
+
+    // Footstep system
+    private lastFootstepTime: number;
+    private footstepInterval: number;
+    private runFootstepInterval: number;
+    private totalDistanceMoved: number;
+
+    // Sprint toggle
+    private sprintToggled: boolean;
+    private autoRun: boolean;
+
+    // Environmental feedback
+    private lastTerrainType: string;
+    private windEffect: THREE.Vector3;
+    private bobAmount: number;
+    private bobSpeed: number;
+
+    // Movement state
+    private velocity: THREE.Vector3;
+    private direction: THREE.Vector3;
+    private moveForward: boolean;
+    private moveBackward: boolean;
+    private moveLeft: boolean;
+    private moveRight: boolean;
+    private moveUp: boolean;
+    private moveDown: boolean;
+    private canJump: boolean;
+    private isRunning: boolean;
+    private onGround: boolean;
+
+    // Head bobbing
+    private bobAmplitude: number;
+    private bobFrequency: number;
+    private bobTime: number;
+
+    private clock: THREE.Clock;
+    constructor(
+        scene: THREE.Scene,
+        camera: THREE.PerspectiveCamera,
+        controls: any,
+        ground: THREE.Mesh,
+    ) {
         this.scene = scene;
         this.camera = camera;
         this.controls = controls;
@@ -62,7 +137,7 @@ export class PlayerSystem {
         this.setupControls();
     }
 
-    setupControls() {
+    private setupControls(): void {
         // Keyboard controls are now handled via the global event system
         // through ForestGenerator.onKeyDown() -> PlayerSystem.onKeyDown()
         // This prevents duplicate event listeners and conflicts
@@ -103,7 +178,7 @@ export class PlayerSystem {
         });
     }
 
-    updateMovement() {
+    private updateMovement(): void {
         const delta = this.clock.getDelta();
         this.lastFootstepTime += delta;
 
@@ -320,7 +395,7 @@ export class PlayerSystem {
         }
     }
 
-    getGroundHeight(x, z) {
+    private getGroundHeight(x: number, z: number): number {
         // Cast ray downward to find ground height
         this.raycaster.set(
             new THREE.Vector3(x, 100, z),
@@ -336,7 +411,7 @@ export class PlayerSystem {
         return this.groundLevel;
     }
 
-    toggleFlyMode() {
+    private toggleFlyMode(): void {
         this.flyMode = !this.flyMode;
 
         // Reset velocity when switching modes
@@ -350,10 +425,10 @@ export class PlayerSystem {
         }
 
         console.log(`${this.flyMode ? "Fly" : "Walk"} mode activated`);
-        return this.flyMode;
+        console.log(`Fly mode: ${this.flyMode ? "ON" : "OFF"}`);
     }
 
-    toggleSprintMode() {
+    private toggleSprintMode(): void {
         this.sprintToggled = !this.sprintToggled;
         if (this.sprintToggled) {
             this.isRunning = true;
@@ -364,7 +439,7 @@ export class PlayerSystem {
         }
     }
 
-    updateStaminaBar() {
+    private updateStaminaBar(): void {
         const staminaFill = document.getElementById("stamina-fill");
         const staminaBar = document.getElementById("stamina-bar");
 
@@ -393,7 +468,7 @@ export class PlayerSystem {
         }
     }
 
-    playFootstep() {
+    private playFootstep(): void {
         // Visual footstep effect - create small dust particles
         if (this.scene && this.ground) {
             const cameraPos = this.controls.getObject().position;
@@ -452,22 +527,22 @@ export class PlayerSystem {
         return particle;
     }
 
-    initializePlayerPosition() {
+    private initializePlayerPosition(): void {
         const cameraObject = this.controls.getObject();
         cameraObject.position.set(0, 1.6, 50);
         this.velocity.set(0, 0, 0);
     }
 
-    update(delta) {
+    public update(delta: number): void {
         this.updateMovement();
     }
 
-    async init() {
+    public async init(): Promise<void> {
         // Initialize player system
         console.log("PlayerSystem initialized");
     }
 
-    onKeyDown(event) {
+    public onKeyDown(event: KeyboardEvent): void {
         switch (event.code) {
             case "ArrowUp":
             case "KeyW":
@@ -536,7 +611,7 @@ export class PlayerSystem {
         }
     }
 
-    onKeyUp(event) {
+    public onKeyUp(event: KeyboardEvent): void {
         switch (event.code) {
             case "ArrowUp":
             case "KeyW":
@@ -571,7 +646,7 @@ export class PlayerSystem {
         }
     }
 
-    getStats() {
+    public getStats(): PlayerStats {
         return {
             stamina: this.stamina,
             maxStamina: this.maxStamina,
@@ -588,7 +663,7 @@ export class PlayerSystem {
         };
     }
 
-    dispose() {
+    public dispose(): void {
         // Clean up event listeners and resources
         // Note: In a production app, you'd want to store references to the event listeners
         // to properly remove them here

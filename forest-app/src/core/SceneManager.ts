@@ -1,7 +1,22 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 
+interface SceneStats {
+    plants: number;
+    triangles: number;
+}
+
 export class SceneManager {
+    public scene: THREE.Scene | null;
+    public camera: THREE.PerspectiveCamera | null;
+    public renderer: THREE.WebGLRenderer | null;
+    public controls: PointerLockControls | null;
+    public ground: THREE.Mesh | null;
+    public forestGroup: THREE.Group | null;
+
+    private canvas: HTMLCanvasElement | null;
+    private animationId: number | null;
+    public readonly groundLevel: number;
     constructor() {
         this.scene = null;
         this.camera = null;
@@ -14,7 +29,7 @@ export class SceneManager {
         this.groundLevel = -2;
     }
 
-    async init() {
+    public async init(): Promise<void> {
         this.setupCanvas();
         this.setupScene();
         this.setupCamera();
@@ -24,14 +39,16 @@ export class SceneManager {
         this.setupEventListeners();
     }
 
-    setupCanvas() {
-        this.canvas = document.getElementById("forest-canvas");
+    private setupCanvas(): void {
+        this.canvas = document.getElementById(
+            "forest-canvas",
+        ) as HTMLCanvasElement;
         if (!this.canvas) {
             throw new Error('Canvas element "forest-canvas" not found');
         }
     }
 
-    setupScene() {
+    private setupScene(): void {
         this.scene = new THREE.Scene();
         this.scene.fog = new THREE.Fog(0x87ceeb, 50, 500);
 
@@ -42,7 +59,7 @@ export class SceneManager {
         console.log("Scene initialized");
     }
 
-    setupCamera() {
+    private setupCamera(): void {
         this.camera = new THREE.PerspectiveCamera(
             75,
             this.canvas.clientWidth / this.canvas.clientHeight,
@@ -53,7 +70,7 @@ export class SceneManager {
         console.log("Camera initialized");
     }
 
-    setupRenderer() {
+    private setupRenderer(): void {
         this.renderer = new THREE.WebGLRenderer({
             canvas: this.canvas,
             antialias: true,
@@ -74,7 +91,7 @@ export class SceneManager {
         console.log("Renderer initialized");
     }
 
-    setupControls() {
+    private setupControls(): void {
         this.controls = new PointerLockControls(
             this.camera,
             this.renderer.domElement,
@@ -90,7 +107,7 @@ export class SceneManager {
         console.log("Controls initialized");
     }
 
-    createGround() {
+    private createGround(): void {
         const groundGeometry = new THREE.PlaneGeometry(2000, 2000, 100, 100);
 
         const groundMaterial = new THREE.MeshLambertMaterial({
@@ -122,12 +139,12 @@ export class SceneManager {
         console.log("Ground created");
     }
 
-    setupEventListeners() {
+    private setupEventListeners(): void {
         // Window resize handling
         window.addEventListener("resize", () => this.handleResize());
     }
 
-    handleResize() {
+    public handleResize(): void {
         if (!this.canvas || !this.camera || !this.renderer) return;
 
         const width = this.canvas.clientWidth;
@@ -140,7 +157,7 @@ export class SceneManager {
         console.log(`Scene resized to ${width}x${height}`);
     }
 
-    getGroundHeight(x, z) {
+    public getGroundHeight(x: number, z: number): number {
         // Simple raycasting to get ground height at position
         if (!this.ground) return this.groundLevel;
 
@@ -158,14 +175,14 @@ export class SceneManager {
         return this.groundLevel;
     }
 
-    updateFog(density, color) {
+    public updateFog(density?: number, color?: number): void {
         if (this.scene.fog && density !== undefined) {
             // Update fog density while maintaining distance ratios
             const baseNear = 50;
             const baseFar = 500;
 
-            this.scene.fog.near = baseNear * (1 - density * 0.9);
-            this.scene.fog.far = baseFar * (1 - density * 0.8);
+            (this.scene.fog as THREE.Fog).near = baseNear * (1 - density * 0.9);
+            (this.scene.fog as THREE.Fog).far = baseFar * (1 - density * 0.8);
 
             if (color !== undefined) {
                 this.scene.fog.color.setHex(color);
@@ -173,20 +190,20 @@ export class SceneManager {
         }
     }
 
-    setBackground(color) {
+    public setBackground(color: number): void {
         if (this.scene && this.renderer) {
             this.scene.background = new THREE.Color(color);
             this.renderer.setClearColor(color, 1);
         }
     }
 
-    render() {
+    public render(): void {
         if (this.renderer && this.scene && this.camera) {
             this.renderer.render(this.scene, this.camera);
         }
     }
 
-    startAnimation(animateCallback) {
+    public startAnimation(animateCallback?: () => void): void {
         const animate = () => {
             this.animationId = requestAnimationFrame(animate);
 
@@ -201,7 +218,7 @@ export class SceneManager {
         console.log("Animation loop started");
     }
 
-    stopAnimation() {
+    public stopAnimation(): void {
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
@@ -209,19 +226,19 @@ export class SceneManager {
         }
     }
 
-    addToForest(object) {
+    public addToForest(object: THREE.Object3D): void {
         if (this.forestGroup && object) {
             this.forestGroup.add(object);
         }
     }
 
-    removeFromForest(object) {
+    public removeFromForest(object: THREE.Object3D): void {
         if (this.forestGroup && object) {
             this.forestGroup.remove(object);
         }
     }
 
-    clearForest() {
+    public clearForest(): void {
         if (!this.forestGroup) return;
 
         while (this.forestGroup.children.length > 0) {
@@ -230,16 +247,17 @@ export class SceneManager {
 
             // Dispose of geometry and materials
             child.traverse((obj) => {
-                if (obj.geometry) obj.geometry.dispose();
-                if (obj.material) {
-                    if (Array.isArray(obj.material)) {
-                        obj.material.forEach((material) => {
+                const mesh = obj as any;
+                if (mesh.geometry) mesh.geometry.dispose();
+                if (mesh.material) {
+                    if (Array.isArray(mesh.material)) {
+                        mesh.material.forEach((material: any) => {
                             if (material.map) material.map.dispose();
                             material.dispose();
                         });
                     } else {
-                        if (obj.material.map) obj.material.map.dispose();
-                        obj.material.dispose();
+                        if (mesh.material.map) mesh.material.map.dispose();
+                        mesh.material.dispose();
                     }
                 }
             });
@@ -248,7 +266,7 @@ export class SceneManager {
         console.log("Forest cleared");
     }
 
-    getStats() {
+    public getStats(): SceneStats {
         const stats = {
             plants: this.forestGroup ? this.forestGroup.children.length : 0,
             triangles: 0,
@@ -257,8 +275,9 @@ export class SceneManager {
         // Count triangles
         if (this.forestGroup) {
             this.forestGroup.traverse((child) => {
-                if (child.geometry && child.geometry.index) {
-                    stats.triangles += child.geometry.index.count / 3;
+                const mesh = child as any;
+                if (mesh.geometry && mesh.geometry.index) {
+                    stats.triangles += mesh.geometry.index.count / 3;
                 }
             });
         }
@@ -266,14 +285,18 @@ export class SceneManager {
         return stats;
     }
 
-    dispose() {
+    public dispose(): void {
         this.stopAnimation();
         this.clearForest();
 
         if (this.ground) {
             this.scene.remove(this.ground);
             this.ground.geometry.dispose();
-            this.ground.material.dispose();
+            if (Array.isArray(this.ground.material)) {
+                this.ground.material.forEach((material) => material.dispose());
+            } else {
+                this.ground.material.dispose();
+            }
             this.ground = null;
         }
 

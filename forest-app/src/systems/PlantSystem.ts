@@ -1,7 +1,43 @@
 import * as THREE from "three";
 
+interface PlantData {
+    id: number;
+    name: string;
+    axiom: string;
+    rules: Record<string, string>;
+    iterations: number;
+    angle: number;
+    angleVariation?: number;
+    lengthVariation?: number;
+    lengthTapering?: number;
+    leafProbability?: number;
+    leafGenerationThreshold?: number;
+    length: number;
+    thickness: number;
+    tapering: number;
+    timestamp: number;
+}
+
+interface SelectedPlant {
+    plant: PlantData;
+    weight: number;
+}
+
+interface WeightedPlant {
+    plant: PlantData;
+}
+
 export class PlantSystem {
-    constructor(scene) {
+    private scene: THREE.Scene;
+    private availablePlants: PlantData[];
+    private selectedPlants: Map<number, SelectedPlant>;
+    private loadingElement: HTMLElement | null;
+    private forestGroup: THREE.Group | null;
+
+    // L-Systems integration - will be loaded dynamically
+    private LSystemsLibrary: any;
+    private ThreeJSAdapter: any;
+    constructor(scene: THREE.Scene) {
         this.scene = scene;
         this.availablePlants = [];
         this.selectedPlants = new Map();
@@ -13,14 +49,14 @@ export class PlantSystem {
         this.ThreeJSAdapter = null;
     }
 
-    async init(forestGroup) {
+    public async init(forestGroup: THREE.Group): Promise<void> {
         this.forestGroup = forestGroup;
         this.setupUI();
         await this.loadLSystemsLibrary();
         await this.loadPlants();
     }
 
-    async loadLSystemsLibrary() {
+    private async loadLSystemsLibrary(): Promise<void> {
         try {
             // Dynamic import of L-Systems library components from main library
             const { LSystemsLibrary } = await import(
@@ -40,11 +76,11 @@ export class PlantSystem {
         }
     }
 
-    setupUI() {
+    private setupUI(): void {
         this.loadingElement = document.getElementById("plants-list");
     }
 
-    async loadPlants() {
+    public async loadPlants(): Promise<void> {
         console.log("PlantSystem: Loading plants...");
 
         if (this.loadingElement) {
@@ -78,7 +114,7 @@ export class PlantSystem {
         }
     }
 
-    loadDefaultPlants() {
+    private loadDefaultPlants(): void {
         // Default plant configurations when API is not available
         this.availablePlants = [
             {
@@ -135,7 +171,7 @@ export class PlantSystem {
         ];
     }
 
-    renderPlantsList() {
+    private renderPlantsList(): void {
         if (!this.loadingElement || this.availablePlants.length === 0) {
             if (this.loadingElement) {
                 this.loadingElement.innerHTML =
@@ -180,7 +216,7 @@ export class PlantSystem {
         });
     }
 
-    togglePlant(plantId, selected) {
+    public togglePlant(plantId: number, selected: boolean): void {
         console.log(
             `togglePlant called: plantId=${plantId}, selected=${selected}`,
         );
@@ -189,7 +225,9 @@ export class PlantSystem {
         const plantItem = document
             .querySelector(`#plant-${plantId}`)
             ?.closest(".plant-item");
-        const weightSlider = document.getElementById(`weight-${plantId}`);
+        const weightSlider = document.getElementById(
+            `weight-${plantId}`,
+        ) as HTMLInputElement;
 
         if (selected) {
             const plant = this.availablePlants.find((p) => p.id === plantId);
@@ -197,7 +235,7 @@ export class PlantSystem {
             if (plant) {
                 this.selectedPlants.set(plantId, {
                     plant: plant,
-                    weight: parseInt(weightSlider?.value || 50),
+                    weight: parseInt(weightSlider?.value || "50"),
                 });
                 plantItem?.classList.add("selected");
                 if (weightSlider) {
@@ -223,19 +261,22 @@ export class PlantSystem {
         }
     }
 
-    updatePlantWeight(plantId, weight) {
+    public updatePlantWeight(plantId: number, weight: string): void {
         const valueEl = document.getElementById(`weight-value-${plantId}`);
         if (valueEl) {
             valueEl.textContent = weight;
         }
 
         if (this.selectedPlants.has(plantId)) {
-            this.selectedPlants.get(plantId).weight = parseInt(weight);
+            const plantData = this.selectedPlants.get(plantId);
+            if (plantData) {
+                plantData.weight = parseInt(weight);
+            }
             console.log(`Updated plant ${plantId} weight to ${weight}`);
         }
     }
 
-    getSelectedPlants() {
+    public getSelectedPlants(): SelectedPlant[] {
         const selected = Array.from(this.selectedPlants.values());
         console.log(
             "PlantSystem.getSelectedPlants():",
@@ -246,7 +287,7 @@ export class PlantSystem {
         return selected;
     }
 
-    createWeightedPlantArray() {
+    public createWeightedPlantArray(): WeightedPlant[] {
         const weightedPlants = [];
         this.selectedPlants.forEach((plantData) => {
             const { plant, weight } = plantData;
@@ -257,7 +298,11 @@ export class PlantSystem {
         return weightedPlants;
     }
 
-    generatePlantPositions(count, size, minDistance) {
+    private generatePlantPositions(
+        count: number,
+        size: number,
+        minDistance: number,
+    ): { x: number; z: number }[] {
         const positions = [];
         const maxAttempts = count * 10;
         let attempts = 0;
@@ -288,7 +333,10 @@ export class PlantSystem {
         return positions;
     }
 
-    async generatePlantMesh(plantConfig, scale = 1) {
+    public async generatePlantMesh(
+        plantConfig: PlantData,
+        scale: number = 1,
+    ): Promise<THREE.Group | null> {
         console.log(
             "PlantSystem.generatePlantMesh called for:",
             plantConfig.name,
@@ -315,7 +363,10 @@ export class PlantSystem {
         }
     }
 
-    async generateLSystemMesh(plantConfig, scale = 1) {
+    private async generateLSystemMesh(
+        plantConfig: PlantData,
+        scale: number = 1,
+    ): Promise<THREE.Group> {
         console.log("Generating L-system mesh for plant:", plantConfig.name);
 
         // Create L-System configuration for the adapter
@@ -389,7 +440,10 @@ export class PlantSystem {
         }
     }
 
-    generateSimplePlantMesh(plantConfig, scale = 1) {
+    private generateSimplePlantMesh(
+        plantConfig: PlantData,
+        scale: number = 1,
+    ): THREE.Group {
         console.log("Generating simple plant mesh for:", plantConfig.name);
         console.log("Plant config:", plantConfig);
         console.log("Scale:", scale);
@@ -457,7 +511,7 @@ export class PlantSystem {
         }
     }
 
-    async clearForest() {
+    public async clearForest(): Promise<void> {
         if (!this.forestGroup) return;
 
         // Remove all plants from the forest group
@@ -479,10 +533,11 @@ export class PlantSystem {
             } else {
                 // Fallback disposal
                 child.traverse((obj) => {
-                    if (obj.geometry) obj.geometry.dispose();
-                    if (obj.material) {
-                        if (obj.material.map) obj.material.map.dispose();
-                        obj.material.dispose();
+                    const mesh = obj as any;
+                    if (mesh.geometry) mesh.geometry.dispose();
+                    if (mesh.material) {
+                        if (mesh.material.map) mesh.material.map.dispose();
+                        mesh.material.dispose();
                     }
                 });
             }
@@ -491,23 +546,24 @@ export class PlantSystem {
         console.log("Forest cleared");
     }
 
-    getPlantCount() {
+    public getPlantCount(): number {
         return this.forestGroup ? this.forestGroup.children.length : 0;
     }
 
-    getTriangleCount() {
+    public getTriangleCount(): number {
         let triangles = 0;
         if (this.forestGroup) {
             this.forestGroup.traverse((child) => {
-                if (child.geometry && child.geometry.index) {
-                    triangles += child.geometry.index.count / 3;
+                const mesh = child as any;
+                if (mesh.geometry && mesh.geometry.index) {
+                    triangles += mesh.geometry.index.count / 3;
                 }
             });
         }
         return Math.floor(triangles);
     }
 
-    dispose() {
+    public dispose(): void {
         this.clearForest();
         this.selectedPlants.clear();
         this.availablePlants = [];

@@ -1,11 +1,41 @@
+interface NotificationType {
+    success: string;
+    error: string;
+    warning: string;
+    info: string;
+}
+
+interface FormValues {
+    plantCount: number;
+    forestSize: number;
+    minDistance: number;
+    scaleVariation: number;
+    terrainHeight: number;
+}
+
+interface ForestStats {
+    plants: number;
+    triangles: number;
+    fps: number;
+    stamina: number;
+    maxStamina: number;
+    timeString: string;
+    period: string;
+    fogStatus: string;
+}
+
 export class UISystem {
+    private sliderHandlers: Map<string, (value: string) => void>;
+    private forestGenerator: any | null; // ForestGenerator type - avoiding circular dependency
+    public isFullscreen: boolean;
     constructor() {
         this.sliderHandlers = new Map();
         this.forestGenerator = null;
         this.isFullscreen = false;
     }
 
-    init(forestGenerator) {
+    public init(forestGenerator: any): void {
+        // ForestGenerator type - avoiding circular dependency
         this.forestGenerator = forestGenerator;
         this.setupSliders();
         this.setupButtons();
@@ -14,7 +44,7 @@ export class UISystem {
         this.hideFullscreenIndicator();
     }
 
-    setupSliders() {
+    private setupSliders(): void {
         // Plant Count Slider
         this.setupSlider("plantCount", (value) => {
             this.updateValueDisplay("plantCount", value);
@@ -64,16 +94,17 @@ export class UISystem {
         // so we don't set up handlers for them
     }
 
-    setupSlider(sliderId, handler) {
+    private setupSlider(
+        sliderId: string,
+        handler: (value: string) => void,
+    ): void {
         const slider = document.getElementById(sliderId);
         if (slider) {
             console.log(`Slider ${sliderId} found and handler attached`);
             slider.addEventListener("input", (event) => {
-                console.log(
-                    `Slider ${sliderId} changed to:`,
-                    event.target.value,
-                );
-                handler(event.target.value);
+                const target = event.target as HTMLInputElement;
+                console.log(`Slider ${sliderId} changed to:`, target.value);
+                handler(target.value);
             });
             this.sliderHandlers.set(sliderId, handler);
         } else {
@@ -81,7 +112,7 @@ export class UISystem {
         }
     }
 
-    setupButtons() {
+    private setupButtons(): void {
         // Generate Forest Button
         const generateBtn = document.getElementById("generateBtn");
         if (generateBtn) {
@@ -95,7 +126,7 @@ export class UISystem {
             'button[onclick="clearForest()"]',
         );
         if (clearBtn) {
-            clearBtn.onclick = null; // Remove inline handler
+            (clearBtn as any).onclick = null; // Remove inline handler
             clearBtn.addEventListener("click", () => {
                 this.handleClearForest();
             });
@@ -106,7 +137,7 @@ export class UISystem {
             'button[onclick="exportForest()"]',
         );
         if (exportBtn) {
-            exportBtn.onclick = null; // Remove inline handler
+            (exportBtn as any).onclick = null; // Remove inline handler
             exportBtn.addEventListener("click", () => {
                 this.handleExportForest();
             });
@@ -125,7 +156,7 @@ export class UISystem {
             'button[onclick="loadPlants()"]',
         );
         if (refreshPlantsBtn) {
-            refreshPlantsBtn.onclick = null; // Remove inline handler
+            (refreshPlantsBtn as any).onclick = null; // Remove inline handler
             refreshPlantsBtn.addEventListener("click", () => {
                 this.handleRefreshPlants();
             });
@@ -135,9 +166,11 @@ export class UISystem {
         this.setupTimeControlButtons();
     }
 
-    setupTimeControlButtons() {
+    private setupTimeControlButtons(): void {
         // Pause/Play Button
-        const pauseBtn = document.getElementById("pauseTime");
+        const pauseBtn = document.getElementById(
+            "pauseTime",
+        ) as HTMLInputElement;
         if (pauseBtn) {
             pauseBtn.addEventListener("change", () => {
                 if (
@@ -165,7 +198,7 @@ export class UISystem {
         }
     }
 
-    setupEventListeners() {
+    private setupEventListeners(): void {
         // Fullscreen toggle is now handled by global event system
         // through ForestGenerator.onKeyDown() to prevent conflicts
 
@@ -175,7 +208,7 @@ export class UISystem {
         });
     }
 
-    initializeValueDisplays() {
+    private initializeValueDisplays(): void {
         // Initialize all slider value displays with their current values
         const sliders = [
             "plantCount",
@@ -188,7 +221,9 @@ export class UISystem {
         ];
 
         sliders.forEach((sliderId) => {
-            const slider = document.getElementById(sliderId);
+            const slider = document.getElementById(
+                sliderId,
+            ) as HTMLInputElement;
             if (slider) {
                 const handler = this.sliderHandlers.get(sliderId);
                 if (handler) {
@@ -201,7 +236,7 @@ export class UISystem {
         });
     }
 
-    updateValueDisplay(elementId, value) {
+    public updateValueDisplay(elementId: string, value: string): void {
         // Try hyphenated pattern first (preferred)
         let displayElement = document.getElementById(`${elementId}-value`);
         if (!displayElement) {
@@ -217,7 +252,7 @@ export class UISystem {
         }
     }
 
-    handleGenerateForest() {
+    public handleGenerateForest(): void {
         if (!this.forestGenerator || !this.forestGenerator.plantSystem) {
             this.showError("Forest generator not initialized");
             return;
@@ -262,14 +297,14 @@ export class UISystem {
             });
     }
 
-    handleClearForest() {
+    public handleClearForest(): void {
         if (!this.forestGenerator) return;
 
         this.forestGenerator.clearForest();
         this.showSuccess("Forest cleared");
     }
 
-    handleExportForest() {
+    public handleExportForest(): void {
         if (!this.forestGenerator) return;
 
         try {
@@ -281,7 +316,7 @@ export class UISystem {
         }
     }
 
-    handleRefreshPlants() {
+    private handleRefreshPlants(): void {
         if (!this.forestGenerator || !this.forestGenerator.plantSystem) {
             this.showError("Plant system not initialized");
             return;
@@ -297,8 +332,10 @@ export class UISystem {
             });
     }
 
-    setGenerating(isGenerating) {
-        const generateBtn = document.getElementById("generateBtn");
+    private setGenerating(isGenerating: boolean): void {
+        const generateBtn = document.getElementById(
+            "generateBtn",
+        ) as HTMLButtonElement;
         const loadingEl = document.getElementById("generation-loading");
 
         if (generateBtn) {
@@ -313,21 +350,21 @@ export class UISystem {
         }
     }
 
-    showTutorial() {
+    public showTutorial(): void {
         const tutorialPopup = document.getElementById("tutorial-popup");
         if (tutorialPopup) {
             tutorialPopup.style.display = "block";
         }
     }
 
-    hideTutorial() {
+    public hideTutorial(): void {
         const tutorialPopup = document.getElementById("tutorial-popup");
         if (tutorialPopup) {
             tutorialPopup.style.display = "none";
         }
     }
 
-    toggleFullscreen() {
+    public toggleFullscreen(): void {
         this.isFullscreen = !this.isFullscreen;
 
         if (this.isFullscreen) {
@@ -346,36 +383,39 @@ export class UISystem {
         console.log(`Fullscreen mode: ${this.isFullscreen ? "ON" : "OFF"}`);
     }
 
-    showFullscreenIndicator() {
+    private showFullscreenIndicator(): void {
         const indicator = document.getElementById("fullscreen-indicator");
         if (indicator) {
             indicator.style.display = "block";
         }
     }
 
-    hideFullscreenIndicator() {
+    private hideFullscreenIndicator(): void {
         const indicator = document.getElementById("fullscreen-indicator");
         if (indicator) {
             indicator.style.display = "none";
         }
     }
 
-    handleResize() {
+    private handleResize(): void {
         if (this.forestGenerator) {
             this.forestGenerator.handleResize();
         }
     }
 
-    showSuccess(message) {
+    private showSuccess(message: string): void {
         this.showNotification(message, "success");
     }
 
-    showError(message) {
+    public showError(message: string): void {
         this.showNotification(message, "error");
         console.error("UI Error:", message);
     }
 
-    showNotification(message, type = "info") {
+    private showNotification(
+        message: string,
+        type: keyof NotificationType = "info",
+    ): void {
         // Create notification element if it doesn't exist
         let notification = document.getElementById("notification");
         if (!notification) {
@@ -424,7 +464,7 @@ export class UISystem {
         }, 3000);
     }
 
-    updateStats(stats) {
+    public updateStats(stats: ForestStats): void {
         const elements = {
             "plant-count": stats.plants || 0,
             "triangle-count": Math.floor(stats.triangles || 0),
@@ -437,7 +477,7 @@ export class UISystem {
         Object.entries(elements).forEach(([id, value]) => {
             const element = document.getElementById(id);
             if (element) {
-                element.textContent = value;
+                element.textContent = String(value);
             }
         });
 
@@ -447,7 +487,7 @@ export class UISystem {
         }
     }
 
-    updateStaminaBar(stamina, maxStamina) {
+    private updateStaminaBar(stamina: number, maxStamina: number): void {
         const staminaBar = document.getElementById("stamina-bar");
         const staminaText = document.getElementById("stamina-text");
 
@@ -467,21 +507,32 @@ export class UISystem {
         }
     }
 
-    getFormValues() {
+    public getFormValues(): FormValues {
         return {
-            plantCount: parseInt(document.getElementById("plantCount").value),
-            forestSize: parseInt(document.getElementById("forestSize").value),
-            minDistance: parseInt(document.getElementById("minDistance").value),
+            plantCount: parseInt(
+                (document.getElementById("plantCount") as HTMLInputElement)
+                    .value,
+            ),
+            forestSize: parseInt(
+                (document.getElementById("forestSize") as HTMLInputElement)
+                    .value,
+            ),
+            minDistance: parseInt(
+                (document.getElementById("minDistance") as HTMLInputElement)
+                    .value,
+            ),
             scaleVariation: parseInt(
-                document.getElementById("scaleVariation").value,
+                (document.getElementById("scaleVariation") as HTMLInputElement)
+                    .value,
             ),
             terrainHeight: parseInt(
-                document.getElementById("terrainHeight").value,
+                (document.getElementById("terrainHeight") as HTMLInputElement)
+                    .value,
             ),
         };
     }
 
-    dispose() {
+    public dispose(): void {
         // Clear event listeners and handlers
         this.sliderHandlers.clear();
 

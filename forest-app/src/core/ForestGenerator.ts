@@ -7,7 +7,51 @@ import { PlantSystem } from "../systems/PlantSystem.ts";
 import { UISystem } from "../systems/UISystem.ts";
 import { MathUtils } from "../utils/math.ts";
 
+interface ForestStats {
+    plants: number;
+    triangles: number;
+    fps: number;
+    stamina: number;
+    maxStamina: number;
+    timeString: string;
+    period: string;
+    fogStatus: string;
+}
+
+interface PlantPosition {
+    x: number;
+    z: number;
+}
+
+interface FormValues {
+    plantCount: number;
+    forestSize: number;
+    minDistance: number;
+    scaleVariation: number;
+    terrainHeight: number;
+}
+
+declare global {
+    interface Window {
+        forestGenerator: ForestGenerator | null;
+    }
+}
+
 export class ForestGenerator {
+    public sceneManager: SceneManager | null;
+    public lightingSystem: LightingSystem | null;
+    public playerSystem: PlayerSystem | null;
+    public plantSystem: PlantSystem | null;
+    public uiSystem: UISystem | null;
+
+    private animationId: number | null;
+    private clock: THREE.Clock;
+    private frameCount: number;
+    private lastTime: number;
+    private lastFPSUpdate: number;
+
+    private stats: ForestStats;
+
     constructor() {
         this.sceneManager = null;
         this.lightingSystem = null;
@@ -36,7 +80,7 @@ export class ForestGenerator {
         window.forestGenerator = this;
     }
 
-    async init() {
+    public async init(): Promise<void> {
         console.log("ForestGenerator: Initializing...");
 
         try {
@@ -56,12 +100,12 @@ export class ForestGenerator {
         }
     }
 
-    async initializeScene() {
+    private async initializeScene(): Promise<void> {
         this.sceneManager = new SceneManager();
         await this.sceneManager.init();
     }
 
-    async initializeSystems() {
+    private async initializeSystems(): Promise<void> {
         // Initialize UI System first (needed for callbacks)
         this.uiSystem = new UISystem();
         this.uiSystem.init(this);
@@ -89,7 +133,7 @@ export class ForestGenerator {
         console.log("All systems initialized successfully");
     }
 
-    async generateForest() {
+    public async generateForest(): Promise<void> {
         console.log("=== FOREST GENERATION START ===");
 
         if (!this.plantSystem || !this.uiSystem) {
@@ -175,7 +219,7 @@ export class ForestGenerator {
 
                     // Enable shadows
                     plantMesh.traverse((child) => {
-                        if (child.isMesh) {
+                        if ((child as any).isMesh) {
                             child.castShadow = true;
                             child.receiveShadow = true;
                         }
@@ -219,16 +263,24 @@ export class ForestGenerator {
         console.log("=== FOREST GENERATION END ===");
     }
 
-    generatePlantPositions(count, size, minDistance) {
+    private generatePlantPositions(
+        count: number,
+        size: number,
+        minDistance: number,
+    ): PlantPosition[] {
         // Use improved Poisson disk sampling for natural distribution
         return MathUtils.generatePoissonPositions(count, size, minDistance);
     }
 
-    calculatePlantScale(scaleVariation) {
+    private calculatePlantScale(scaleVariation: number): number {
         return 1 + (Math.random() - 0.5) * (scaleVariation / 100) * 2;
     }
 
-    getGroundHeight(x, z, terrainHeight) {
+    private getGroundHeight(
+        x: number,
+        z: number,
+        terrainHeight: number,
+    ): number {
         if (terrainHeight === 0) {
             // Optimization: if no terrain variation, use ground level
             return this.sceneManager.groundLevel;
@@ -238,7 +290,7 @@ export class ForestGenerator {
         }
     }
 
-    async clearForest() {
+    public async clearForest(): Promise<void> {
         if (this.plantSystem) {
             await this.plantSystem.clearForest();
         }
@@ -248,7 +300,7 @@ export class ForestGenerator {
         this.updateStats();
     }
 
-    exportForest() {
+    public exportForest(): void {
         if (!this.sceneManager || !this.sceneManager.forestGroup) {
             throw new Error("No forest to export");
         }
@@ -268,7 +320,11 @@ export class ForestGenerator {
         );
     }
 
-    downloadFile(content, filename, contentType) {
+    private downloadFile(
+        content: string,
+        filename: string,
+        contentType: string,
+    ): void {
         const blob = new Blob([content], { type: contentType });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -280,13 +336,13 @@ export class ForestGenerator {
         URL.revokeObjectURL(url);
     }
 
-    handleResize() {
+    public handleResize(): void {
         if (this.sceneManager) {
             this.sceneManager.handleResize();
         }
     }
 
-    animate() {
+    private animate(): void {
         this.animationId = requestAnimationFrame(() => this.animate());
 
         const currentTime = performance.now();
@@ -316,11 +372,11 @@ export class ForestGenerator {
         }
     }
 
-    updateStats() {
+    private updateStats(): void {
         // Get scene statistics
         const sceneStats = this.sceneManager
             ? this.sceneManager.getStats()
-            : {};
+            : { plants: 0, triangles: 0 };
 
         // Calculate FPS
         const fps = this.frameCount;
@@ -328,12 +384,12 @@ export class ForestGenerator {
         // Get player stats
         const playerStats = this.playerSystem
             ? this.playerSystem.getStats()
-            : {};
+            : { stamina: 100, maxStamina: 100 };
 
         // Get lighting stats
         const lightingStats = this.lightingSystem
             ? this.lightingSystem.getStats()
-            : {};
+            : { timeString: "12:00", period: "Day", fogStatus: "Clear" };
 
         // Update stats object
         this.stats = {
@@ -354,20 +410,20 @@ export class ForestGenerator {
     }
 
     // Global functions for UI callbacks
-    showTutorial() {
+    public showTutorial(): void {
         if (this.uiSystem) {
             this.uiSystem.showTutorial();
         }
     }
 
-    toggleFullscreen() {
+    public toggleFullscreen(): void {
         if (this.uiSystem) {
             this.uiSystem.toggleFullscreen();
         }
     }
 
     // Keyboard event handlers for player system
-    onKeyDown(event) {
+    public onKeyDown(event: KeyboardEvent): void {
         // Handle fullscreen toggle first
         if (event.code === "Tab") {
             event.preventDefault();
@@ -396,7 +452,7 @@ export class ForestGenerator {
         }
     }
 
-    onKeyUp(event) {
+    public onKeyUp(event: KeyboardEvent): void {
         if (this.playerSystem) {
             this.playerSystem.onKeyUp(event);
         }
@@ -405,7 +461,7 @@ export class ForestGenerator {
         }
     }
 
-    dispose() {
+    public dispose(): void {
         // Stop animation
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);

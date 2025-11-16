@@ -3,14 +3,19 @@
  * Provides mathematical helper functions, random distribution, and positioning algorithms
  */
 
-import * as THREE from 'three';
+import * as THREE from "three";
 
 export class MathUtils {
     /**
      * Generate random positions with minimum distance constraint
      * Uses Poisson disk sampling for natural distribution
      */
-    static generatePoissonPositions(count, size, minDistance, maxAttempts = 30) {
+    static generatePoissonPositions(
+        count: number,
+        size: number,
+        minDistance: number,
+        maxAttempts: number = 30,
+    ): THREE.Vector3[] {
         const positions = [];
         const cellSize = minDistance / Math.sqrt(2);
         const gridWidth = Math.ceil(size / cellSize);
@@ -19,17 +24,22 @@ export class MathUtils {
         const activeList = [];
 
         // Helper function to get grid index
-        const getGridIndex = (x, z) => {
+        const getGridIndex = (x: number, z: number): number => {
             const gridX = Math.floor((x + size / 2) / cellSize);
             const gridZ = Math.floor((z + size / 2) / cellSize);
-            if (gridX < 0 || gridX >= gridWidth || gridZ < 0 || gridZ >= gridHeight) {
+            if (
+                gridX < 0 ||
+                gridX >= gridWidth ||
+                gridZ < 0 ||
+                gridZ >= gridHeight
+            ) {
                 return -1;
             }
             return gridZ * gridWidth + gridX;
         };
 
         // Helper function to check if position is valid
-        const isValidPosition = (x, z) => {
+        const isValidPosition = (x: number, z: number): boolean => {
             if (Math.abs(x) > size / 2 || Math.abs(z) > size / 2) return false;
 
             const gridX = Math.floor((x + size / 2) / cellSize);
@@ -40,11 +50,18 @@ export class MathUtils {
                 for (let dx = -2; dx <= 2; dx++) {
                     const checkX = gridX + dx;
                     const checkZ = gridZ + dz;
-                    if (checkX >= 0 && checkX < gridWidth && checkZ >= 0 && checkZ < gridHeight) {
+                    if (
+                        checkX >= 0 &&
+                        checkX < gridWidth &&
+                        checkZ >= 0 &&
+                        checkZ < gridHeight
+                    ) {
                         const index = checkZ * gridWidth + checkX;
                         const existing = grid[index];
                         if (existing) {
-                            const dist = Math.sqrt((x - existing.x) ** 2 + (z - existing.z) ** 2);
+                            const dist = Math.sqrt(
+                                (x - existing.x) ** 2 + (z - existing.z) ** 2,
+                            );
                             if (dist < minDistance) return false;
                         }
                     }
@@ -94,7 +111,11 @@ export class MathUtils {
      * Generate random positions with simple minimum distance check
      * Faster but less natural than Poisson sampling
      */
-    static generateRandomPositions(count, size, minDistance) {
+    static generateRandomPositions(
+        count: number,
+        size: number,
+        minDistance: number,
+    ): THREE.Vector3[] {
         const positions = [];
         const maxAttempts = count * 10;
         let attempts = 0;
@@ -125,7 +146,12 @@ export class MathUtils {
     /**
      * Generate positions in a grid pattern with some randomization
      */
-    static generateGridPositions(count, size, minDistance, randomization = 0.3) {
+    static generateGridPositions(
+        count: number,
+        size: number,
+        minDistance: number,
+        randomization: number = 0.3,
+    ): THREE.Vector3[] {
         const positions = [];
         const spacing = Math.max(minDistance * 1.5, size / Math.sqrt(count));
         const gridSize = Math.floor(size / spacing);
@@ -159,14 +185,14 @@ export class MathUtils {
     /**
      * Linear interpolation between two values
      */
-    static lerp(a, b, t) {
+    static lerp(a: number, b: number, t: number): number {
         return a + (b - a) * Math.max(0, Math.min(1, t));
     }
 
     /**
      * Smooth step interpolation (eased interpolation)
      */
-    static smoothstep(edge0, edge1, x) {
+    static smoothstep(edge0: number, edge1: number, x: number): number {
         const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
         return t * t * (3 - 2 * t);
     }
@@ -174,36 +200,43 @@ export class MathUtils {
     /**
      * Clamp a value between min and max
      */
-    static clamp(value, min, max) {
+    static clamp(value: number, min: number, max: number): number {
         return Math.max(min, Math.min(max, value));
     }
 
     /**
      * Map a value from one range to another
      */
-    static map(value, inMin, inMax, outMin, outMax) {
+    static map(
+        value: number,
+        inMin: number,
+        inMax: number,
+        outMin: number,
+        outMax: number,
+    ): number {
         return outMin + (outMax - outMin) * ((value - inMin) / (inMax - inMin));
     }
 
     /**
      * Generate random float between min and max
      */
-    static randomFloat(min, max) {
+    static randomFloat(min: number, max: number): number {
         return min + Math.random() * (max - min);
     }
 
     /**
      * Generate random integer between min and max (inclusive)
      */
-    static randomInt(min, max) {
+    static randomInt(min: number, max: number): number {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
     /**
      * Generate random value from normal distribution (Box-Muller transform)
      */
-    static randomNormal(mean = 0, stdDev = 1) {
-        let u = 0, v = 0;
+    static randomNormal(mean: number = 0, stdDev: number = 1): number {
+        let u = 0,
+            v = 0;
         while (u === 0) u = Math.random(); // Converting [0,1) to (0,1)
         while (v === 0) v = Math.random();
 
@@ -214,7 +247,7 @@ export class MathUtils {
     /**
      * Generate random point on unit sphere
      */
-    static randomOnSphere() {
+    static randomOnSphere(): THREE.Vector3 {
         const u = Math.random();
         const v = Math.random();
         const theta = 2 * Math.PI * u;
@@ -223,26 +256,23 @@ export class MathUtils {
         return new THREE.Vector3(
             Math.sin(phi) * Math.cos(theta),
             Math.sin(phi) * Math.sin(theta),
-            Math.cos(phi)
+            Math.cos(phi),
         );
     }
 
     /**
      * Generate random point in unit circle
      */
-    static randomInCircle(radius = 1) {
+    static randomInCircle(radius: number = 1): THREE.Vector2 {
         const angle = Math.random() * Math.PI * 2;
         const r = Math.sqrt(Math.random()) * radius;
-        return new THREE.Vector2(
-            Math.cos(angle) * r,
-            Math.sin(angle) * r
-        );
+        return new THREE.Vector2(Math.cos(angle) * r, Math.sin(angle) * r);
     }
 
     /**
      * Calculate distance between two 2D points
      */
-    static distance2D(x1, z1, x2, z2) {
+    static distance2D(x1: number, z1: number, x2: number, z2: number): number {
         const dx = x2 - x1;
         const dz = z2 - z1;
         return Math.sqrt(dx * dx + dz * dz);
@@ -251,7 +281,7 @@ export class MathUtils {
     /**
      * Calculate angle between two vectors
      */
-    static angleBetween(v1, v2) {
+    static angleBetween(v1: THREE.Vector3, v2: THREE.Vector3): number {
         const dot = v1.dot(v2);
         const mag1 = v1.length();
         const mag2 = v2.length();
@@ -261,29 +291,29 @@ export class MathUtils {
     /**
      * Convert degrees to radians
      */
-    static degToRad(degrees) {
-        return degrees * Math.PI / 180;
+    static degToRad(degrees: number): number {
+        return (degrees * Math.PI) / 180;
     }
 
     /**
      * Convert radians to degrees
      */
-    static radToDeg(radians) {
-        return radians * 180 / Math.PI;
+    static radToDeg(radians: number): number {
+        return (radians * 180) / Math.PI;
     }
 
     /**
      * Noise function (simple pseudo-random noise)
      */
-    static noise(x, y = 0, z = 0) {
+    static noise(x: number, y: number = 0, z: number = 0): number {
         const n = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453;
-        return (n - Math.floor(n));
+        return n - Math.floor(n);
     }
 
     /**
      * Simple 2D Perlin-like noise
      */
-    static noise2D(x, y) {
+    static noise2D(x: number, y: number): number {
         const intX = Math.floor(x);
         const intY = Math.floor(y);
         const fracX = x - intX;
@@ -303,7 +333,13 @@ export class MathUtils {
     /**
      * Generate fractal noise (multiple octaves)
      */
-    static fractalNoise2D(x, y, octaves = 4, persistence = 0.5, scale = 1) {
+    static fractalNoise2D(
+        x: number,
+        y: number,
+        octaves: number = 4,
+        persistence: number = 0.5,
+        scale: number = 1,
+    ): number {
         let value = 0;
         let amplitude = 1;
         let frequency = scale;
@@ -322,7 +358,10 @@ export class MathUtils {
     /**
      * Check if a point is inside a polygon (ray casting algorithm)
      */
-    static pointInPolygon(point, polygon) {
+    static pointInPolygon(
+        point: THREE.Vector3,
+        polygon: THREE.Vector3[],
+    ): boolean {
         let inside = false;
         const x = point.x;
         const y = point.z;
@@ -333,7 +372,10 @@ export class MathUtils {
             const xj = polygon[j].x;
             const yj = polygon[j].z;
 
-            if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+            if (
+                yi > y !== yj > y &&
+                x < ((xj - xi) * (y - yi)) / (yj - yi) + xi
+            ) {
                 inside = !inside;
             }
         }
@@ -344,7 +386,7 @@ export class MathUtils {
     /**
      * Generate weighted random selection from array
      */
-    static weightedRandom(items, weights) {
+    static weightedRandom<T>(items: T[], weights: number[]): T {
         const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
         let random = Math.random() * totalWeight;
 
@@ -361,7 +403,7 @@ export class MathUtils {
     /**
      * Calculate bounding box for array of positions
      */
-    static calculateBoundingBox(positions) {
+    static calculateBoundingBox(positions: THREE.Vector3[]): THREE.Box3 {
         if (positions.length === 0) {
             return new THREE.Box3();
         }
@@ -374,7 +416,11 @@ export class MathUtils {
     /**
      * Generate spiral positions (for interesting patterns)
      */
-    static generateSpiralPositions(count, size, turns = 3) {
+    static generateSpiralPositions(
+        count: number,
+        size: number,
+        turns: number = 3,
+    ): THREE.Vector3[] {
         const positions = [];
         const maxRadius = size / 2;
 

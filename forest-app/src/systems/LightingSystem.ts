@@ -1,7 +1,45 @@
 import * as THREE from "three";
 
+interface LightingStats {
+    timeString: string;
+    period: string;
+    fogStatus: string;
+}
+
 export class LightingSystem {
-    constructor(scene, renderer) {
+    private scene: THREE.Scene;
+    private renderer: THREE.WebGLRenderer;
+
+    // Day/Night cycle properties
+    private dayDuration: number;
+    private dayStartTime: number;
+    private sunRadius: number;
+    private sunHeight: number;
+    private sunMesh: THREE.Mesh | null;
+    private moonMesh: THREE.Mesh | null;
+    private sunLight: THREE.DirectionalLight | null;
+    private hemisphereLight: THREE.HemisphereLight | null;
+
+    // Fog properties
+    private fogEnabled: boolean;
+    private fogCycleTime: number;
+    private fogStartTime: number;
+    private baseFogDensity: number;
+    private maxFogDensity: number;
+
+    // Time control properties
+    private timeSpeed: number;
+    private timePaused: boolean;
+    private lastUpdateTime: number;
+
+    // Flashlight properties
+    private flashlight: THREE.SpotLight | null;
+    private flashlightEnabled: boolean;
+    private flashlightIntensity: number;
+    private flashlightDistance: number;
+    private flashlightAngle: number;
+    private flashlightPenumbra: number;
+    constructor(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
         this.scene = scene;
         this.renderer = renderer;
 
@@ -36,12 +74,12 @@ export class LightingSystem {
         this.flashlightPenumbra = 0.7; // Softer edge for fog
     }
 
-    init() {
+    public init(): void {
         this.setupLighting();
         this.setupFog();
     }
 
-    setupLighting() {
+    private setupLighting(): void {
         // Ambient light - brighter for better night visibility
         const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
         this.scene.add(ambientLight);
@@ -79,12 +117,12 @@ export class LightingSystem {
         this.renderer.setClearColor(0x87ceeb, 1);
     }
 
-    setupFog() {
+    private setupFog(): void {
         // Setup dramatic fog that's very visible
         this.scene.fog = new THREE.Fog(0xcce7f0, 20, 200);
     }
 
-    createSun() {
+    private createSun(): void {
         // Create simple sun sphere
         const sunGeometry = new THREE.SphereGeometry(8, 16, 16);
         const sunMaterial = new THREE.MeshStandardMaterial({
@@ -96,7 +134,7 @@ export class LightingSystem {
         this.scene.add(this.sunMesh);
     }
 
-    createMoon() {
+    private createMoon(): void {
         // Create simple moon sphere
         const moonGeometry = new THREE.SphereGeometry(6, 16, 16);
         const moonMaterial = new THREE.MeshStandardMaterial({
@@ -108,7 +146,7 @@ export class LightingSystem {
         this.scene.add(this.moonMesh);
     }
 
-    createFlashlight() {
+    private createFlashlight(): void {
         // Create flashlight (spot light attached to camera)
         this.flashlight = new THREE.SpotLight(
             0xffffff,
@@ -127,7 +165,7 @@ export class LightingSystem {
         this.scene.add(this.flashlight.target);
     }
 
-    updateDayNightCycle() {
+    private updateDayNightCycle(): void {
         if (this.timePaused) return;
 
         const currentTime = Date.now();
@@ -180,7 +218,7 @@ export class LightingSystem {
         this.moonMesh.visible = nightIntensity > 0.1;
     }
 
-    updateFog() {
+    private updateFog(): void {
         if (!this.fogEnabled || !this.scene.fog) return;
 
         const currentTime = Date.now();
@@ -195,10 +233,13 @@ export class LightingSystem {
         // Apply fog density by adjusting the far distance
         const baseFar = 200;
         const minFar = 30;
-        this.scene.fog.far = Math.max(minFar, baseFar * (1 - fogDensity));
+        (this.scene.fog as THREE.Fog).far = Math.max(
+            minFar,
+            baseFar * (1 - fogDensity),
+        );
     }
 
-    updateFlashlight(camera) {
+    private updateFlashlight(camera: THREE.Camera | null): void {
         if (!this.flashlight || !camera) return;
 
         // Position flashlight at camera
@@ -213,7 +254,7 @@ export class LightingSystem {
         this.flashlight.visible = this.flashlightEnabled;
     }
 
-    toggleFlashlight() {
+    public toggleFlashlight(): boolean {
         this.flashlightEnabled = !this.flashlightEnabled;
 
         // Update UI indicator
@@ -225,27 +266,27 @@ export class LightingSystem {
         return this.flashlightEnabled;
     }
 
-    setDayDuration(milliseconds) {
+    public setDayDuration(milliseconds: number): void {
         this.dayDuration = milliseconds;
         console.log(`Day duration set to ${milliseconds / 60000} minutes`);
     }
 
-    setTimeSpeed(speed) {
+    public setTimeSpeed(speed: number): void {
         this.timeSpeed = speed;
         console.log(`Time speed set to ${speed}x`);
     }
 
-    setTimePaused(paused) {
+    public setTimePaused(paused: boolean): void {
         this.timePaused = paused;
         console.log(`Time ${paused ? "paused" : "resumed"}`);
     }
 
-    setFogIntensity(intensity) {
+    public setFogIntensity(intensity: number): void {
         // This will be handled by the fog update cycle
         console.log(`Fog intensity set to ${intensity}`);
     }
 
-    setFlashlightIntensity(intensity) {
+    public setFlashlightIntensity(intensity: number): void {
         this.flashlightIntensity = intensity;
         if (this.flashlight) {
             this.flashlight.intensity = intensity;
@@ -253,17 +294,32 @@ export class LightingSystem {
         console.log(`Flashlight intensity set to ${intensity}`);
     }
 
-    setFogEnabled(enabled) {
+    public setFogEnabled(enabled: boolean): void {
         this.fogEnabled = enabled;
         if (!enabled && this.scene.fog) {
-            this.scene.fog.far = 1000; // Effectively disable fog
+            (this.scene.fog as THREE.Fog).far = 1000; // Effectively disable fog
         }
     }
 
-    update(deltaTimeOrCamera) {
+    public pauseTime(): void {
+        this.setTimePaused(true);
+    }
+
+    public resumeTime(): void {
+        this.setTimePaused(false);
+    }
+
+    public resetTime(): void {
+        this.dayStartTime = Date.now();
+        console.log("Time reset");
+    }
+
+    public update(deltaTimeOrCamera: THREE.Camera | number): void {
         // Handle both deltaTime and camera parameter for backward compatibility
         const camera =
-            deltaTimeOrCamera && deltaTimeOrCamera.position
+            deltaTimeOrCamera &&
+            typeof deltaTimeOrCamera === "object" &&
+            "position" in deltaTimeOrCamera
                 ? deltaTimeOrCamera
                 : null;
 
@@ -272,7 +328,11 @@ export class LightingSystem {
         this.updateFlashlight(camera);
     }
 
-    getStats() {
+    public getStats(): LightingStats & {
+        flashlightEnabled: boolean;
+        timePaused: boolean;
+        timeSpeed: number;
+    } {
         // Calculate current time of day
         const currentTime = Date.now();
         const elapsed = (currentTime - this.dayStartTime) % this.dayDuration;
@@ -312,7 +372,7 @@ export class LightingSystem {
         };
     }
 
-    onKeyDown(event) {
+    public onKeyDown(event: KeyboardEvent): void {
         switch (event.code) {
             case "KeyL":
                 this.toggleFlashlight();
@@ -323,22 +383,32 @@ export class LightingSystem {
         }
     }
 
-    onKeyUp(event) {
+    public onKeyUp(event: KeyboardEvent): void {
         // No key-up handlers needed for lighting system currently
     }
 
-    dispose() {
+    public dispose(): void {
         // Clean up lighting resources
         if (this.sunMesh) {
             this.scene.remove(this.sunMesh);
             this.sunMesh.geometry?.dispose();
-            this.sunMesh.material?.dispose();
+            if (Array.isArray(this.sunMesh.material)) {
+                this.sunMesh.material.forEach((material) => material.dispose());
+            } else {
+                this.sunMesh.material?.dispose();
+            }
         }
 
         if (this.moonMesh) {
             this.scene.remove(this.moonMesh);
             this.moonMesh.geometry?.dispose();
-            this.moonMesh.material?.dispose();
+            if (Array.isArray(this.moonMesh.material)) {
+                this.moonMesh.material.forEach((material) =>
+                    material.dispose(),
+                );
+            } else {
+                this.moonMesh.material?.dispose();
+            }
         }
 
         if (this.flashlight) {

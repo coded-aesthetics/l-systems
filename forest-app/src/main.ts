@@ -1,7 +1,7 @@
 import { ForestGenerator } from "./core/ForestGenerator.ts";
 
 // Global instance
-let forestGenerator = null;
+let forestGenerator: ForestGenerator | null = null;
 
 // Initialize the application
 async function initApp() {
@@ -25,15 +25,15 @@ async function initApp() {
     }
 }
 
-function setupGlobalEventListeners() {
+function setupGlobalEventListeners(): void {
     // Global keyboard events for player and lighting controls
-    document.addEventListener("keydown", (event) => {
+    document.addEventListener("keydown", (event: KeyboardEvent) => {
         if (forestGenerator) {
             forestGenerator.onKeyDown(event);
         }
     });
 
-    document.addEventListener("keyup", (event) => {
+    document.addEventListener("keyup", (event: KeyboardEvent) => {
         if (forestGenerator) {
             forestGenerator.onKeyUp(event);
         }
@@ -60,25 +60,25 @@ function setupGlobalEventListeners() {
 // Global functions for backward compatibility with inline HTML handlers
 // These will be gradually replaced by proper event listeners
 
-(window as any).loadPlants = function () {
+(window as any).loadPlants = function (): void {
     if (forestGenerator && forestGenerator.plantSystem) {
         forestGenerator.plantSystem.loadPlants();
     }
 };
 
-(window as any).generateForest = function () {
+(window as any).generateForest = function (): void {
     if (forestGenerator && forestGenerator.uiSystem) {
         forestGenerator.uiSystem.handleGenerateForest();
     }
 };
 
-(window as any).clearForest = function () {
+(window as any).clearForest = function (): void {
     if (forestGenerator && forestGenerator.uiSystem) {
         forestGenerator.uiSystem.handleClearForest();
     }
 };
 
-(window as any).exportForest = function () {
+(window as any).exportForest = function (): void {
     if (forestGenerator && forestGenerator.uiSystem) {
         forestGenerator.uiSystem.handleExportForest();
     }
@@ -87,14 +87,14 @@ function setupGlobalEventListeners() {
 (window as any).updateValueDisplay = function (
     elementId: string,
     value: string,
-) {
+): void {
     if (forestGenerator && forestGenerator.uiSystem) {
         forestGenerator.uiSystem.updateValueDisplay(elementId, value);
     }
 };
 
 // Time control functions
-(window as any).updateDayDuration = function (value: string) {
+(window as any).updateDayDuration = function (value: string): void {
     if (forestGenerator && forestGenerator.lightingSystem) {
         forestGenerator.lightingSystem.setDayDuration(
             parseFloat(value) * 60000,
@@ -103,14 +103,14 @@ function setupGlobalEventListeners() {
     (window as any).updateValueDisplay("dayDuration", value + " min");
 };
 
-(window as any).updateTimeSpeed = function (value: string) {
+(window as any).updateTimeSpeed = function (value: string): void {
     if (forestGenerator && forestGenerator.lightingSystem) {
         forestGenerator.lightingSystem.setTimeSpeed(parseFloat(value));
     }
     (window as any).updateValueDisplay("timeSpeed", value + "x");
 };
 
-(window as any).toggleTimeFreeze = function (paused: boolean) {
+(window as any).toggleTimeFreeze = function (paused: boolean): void {
     if (forestGenerator && forestGenerator.lightingSystem) {
         if (paused) {
             forestGenerator.lightingSystem.pauseTime();
@@ -120,7 +120,7 @@ function setupGlobalEventListeners() {
     }
 };
 
-(window as any).updateFogIntensity = function (value: string) {
+(window as any).updateFogIntensity = function (value: string): void {
     if (forestGenerator && forestGenerator.lightingSystem) {
         forestGenerator.lightingSystem.setFogIntensity(parseFloat(value));
     }
@@ -130,7 +130,7 @@ function setupGlobalEventListeners() {
     );
 };
 
-(window as any).updateFlashlightIntensity = function (value: string) {
+(window as any).updateFlashlightIntensity = function (value: string): void {
     if (forestGenerator && forestGenerator.lightingSystem) {
         forestGenerator.lightingSystem.setFlashlightIntensity(
             parseFloat(value),
@@ -140,7 +140,7 @@ function setupGlobalEventListeners() {
 };
 
 // Utility functions
-function showError(message) {
+function showError(message: string): void {
     const errorDiv = document.createElement("div");
     errorDiv.style.cssText = `
         position: fixed;
