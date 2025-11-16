@@ -260,18 +260,6 @@
                 }
             }
 
-            .controls-info {
-                position: fixed;
-                bottom: 20px;
-                left: 20px;
-                background: rgba(44, 62, 80, 0.9);
-                padding: 15px;
-                border-radius: 10px;
-                font-size: 0.9em;
-                color: #bdc3c7;
-                z-index: 1000;
-            }
-
             .stats {
                 position: fixed;
                 top: 80px;
@@ -306,6 +294,63 @@
                 text-align: center;
                 color: #3498db;
                 font-weight: bold;
+            }
+
+            /* Fullscreen mode styles */
+            .fullscreen-mode .header,
+            .fullscreen-mode .controls-panel,
+            .fullscreen-mode .stats {
+                display: none !important;
+            }
+
+            .fullscreen-mode .main-container {
+                padding: 0;
+            }
+
+            .fullscreen-mode .canvas-container {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                z-index: 1 !important;
+                flex: none !important;
+            }
+
+            .fullscreen-mode #forest-canvas {
+                width: 100vw !important;
+                height: 100vh !important;
+            }
+
+            /* Ensure normal mode styles are restored */
+            body:not(.fullscreen-mode) .canvas-container {
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                width: auto !important;
+                height: auto !important;
+                flex: 1 !important;
+                z-index: auto !important;
+            }
+
+            body:not(.fullscreen-mode) #forest-canvas {
+                width: 100% !important;
+                height: 100% !important;
+            }
+
+            .fullscreen-indicator {
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.8);
+                color: #00ff00;
+                padding: 10px 20px;
+                border-radius: 5px;
+                font-weight: bold;
+                z-index: 2000;
+                display: none;
+                font-family: monospace;
             }
         </style>
     </head>
@@ -455,6 +500,7 @@
                 </button>
                 <button onclick="clearForest()">Clear Forest</button>
                 <button onclick="exportForest()">Export Scene</button>
+                <button onclick="forestGenerator.showTutorial()">Help</button>
             </div>
 
             <div class="canvas-container">
@@ -511,6 +557,7 @@
                         text-align: center;
                         font-family: Arial, sans-serif;
                         border: 2px solid #00ff00;
+                        display: none;
                     "
                 >
                     <h3>🌲 Forest Explorer Controls 🌲</h3>
@@ -527,13 +574,15 @@
 
                         <strong>Flashlight:</strong><br />
                         • L - Toggle flashlight on/off<br />
-                        • Perfect for night and fog!<br /><br />
+                        • Perfect for night and fog!<br />
+                        • Tab - Toggle fullscreen mode<br /><br />
 
                         <strong>Tips:</strong><br />
                         • Watch your stamina bar!<br />
                         • Green stamina = full energy<br />
                         • Red stamina = tired<br />
                         • Use flashlight in heavy fog<br />
+                        • Press ESC to exit fullscreen<br />
                     </div>
                     <button
                         onclick="document.getElementById('tutorial-popup').style.display='none'"
@@ -583,21 +632,15 @@
             </div>
         </div>
 
-        <div class="controls-info">
-            <strong>Controls:</strong><br />
-            WASD - Move | Mouse - Look | Shift - Run | Space - Jump/Up | C -
-            Down | F - Toggle Fly Mode | R - Toggle Sprint | H - Help<br />
-            <em
-                >Walk Mode: Stay on ground with gravity and jumping | Fly Mode:
-                Free flight</em
-            >
-        </div>
-
         <div class="stats" id="stats">
             <strong>Forest Stats:</strong><br />
             Plants: 0<br />
             Triangles: 0<br />
             FPS: 0
+        </div>
+
+        <div class="fullscreen-indicator" id="fullscreen-indicator">
+            FULLSCREEN MODE - Press ESC to exit
         </div>
 
         <script type="importmap">
@@ -697,6 +740,7 @@
                     this.flashlightDistance = 300; // Much longer beam
                     this.flashlightAngle = Math.PI * 0.12; // Slightly wider cone
                     this.flashlightPenumbra = 0.3; // Softer edge for fog
+                    this.isFullscreen = false;
 
                     this.init();
                 }
@@ -843,6 +887,15 @@
                                 break;
                             case "KeyH":
                                 this.showTutorial();
+                                break;
+                            case "Tab":
+                                event.preventDefault();
+                                this.toggleFullscreen();
+                                break;
+                            case "Escape":
+                                if (this.isFullscreen) {
+                                    this.toggleFullscreen();
+                                }
                                 break;
                         }
                     });
@@ -2023,6 +2076,31 @@
                     if (tutorial) {
                         tutorial.style.display = "block";
                     }
+                }
+
+                toggleFullscreen() {
+                    this.isFullscreen = !this.isFullscreen;
+                    const body = document.body;
+                    const indicator = document.getElementById(
+                        "fullscreen-indicator",
+                    );
+
+                    if (this.isFullscreen) {
+                        body.classList.add("fullscreen-mode");
+                        if (indicator) {
+                            indicator.style.display = "block";
+                        }
+                    } else {
+                        body.classList.remove("fullscreen-mode");
+                        if (indicator) {
+                            indicator.style.display = "none";
+                        }
+                    }
+
+                    // Trigger resize to adjust canvas dimensions
+                    setTimeout(() => {
+                        this.handleResize();
+                    }, 100);
                 }
 
                 updateHeadBob(delta) {
