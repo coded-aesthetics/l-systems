@@ -139,6 +139,43 @@ function setupGlobalEventListeners(): void {
     (window as any).updateValueDisplay("flashlightIntensity", value);
 };
 
+// Terrain control functions
+(window as any).setTerrainType = function (type: string): void {
+    if (forestGenerator) {
+        forestGenerator.setTerrainType(type);
+    }
+    console.log(`Terrain type changed to: ${type}`);
+};
+
+(window as any).updateTerrainHeight = function (value: string): void {
+    if (forestGenerator) {
+        forestGenerator.setTerrainHeightVariation(parseFloat(value));
+    }
+    (window as any).updateValueDisplay("terrainHeight", value);
+};
+
+(window as any).updateTerrainColor = function (color: string): void {
+    if (forestGenerator) {
+        const hexColor = parseInt(color.replace("#", ""), 16);
+        forestGenerator.setTerrainColor(hexColor);
+    }
+    console.log(`Terrain color changed to: ${color}`);
+};
+
+(window as any).regenerateTerrain = function (): void {
+    if (forestGenerator) {
+        forestGenerator.regenerateTerrain();
+    }
+    console.log("Terrain regenerated");
+};
+
+(window as any).getTerrainStats = function (): any {
+    if (forestGenerator) {
+        return forestGenerator.getTerrainStats();
+    }
+    return null;
+};
+
 // Utility functions
 function showError(message: string): void {
     const errorDiv = document.createElement("div");

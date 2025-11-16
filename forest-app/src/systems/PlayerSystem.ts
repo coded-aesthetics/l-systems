@@ -17,7 +17,7 @@ export class PlayerSystem {
     private scene: THREE.Scene;
     private camera: THREE.PerspectiveCamera;
     private controls: any; // PointerLockControls
-    private ground: THREE.Mesh;
+    private terrainHeightCallback: (x: number, z: number) => number;
 
     // Movement physics variables
     private gravity: number;
@@ -75,12 +75,12 @@ export class PlayerSystem {
         scene: THREE.Scene,
         camera: THREE.PerspectiveCamera,
         controls: any,
-        ground: THREE.Mesh,
+        terrainHeightCallback: (x: number, z: number) => number,
     ) {
         this.scene = scene;
         this.camera = camera;
         this.controls = controls;
-        this.ground = ground;
+        this.terrainHeightCallback = terrainHeightCallback;
 
         // Movement physics variables
         this.gravity = -30;
@@ -396,19 +396,8 @@ export class PlayerSystem {
     }
 
     private getGroundHeight(x: number, z: number): number {
-        // Cast ray downward to find ground height
-        this.raycaster.set(
-            new THREE.Vector3(x, 100, z),
-            new THREE.Vector3(0, -1, 0),
-        );
-        const intersects = this.raycaster.intersectObject(this.ground, true);
-
-        if (intersects.length > 0) {
-            return intersects[0].point.y;
-        }
-
-        // Return default ground level if no intersection found
-        return this.groundLevel;
+        // Use terrain system callback for ground height
+        return this.terrainHeightCallback(x, z);
     }
 
     private toggleFlyMode(): void {
@@ -470,7 +459,7 @@ export class PlayerSystem {
 
     private playFootstep(): void {
         // Visual footstep effect - create small dust particles
-        if (this.scene && this.ground) {
+        if (this.scene) {
             const cameraPos = this.controls.getObject().position;
             const groundHeight = this.getGroundHeight(cameraPos.x, cameraPos.z);
 

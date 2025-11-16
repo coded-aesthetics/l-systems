@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+import { TerrainSystem, TerrainType } from "../systems/TerrainSystem.js";
 
 interface SceneStats {
     plants: number;
@@ -11,8 +12,8 @@ export class SceneManager {
     public camera: THREE.PerspectiveCamera | null;
     public renderer: THREE.WebGLRenderer | null;
     public controls: PointerLockControls | null;
-    public ground: THREE.Mesh | null;
     public forestGroup: THREE.Group | null;
+    public terrainSystem: TerrainSystem | null;
 
     private canvas: HTMLCanvasElement | null;
     private animationId: number | null;
@@ -22,8 +23,8 @@ export class SceneManager {
         this.camera = null;
         this.renderer = null;
         this.controls = null;
-        this.ground = null;
         this.forestGroup = null;
+        this.terrainSystem = null;
         this.canvas = null;
         this.animationId = null;
         this.groundLevel = -2;
@@ -35,7 +36,7 @@ export class SceneManager {
         this.setupCamera();
         this.setupRenderer();
         this.setupControls();
-        this.createGround();
+        this.initTerrain();
         this.setupEventListeners();
     }
 
@@ -107,36 +108,24 @@ export class SceneManager {
         console.log("Controls initialized");
     }
 
-    private createGround(): void {
-        const groundGeometry = new THREE.PlaneGeometry(2000, 2000, 100, 100);
-
-        const groundMaterial = new THREE.MeshLambertMaterial({
-            color: 0x228b22,
-        });
-
-        // Add some random height variation to vertices
-        const positionAttribute = groundGeometry.getAttribute("position");
-        for (let i = 0; i < positionAttribute.count; i++) {
-            // Get current position
-            const x = positionAttribute.getX(i);
-            const y = positionAttribute.getY(i);
-            const z = positionAttribute.getZ(i);
-
-            // Add height variation to Z coordinate (which becomes Y after rotation)
-            const height = Math.random() * 2 - 1;
-            positionAttribute.setZ(i, height);
+    private initTerrain(): void {
+        if (!this.scene) {
+            throw new Error("Scene must be initialized before terrain");
         }
 
-        positionAttribute.needsUpdate = true;
-        groundGeometry.computeVertexNormals();
+        // Create terrain system with default configuration
+        this.terrainSystem = new TerrainSystem(this.scene, {
+            size: 2000,
+            segments: 100,
+            heightVariation: 2,
+            color: 0x228b22,
+            level: this.groundLevel,
+        });
 
-        this.ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        this.ground.rotation.x = -Math.PI / 2;
-        this.ground.position.y = this.groundLevel;
-        this.ground.receiveShadow = true;
-        this.scene.add(this.ground);
+        // Initialize the terrain
+        this.terrainSystem.init();
 
-        console.log("Ground created");
+        console.log("Terrain system initialized");
     }
 
     private setupEventListeners(): void {
@@ -158,21 +147,53 @@ export class SceneManager {
     }
 
     public getGroundHeight(x: number, z: number): number {
-        // Simple raycasting to get ground height at position
-        if (!this.ground) return this.groundLevel;
-
-        const raycaster = new THREE.Raycaster();
-        const origin = new THREE.Vector3(x, 10, z);
-        const direction = new THREE.Vector3(0, -1, 0);
-
-        raycaster.set(origin, direction);
-        const intersects = raycaster.intersectObject(this.ground);
-
-        if (intersects.length > 0) {
-            return intersects[0].point.y;
+        // Delegate to terrain system
+        if (this.terrainSystem) {
+            return this.terrainSystem.getGroundHeight(x, z);
         }
-
         return this.groundLevel;
+    }
+
+    // Terrain management methods
+    public setTerrainType(type: TerrainType): void {
+        if (this.terrainSystem) {
+            this.terrainSystem.setTerrainType(type);
+        }
+    }
+
+    public setTerrainHeightVariation(variation: number): void {
+        if (this.terrainSystem) {
+            this.terrainSystem.setHeightVariation(variation);
+        }
+    }
+
+    public setTerrainColor(color: number): void {
+        if (this.terrainSystem) {
+            this.terrainSystem.setTerrainColor(color);
+        }
+    }
+
+    public regenerateTerrain(): void {
+        if (this.terrainSystem) {
+            this.terrainSystem.regenerateTerrain();
+        }
+    }
+
+    public getTerrainStats(): any {
+        return this.terrainSystem ? this.terrainSystem.getStats() : null;
+    }
+
+    public getSafeSpawnPosition(): THREE.Vector3 {
+        if (this.terrainSystem) {
+            return this.terrainSystem.getSafeSpawnPosition();
+        }
+        return new THREE.Vector3(0, this.groundLevel, 0);
+    }
+
+    public isPositionOnTerrain(x: number, z: number): boolean {
+        return this.terrainSystem
+            ? this.terrainSystem.isPositionOnTerrain(x, z)
+            : false;
     }
 
     public updateFog(density?: number, color?: number): void {
@@ -289,15 +310,9 @@ export class SceneManager {
         this.stopAnimation();
         this.clearForest();
 
-        if (this.ground) {
-            this.scene.remove(this.ground);
-            this.ground.geometry.dispose();
-            if (Array.isArray(this.ground.material)) {
-                this.ground.material.forEach((material) => material.dispose());
-            } else {
-                this.ground.material.dispose();
-            }
-            this.ground = null;
+        if (this.terrainSystem) {
+            this.terrainSystem.dispose();
+            this.terrainSystem = null;
         }
 
         if (this.forestGroup) {

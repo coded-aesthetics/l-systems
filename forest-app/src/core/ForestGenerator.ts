@@ -122,7 +122,7 @@ export class ForestGenerator {
             this.sceneManager.scene,
             this.sceneManager.camera,
             this.sceneManager.controls,
-            this.sceneManager.ground,
+            (x: number, z: number) => this.sceneManager.getGroundHeight(x, z),
         );
         await this.playerSystem.init();
 
@@ -459,6 +459,43 @@ export class ForestGenerator {
         if (this.lightingSystem) {
             this.lightingSystem.onKeyUp(event);
         }
+    }
+
+    // Terrain management methods for UI integration
+    public setTerrainType(type: string): void {
+        if (this.sceneManager) {
+            // Convert string to TerrainType enum
+            const terrainType = type as any; // Type assertion for enum
+            this.sceneManager.setTerrainType(terrainType);
+        }
+    }
+
+    public setTerrainHeightVariation(variation: number): void {
+        if (this.sceneManager) {
+            this.sceneManager.setTerrainHeightVariation(variation);
+        }
+    }
+
+    public setTerrainColor(color: number): void {
+        if (this.sceneManager) {
+            this.sceneManager.setTerrainColor(color);
+        }
+    }
+
+    public regenerateTerrain(): void {
+        if (this.sceneManager) {
+            this.sceneManager.regenerateTerrain();
+        }
+    }
+
+    public getTerrainStats(): any {
+        return this.sceneManager ? this.sceneManager.getTerrainStats() : null;
+    }
+
+    public getSafeSpawnPosition(): THREE.Vector3 {
+        return this.sceneManager
+            ? this.sceneManager.getSafeSpawnPosition()
+            : new THREE.Vector3(0, -2, 0);
     }
 
     public dispose(): void {
