@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>L-System Forest Generator</title>
+        <link rel="stylesheet" href="./src/styles/main.css" />
+    </head>
+    <body>
+        <div class="header">
+            <h1>🌲 L-System Forest Generator</h1>
+        </div>
+
+        <div class="main-container">
+            <div class="controls-panel">
+                <div class="control-section">
+                    <h3>Available Plants</h3>
+                    <div id="plants-list">
+                        <div class="loading">Loading plants...</div>
+                    </div>
+                    <button id="refresh-plants-btn">Refresh Plants</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>Forest Parameters</h3>
+                    <label>Plant Count:</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="plantCount"
+                            min="10"
+                            max="5000"
+                            value="900"
+                        />
+                        <span id="plantCount-value" class="value-display"
+                            >900</span
+                        >
+                    </div>
+
+                    <label>Forest Size (units):</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="forestSize"
+                            min="10"
+                            max="1000"
+                            value="400"
+                        />
+                        <span id="forestSize-value" class="value-display"
+                            >400</span
+                        >
+                    </div>
+
+                    <label>Minimum Distance Between Plants:</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="minDistance"
+                            min="1"
+                            max="20"
+                            value="5"
+                        />
+                        <span id="minDistance-value" class="value-display"
+                            >5</span
+                        >
+                    </div>
+
+                    <label>Plant Scale Variation:</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="scaleVariation"
+                            min="0"
+                            max="100"
+                            value="30"
+                        />
+                        <span id="scaleVariation-value" class="value-display"
+                            >30%</span
+                        >
+                    </div>
+
+                    <label>Terrain Height Variation:</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="terrainHeight"
+                            min="0"
+                            max="2000"
+                            value="5"
+                        />
+                        <span id="terrainHeight-value" class="value-display"
+                            >5</span
+                        >
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Day/Night Cycle</h3>
+                    <label>Day Duration (minutes):</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="dayDuration"
+                            min="0.5"
+                            max="10"
+                            step="0.5"
+                            value="2"
+                        />
+                        <span class="value-display" id="dayDuration-value"
+                            >2 min</span
+                        >
+                    </div>
+
+                    <label>Time Speed:</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="timeSpeed"
+                            min="0.1"
+                            max="5"
+                            step="0.1"
+                            value="1"
+                        />
+                        <span class="value-display" id="timeSpeed-value"
+                            >1x</span
+                        >
+                    </div>
+
+                    <label>
+                        <input type="checkbox" id="pauseTime" />
+                        Pause Time
+                    </label>
+                </div>
+
+                <button class="generate-btn" id="generateBtn">
+                    Generate Forest
+                </button>
+                <button id="clear-forest-btn">Clear Forest</button>
+                <button id="export-forest-btn">Export Scene</button>
+                <button id="help-btn">Help</button>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="forest-canvas"></canvas>
+                <div class="loading" id="generation-loading">
+                    Generating forest...
+                </div>
+                <div
+                    id="fly-mode-indicator"
+                    style="
+                        position: absolute;
+                        top: 10px;
+                        left: 10px;
+                        color: white;
+                        font-weight: bold;
+                        background: rgba(0, 0, 0, 0.7);
+                        padding: 5px 10px;
+                        border-radius: 5px;
+                        z-index: 1000;
+                    "
+                >
+                    WALK MODE
+                </div>
+                <div
+                    id="flashlight-indicator"
+                    style="
+                        position: absolute;
+                        top: 80px;
+                        left: 10px;
+                        color: white;
+                        font-weight: bold;
+                        background: rgba(0, 0, 0, 0.7);
+                        padding: 5px 10px;
+                        border-radius: 5px;
+                        z-index: 1000;
+                        display: none;
+                    "
+                >
+                    🔦 FLASHLIGHT ON
+                </div>
+                <div
+                    id="tutorial-popup"
+                    style="
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: rgba(0, 0, 0, 0.9);
+                        color: white;
+                        padding: 20px;
+                        border-radius: 10px;
+                        z-index: 2000;
+                        max-width: 400px;
+                        text-align: center;
+                        font-family: Arial, sans-serif;
+                        border: 2px solid #00ff00;
+                        display: none;
+                    "
+                >
+                    <h3>🌲 Forest Explorer Controls 🌲</h3>
+                    <div style="text-align: left; margin: 15px 0">
+                        <strong>Movement:</strong><br />
+                        • WASD - Walk around<br />
+                        • Mouse - Look around<br />
+                        • Shift - Hold to run (uses stamina)<br />
+                        • Space - Jump<br /><br />
+
+                        <strong>Modes:</strong><br />
+                        • F - Toggle Fly Mode<br />
+                        • C - Move down (fly mode only)<br /><br />
+
+                        <strong>Flashlight:</strong><br />
+                        • L - Toggle flashlight on/off<br />
+                        • Perfect for night and fog!<br />
+                        • Tab - Toggle fullscreen mode<br /><br />
+
+                        <strong>Tips:</strong><br />
+                        • Watch your stamina bar!<br />
+                        • Green stamina = full energy<br />
+                        • Red stamina = tired<br />
+                        • Use flashlight in heavy fog<br />
+                        • Press ESC to exit fullscreen<br />
+                    </div>
+                    <button
+                        id="tutorial-close-btn"
+                        style="
+                            background: #00ff00;
+                            color: black;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-weight: bold;
+                        "
+                    >
+                        Got it!
+                    </button>
+                </div>
+                <div
+                    id="stamina-bar"
+                    style="
+                        position: absolute;
+                        top: 50px;
+                        left: 10px;
+                        width: 150px;
+                        height: 15px;
+                        background: rgba(0, 0, 0, 0.7);
+                        border: 2px solid white;
+                        border-radius: 8px;
+                        z-index: 1000;
+                        overflow: hidden;
+                    "
+                >
+                    <div
+                        id="stamina-fill"
+                        style="
+                            height: 100%;
+                            width: 100%;
+                            background: linear-gradient(
+                                90deg,
+                                #00ff00,
+                                #ffff00,
+                                #ff0000
+                            );
+                            transition: width 0.2s ease;
+                        "
+                    ></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats" id="stats">
+            <strong>Forest Stats:</strong><br />
+            Plants: <span id="plant-count">0</span><br />
+            Triangles: <span id="triangle-count">0</span><br />
+            FPS: <span id="fps-count">0</span><br />
+            Time: <span id="time-display">12:00</span> (<span
+                id="period-display"
+                >Day</span
+            >)<br />
+            Weather: <span id="fog-status">Clear</span>
+        </div>
+
+        <div class="fullscreen-indicator" id="fullscreen-indicator">
+            FULLSCREEN MODE - Press ESC to exit
+        </div>
+
+        <script type="module" src="./src/main.ts"></script>
+    </body>
+</html>

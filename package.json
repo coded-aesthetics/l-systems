@@ -2,6 +2,7 @@
     "name": "l-systems",
     "version": "1.0.0",
     "description": "Interactive 3D L-system renderer using WebGL",
+    "type": "module",
     "main": "dist/index.js",
     "scripts": {
         "build": "tsc",

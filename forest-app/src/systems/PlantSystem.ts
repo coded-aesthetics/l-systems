@@ -1,0 +1,521 @@
+import * as THREE from "three";
+
+export class PlantSystem {
+    constructor(scene) {
+        this.scene = scene;
+        this.availablePlants = [];
+        this.selectedPlants = new Map();
+        this.loadingElement = null;
+        this.forestGroup = null;
+
+        // L-Systems integration - will be loaded dynamically
+        this.LSystemsLibrary = null;
+        this.ThreeJSAdapter = null;
+    }
+
+    async init(forestGroup) {
+        this.forestGroup = forestGroup;
+        this.setupUI();
+        await this.loadLSystemsLibrary();
+        await this.loadPlants();
+    }
+
+    async loadLSystemsLibrary() {
+        try {
+            // Dynamic import of L-Systems library components from main library
+            const { LSystemsLibrary } = await import(
+                "../../../dist/lib/LSystemsLibrary.js"
+            );
+            const { ThreeJSAdapter } = await import(
+                "../../../dist/lib/adapters/ThreeJSAdapter.js"
+            );
+
+            this.LSystemsLibrary = LSystemsLibrary;
+            this.ThreeJSAdapter = ThreeJSAdapter;
+
+            console.log("L-Systems library loaded successfully");
+        } catch (error) {
+            console.warn("Failed to load L-Systems library:", error);
+            console.log("Plant generation will fall back to simple geometry");
+        }
+    }
+
+    setupUI() {
+        this.loadingElement = document.getElementById("plants-list");
+    }
+
+    async loadPlants() {
+        console.log("PlantSystem: Loading plants...");
+
+        if (this.loadingElement) {
+            this.loadingElement.innerHTML =
+                '<div class="loading">Loading plants...</div>';
+        }
+
+        try {
+            // Try to load plants from API first
+            const response = await fetch("http://localhost:5001/api/plants");
+
+            if (!response.ok) {
+                throw new Error("API not available");
+            }
+
+            this.availablePlants = await response.json();
+
+            if (this.availablePlants.length === 0) {
+                this.loadingElement.innerHTML =
+                    '<div class="no-plants-message">No plants found in database</div>';
+                return;
+            }
+
+            this.renderPlantsList();
+        } catch (error) {
+            console.warn("Failed to load plants from API:", error);
+
+            // Fallback to default plant configurations
+            this.loadDefaultPlants();
+            this.renderPlantsList();
+        }
+    }
+
+    loadDefaultPlants() {
+        // Default plant configurations when API is not available
+        this.availablePlants = [
+            {
+                id: 1,
+                name: "Simple Tree",
+                axiom: "F",
+                rules: { F: "F[+F]F[-F]F" },
+                iterations: 4,
+                angle: 25.7,
+                angleVariation: 5,
+                lengthVariation: 20,
+                lengthTapering: 90,
+                leafProbability: 30,
+                leafGenerationThreshold: 2,
+                length: 5,
+                thickness: 0.1,
+                tapering: 0.9,
+                timestamp: Math.floor(Date.now() / 1000),
+            },
+            {
+                id: 2,
+                name: "Bushy Plant",
+                axiom: "F",
+                rules: { F: "FF+[+F-F-F]-[-F+F+F]" },
+                iterations: 3,
+                angle: 22.5,
+                angleVariation: 10,
+                lengthVariation: 30,
+                lengthTapering: 85,
+                leafProbability: 50,
+                leafGenerationThreshold: 1,
+                length: 3,
+                thickness: 0.08,
+                tapering: 0.8,
+                timestamp: Math.floor(Date.now() / 1000),
+            },
+            {
+                id: 3,
+                name: "Tall Tree",
+                axiom: "F",
+                rules: { F: "F[+F]F[-F][F]" },
+                iterations: 5,
+                angle: 20,
+                angleVariation: 8,
+                lengthVariation: 15,
+                lengthTapering: 95,
+                leafProbability: 25,
+                leafGenerationThreshold: 3,
+                length: 8,
+                thickness: 0.15,
+                tapering: 0.95,
+                timestamp: Math.floor(Date.now() / 1000),
+            },
+        ];
+    }
+
+    renderPlantsList() {
+        if (!this.loadingElement || this.availablePlants.length === 0) {
+            if (this.loadingElement) {
+                this.loadingElement.innerHTML =
+                    '<div class="no-plants-message">No plants available</div>';
+            }
+            return;
+        }
+
+        this.loadingElement.innerHTML = "";
+
+        this.availablePlants.forEach((plant) => {
+            const plantItem = document.createElement("div");
+            plantItem.className = "plant-item";
+
+            const isSelected = this.selectedPlants.has(plant.id);
+            if (isSelected) {
+                plantItem.classList.add("selected");
+            }
+
+            plantItem.innerHTML = `
+                <div>
+                    <input type="checkbox" class="plant-checkbox" id="plant-${plant.id}"
+                           ${isSelected ? "checked" : ""}
+                           onchange="window.forestGenerator?.plantSystem?.togglePlant(${plant.id}, this.checked)">
+                    <div class="plant-name">${plant.name}</div>
+                    <div class="plant-info">
+                        Iterations: ${plant.iterations} | Angle: ${plant.angle}° |
+                        Created: ${new Date(plant.timestamp * 1000).toLocaleDateString()}
+                    </div>
+                    <div class="weight-control">
+                        <label>Weight:</label>
+                        <input type="range" min="1" max="100" value="50"
+                               id="weight-${plant.id}"
+                               onchange="window.forestGenerator?.plantSystem?.updatePlantWeight(${plant.id}, this.value)"
+                               ${isSelected ? "" : "disabled"}>
+                        <span class="weight-value" id="weight-value-${plant.id}">50</span>
+                    </div>
+                </div>
+            `;
+
+            this.loadingElement.appendChild(plantItem);
+        });
+    }
+
+    togglePlant(plantId, selected) {
+        console.log(
+            `togglePlant called: plantId=${plantId}, selected=${selected}`,
+        );
+        console.log(`Current selectedPlants size:`, this.selectedPlants.size);
+
+        const plantItem = document
+            .querySelector(`#plant-${plantId}`)
+            ?.closest(".plant-item");
+        const weightSlider = document.getElementById(`weight-${plantId}`);
+
+        if (selected) {
+            const plant = this.availablePlants.find((p) => p.id === plantId);
+            console.log("Found plant for selection:", plant);
+            if (plant) {
+                this.selectedPlants.set(plantId, {
+                    plant: plant,
+                    weight: parseInt(weightSlider?.value || 50),
+                });
+                plantItem?.classList.add("selected");
+                if (weightSlider) {
+                    weightSlider.disabled = false;
+                }
+                console.log(
+                    `Plant ${plant.name} added to selection. Total selected: ${this.selectedPlants.size}`,
+                );
+            } else {
+                console.error(
+                    `Plant with id ${plantId} not found in availablePlants`,
+                );
+            }
+        } else {
+            this.selectedPlants.delete(plantId);
+            plantItem?.classList.remove("selected");
+            if (weightSlider) {
+                weightSlider.disabled = true;
+            }
+            console.log(
+                `Plant ${plantId} removed from selection. Total selected: ${this.selectedPlants.size}`,
+            );
+        }
+    }
+
+    updatePlantWeight(plantId, weight) {
+        const valueEl = document.getElementById(`weight-value-${plantId}`);
+        if (valueEl) {
+            valueEl.textContent = weight;
+        }
+
+        if (this.selectedPlants.has(plantId)) {
+            this.selectedPlants.get(plantId).weight = parseInt(weight);
+            console.log(`Updated plant ${plantId} weight to ${weight}`);
+        }
+    }
+
+    getSelectedPlants() {
+        const selected = Array.from(this.selectedPlants.values());
+        console.log(
+            "PlantSystem.getSelectedPlants():",
+            selected.length,
+            "plants selected",
+        );
+        console.log("Selected plants:", selected);
+        return selected;
+    }
+
+    createWeightedPlantArray() {
+        const weightedPlants = [];
+        this.selectedPlants.forEach((plantData) => {
+            const { plant, weight } = plantData;
+            for (let i = 0; i < weight; i++) {
+                weightedPlants.push({ plant });
+            }
+        });
+        return weightedPlants;
+    }
+
+    generatePlantPositions(count, size, minDistance) {
+        const positions = [];
+        const maxAttempts = count * 10;
+        let attempts = 0;
+
+        while (positions.length < count && attempts < maxAttempts) {
+            const x = (Math.random() - 0.5) * size;
+            const z = (Math.random() - 0.5) * size;
+            const y = 0;
+
+            const newPos = new THREE.Vector3(x, y, z);
+            let validPosition = true;
+
+            // Check minimum distance to existing plants
+            for (const existingPos of positions) {
+                if (newPos.distanceTo(existingPos) < minDistance) {
+                    validPosition = false;
+                    break;
+                }
+            }
+
+            if (validPosition) {
+                positions.push(newPos);
+            }
+
+            attempts++;
+        }
+
+        return positions;
+    }
+
+    async generatePlantMesh(plantConfig, scale = 1) {
+        console.log(
+            "PlantSystem.generatePlantMesh called for:",
+            plantConfig.name,
+        );
+        console.log("ThreeJSAdapter available:", !!this.ThreeJSAdapter);
+
+        try {
+            if (this.ThreeJSAdapter) {
+                console.log("Using L-System generation");
+                return await this.generateLSystemMesh(plantConfig, scale);
+            } else {
+                console.log(
+                    "Using simple plant generation (no ThreeJSAdapter)",
+                );
+                return this.generateSimplePlantMesh(plantConfig, scale);
+            }
+        } catch (error) {
+            console.warn(
+                `Failed to generate plant mesh for ${plantConfig.name}:`,
+                error,
+            );
+            console.log("Falling back to simple plant generation");
+            return this.generateSimplePlantMesh(plantConfig, scale);
+        }
+    }
+
+    async generateLSystemMesh(plantConfig, scale = 1) {
+        console.log("Generating L-system mesh for plant:", plantConfig.name);
+
+        // Create L-System configuration for the adapter
+        const config = {
+            axiom: plantConfig.axiom,
+            rules: plantConfig.rules,
+            iterations: plantConfig.iterations,
+            angle: plantConfig.angle,
+            angleVariation: plantConfig.angleVariation || 0,
+            lengthVariation: Math.min(
+                100,
+                Math.max(0, plantConfig.lengthVariation || 0),
+            ),
+            lengthTapering: Math.min(
+                1,
+                Math.max(0, (plantConfig.lengthTapering || 90) / 100),
+            ),
+            leafProbability: Math.min(
+                1,
+                Math.max(0, (plantConfig.leafProbability || 30) / 100),
+            ),
+            leafGenerationThreshold:
+                Math.floor(plantConfig.leafGenerationThreshold) || 1,
+        };
+
+        // Create geometry parameters
+        const geometryParams = {
+            length: (plantConfig.length || 5) * scale,
+            thickness: (plantConfig.thickness || 0.1) * scale,
+            tapering: plantConfig.tapering || 0.9,
+            leafColor: [
+                0.2 + Math.random() * 0.3,
+                0.4 + Math.random() * 0.4,
+                0.1 + Math.random() * 0.2,
+            ],
+        };
+
+        console.log("L-system config:", config);
+        console.log("Geometry params:", geometryParams);
+
+        try {
+            // Generate mesh using ThreeJS adapter
+            const meshGroup = this.ThreeJSAdapter.createMeshFromLSystem(
+                config,
+                geometryParams,
+                {
+                    materialType: "standard",
+                    castShadow: true,
+                    receiveShadow: true,
+                },
+            );
+
+            if (meshGroup && meshGroup.group) {
+                const group = meshGroup.group;
+
+                // Don't set position here - it will be set by forest generator
+                // Don't set rotation here either - it will be set by forest generator
+
+                // Store mesh group reference for proper disposal
+                group.userData.meshGroup = meshGroup;
+                group.userData.plantName = plantConfig.name;
+
+                console.log("Successfully created L-system mesh:", group);
+                return group;
+            } else {
+                throw new Error("No mesh group returned from adapter");
+            }
+        } catch (error) {
+            console.error("Failed to generate L-system with adapter:", error);
+            throw error;
+        }
+    }
+
+    generateSimplePlantMesh(plantConfig, scale = 1) {
+        console.log("Generating simple plant mesh for:", plantConfig.name);
+        console.log("Plant config:", plantConfig);
+        console.log("Scale:", scale);
+
+        try {
+            // Fallback: create a simple tree-like structure
+            const group = new THREE.Group();
+
+            // Trunk - make larger for visibility
+            const trunkHeight = (plantConfig.length || 5) * scale * 2;
+            const trunkRadius = (plantConfig.thickness || 0.2) * scale * 2;
+
+            console.log("Creating trunk geometry...");
+            const trunkGeometry = new THREE.CylinderGeometry(
+                trunkRadius * 0.5,
+                trunkRadius,
+                trunkHeight,
+                8,
+                1,
+            );
+
+            console.log("Creating trunk material...");
+            const trunkMaterial = new THREE.MeshLambertMaterial({
+                color: 0x8b4513,
+            });
+
+            console.log("Creating trunk mesh...");
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.y = trunkHeight / 2;
+            trunk.castShadow = false; // Disable shadows to avoid geometry issues
+            trunk.receiveShadow = false;
+            group.add(trunk);
+
+            console.log("Creating foliage geometry...");
+            // Foliage - size based on plant parameters, make larger
+            const foliageRadius = Math.max(1.5, trunkHeight * 0.5) * scale;
+            const foliageGeometry = new THREE.SphereGeometry(
+                foliageRadius,
+                16,
+                12,
+            );
+
+            console.log("Creating foliage material...");
+            const foliageMaterial = new THREE.MeshLambertMaterial({
+                color: 0x228b22,
+            });
+
+            console.log("Creating foliage mesh...");
+            const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+            foliage.position.y = trunkHeight * 0.8;
+            foliage.castShadow = false; // Disable shadows to avoid geometry issues
+            foliage.receiveShadow = false;
+            group.add(foliage);
+
+            // Store plant info
+            group.userData.plantName = plantConfig.name;
+
+            console.log("Simple plant mesh created successfully");
+            console.log("Plant group children count:", group.children.length);
+
+            return group;
+        } catch (error) {
+            console.error("Error in generateSimplePlantMesh:", error);
+            throw error;
+        }
+    }
+
+    async clearForest() {
+        if (!this.forestGroup) return;
+
+        // Remove all plants from the forest group
+        while (this.forestGroup.children.length > 0) {
+            const child = this.forestGroup.children[0];
+            this.forestGroup.remove(child);
+
+            // Properly dispose of ThreeJS adapter created objects
+            if (
+                child.userData &&
+                child.userData.meshGroup &&
+                this.ThreeJSAdapter
+            ) {
+                try {
+                    this.ThreeJSAdapter.dispose(child.userData.meshGroup);
+                } catch (error) {
+                    console.warn("Failed to dispose mesh group:", error);
+                }
+            } else {
+                // Fallback disposal
+                child.traverse((obj) => {
+                    if (obj.geometry) obj.geometry.dispose();
+                    if (obj.material) {
+                        if (obj.material.map) obj.material.map.dispose();
+                        obj.material.dispose();
+                    }
+                });
+            }
+        }
+
+        console.log("Forest cleared");
+    }
+
+    getPlantCount() {
+        return this.forestGroup ? this.forestGroup.children.length : 0;
+    }
+
+    getTriangleCount() {
+        let triangles = 0;
+        if (this.forestGroup) {
+            this.forestGroup.traverse((child) => {
+                if (child.geometry && child.geometry.index) {
+                    triangles += child.geometry.index.count / 3;
+                }
+            });
+        }
+        return Math.floor(triangles);
+    }
+
+    dispose() {
+        this.clearForest();
+        this.selectedPlants.clear();
+        this.availablePlants = [];
+
+        if (this.loadingElement) {
+            this.loadingElement.innerHTML = "";
+        }
+
+        console.log("PlantSystem disposed");
+    }
+}

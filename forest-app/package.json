@@ -1,0 +1,30 @@
+{
+    "name": "forest-app",
+    "version": "1.0.0",
+    "description": "L-System Forest Generator - Modularized Version",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "serve": "vite preview",
+        "type-check": "tsc --noEmit"
+    },
+    "dependencies": {
+        "three": "^0.158.0"
+    },
+    "devDependencies": {
+        "vite": "^5.0.0",
+        "typescript": "^5.0.0",
+        "@types/three": "^0.158.0"
+    },
+    "keywords": [
+        "threejs",
+        "l-systems",
+        "forest",
+        "generator",
+        "3d"
+    ],
+    "author": "",
+    "license": "MIT"
+}
