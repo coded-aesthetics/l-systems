@@ -79,7 +79,7 @@
                         >
                     </div>
 
-                    <label>Terrain Height Variation:</label>
+                    <label>Terrain Height Variation (Legacy):</label>
                     <div class="input-row">
                         <input
                             type="range"
@@ -91,6 +91,122 @@
                         <span id="terrainHeight-value" class="value-display"
                             >5</span
                         >
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>🏔️ Terrain Configuration</h3>
+                    <label>Terrain Type:</label>
+                    <div class="input-row">
+                        <select
+                            id="terrainType"
+                            onchange="setTerrainType(this.value)"
+                            style="width: 100%; padding: 5px"
+                        >
+                            <option value="flat">🏞️ Flat</option>
+                            <option value="rolling" selected>
+                                🌄 Rolling Hills
+                            </option>
+                            <option value="hilly">⛰️ Hilly</option>
+                            <option value="mountainous">🏔️ Mountainous</option>
+                        </select>
+                    </div>
+
+                    <label>Height Variation:</label>
+                    <div class="input-row">
+                        <input
+                            type="range"
+                            id="terrainHeightVariation"
+                            min="0"
+                            max="10"
+                            step="0.5"
+                            value="2"
+                            oninput="updateTerrainHeightVariation(this.value)"
+                        />
+                        <span
+                            id="terrainHeightVariation-value"
+                            class="value-display"
+                            >2</span
+                        >
+                    </div>
+
+                    <label>Terrain Color:</label>
+                    <div class="input-row">
+                        <input
+                            type="color"
+                            id="terrainColor"
+                            value="#228b22"
+                            onchange="updateTerrainColor(this.value)"
+                            style="
+                                width: 50px;
+                                height: 30px;
+                                border: none;
+                                border-radius: 3px;
+                                cursor: pointer;
+                            "
+                        />
+                        <button
+                            onclick="regenerateTerrain()"
+                            style="
+                                margin-left: 10px;
+                                padding: 8px 15px;
+                                background: #4caf50;
+                                color: white;
+                                border: none;
+                                border-radius: 3px;
+                                cursor: pointer;
+                                font-weight: bold;
+                            "
+                        >
+                            🔄 Regenerate
+                        </button>
+                    </div>
+
+                    <div class="input-row" style="margin-top: 10px">
+                        <button
+                            onclick="applyTerrainPreset('COUNTRYSIDE')"
+                            style="
+                                margin-right: 5px;
+                                padding: 5px 8px;
+                                background: #8fbc8f;
+                                color: white;
+                                border: none;
+                                border-radius: 3px;
+                                cursor: pointer;
+                                font-size: 12px;
+                            "
+                        >
+                            Countryside
+                        </button>
+                        <button
+                            onclick="applyTerrainPreset('ALPINE')"
+                            style="
+                                margin-right: 5px;
+                                padding: 5px 8px;
+                                background: #708090;
+                                color: white;
+                                border: none;
+                                border-radius: 3px;
+                                cursor: pointer;
+                                font-size: 12px;
+                            "
+                        >
+                            Alpine
+                        </button>
+                        <button
+                            onclick="applyTerrainPreset('FOREST_FLOOR')"
+                            style="
+                                padding: 5px 8px;
+                                background: #556b2f;
+                                color: white;
+                                border: none;
+                                border-radius: 3px;
+                                cursor: pointer;
+                                font-size: 12px;
+                            "
+                        >
+                            Forest Floor
+                        </button>
                     </div>
                 </div>
 
@@ -278,7 +394,12 @@
                 id="period-display"
                 >Day</span
             >)<br />
-            Weather: <span id="fog-status">Clear</span>
+            Weather: <span id="fog-status">Clear</span><br />
+            Terrain: <span id="terrain-type">Rolling</span> (<span
+                id="terrain-triangles"
+                >20,000</span
+            >
+            triangles)
         </div>
 
         <div class="fullscreen-indicator" id="fullscreen-indicator">

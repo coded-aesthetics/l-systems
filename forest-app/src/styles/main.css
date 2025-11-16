@@ -356,3 +356,113 @@ body:not(.fullscreen-mode) #forest-canvas {
     display: none;
     font-family: monospace;
 }
+
+/* Terrain Controls Specific Styles */
+.control-section h3:contains("Terrain") {
+    color: #8fbc8f;
+}
+
+#terrainType {
+    background: rgba(52, 73, 94, 0.9);
+    border: 2px solid #4a5d23;
+    color: #ecf0f1;
+    font-weight: 500;
+}
+
+#terrainType:focus {
+    border-color: #8fbc8f;
+    box-shadow: 0 0 10px rgba(143, 188, 143, 0.4);
+}
+
+#terrainHeightVariation {
+    background: linear-gradient(
+        to right,
+        #228b22 0%,
+        #32cd32 50%,
+        #8fbc8f 100%
+    );
+}
+
+#terrainHeightVariation::-webkit-slider-thumb {
+    background: #4a5d23;
+    border: 2px solid #8fbc8f;
+}
+
+#terrainColor {
+    border: 2px solid #4a5d23;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#terrainColor:hover {
+    border-color: #8fbc8f;
+    box-shadow: 0 0 10px rgba(143, 188, 143, 0.5);
+}
+
+/* Terrain preset buttons */
+button[onclick*="applyTerrainPreset"] {
+    background: linear-gradient(135deg, #4a5d23, #556b2f);
+    font-size: 11px;
+    padding: 6px 10px;
+    margin: 2px;
+    width: auto;
+    min-width: 80px;
+    text-transform: none;
+    letter-spacing: 0.5px;
+    border-radius: 15px;
+}
+
+button[onclick*="applyTerrainPreset"]:hover {
+    background: linear-gradient(135deg, #556b2f, #6b8e23);
+    box-shadow: 0 3px 10px rgba(143, 188, 143, 0.3);
+}
+
+button[onclick*="COUNTRYSIDE"] {
+    background: linear-gradient(135deg, #8fbc8f, #90ee90);
+}
+
+button[onclick*="ALPINE"] {
+    background: linear-gradient(135deg, #708090, #778899);
+}
+
+button[onclick*="FOREST_FLOOR"] {
+    background: linear-gradient(135deg, #556b2f, #6b8e23);
+}
+
+/* Regenerate terrain button */
+button[onclick="regenerateTerrain()"] {
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    width: auto;
+    padding: 8px 15px;
+    font-size: 12px;
+    margin: 0;
+    border-radius: 3px;
+}
+
+button[onclick="regenerateTerrain()"]:hover {
+    background: linear-gradient(135deg, #45a049, #3e8e41);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+/* Terrain stats display */
+#terrain-type {
+    color: #8fbc8f;
+    font-weight: bold;
+    text-transform: capitalize;
+}
+
+#terrain-triangles {
+    color: #3498db;
+    font-weight: bold;
+}
+
+/* Enhanced input row for terrain controls */
+.control-section:has(h3:contains("Terrain")) .input-row {
+    margin-bottom: 12px;
+}
+
+.control-section:has(h3:contains("Terrain")) .input-row:last-child {
+    flex-wrap: wrap;
+    gap: 5px;
+}

@@ -22,6 +22,8 @@ interface ForestStats {
     timeString: string;
     period: string;
     fogStatus: string;
+    terrainType: string;
+    terrainTriangles: number;
 }
 
 export class UISystem {
@@ -41,6 +43,7 @@ export class UISystem {
         this.setupButtons();
         this.setupEventListeners();
         this.initializeValueDisplays();
+        this.initializeTerrainControls();
         this.hideFullscreenIndicator();
     }
 
@@ -472,6 +475,10 @@ export class UISystem {
             "time-display": stats.timeString || "00:00",
             "period-display": stats.period || "Day",
             "fog-status": stats.fogStatus || "Clear",
+            "terrain-type": stats.terrainType || "Rolling",
+            "terrain-triangles": (
+                stats.terrainTriangles || 20000
+            ).toLocaleString(),
         };
 
         Object.entries(elements).forEach(([id, value]) => {
@@ -548,5 +555,171 @@ export class UISystem {
         }
 
         console.log("UISystem disposed");
+    }
+
+    private initializeTerrainControls(): void {
+        // Initialize terrain type selector
+        const terrainTypeSelect = document.getElementById(
+            "terrainType",
+        ) as HTMLSelectElement;
+        if (terrainTypeSelect) {
+            terrainTypeSelect.addEventListener("change", (event) => {
+                const target = event.target as HTMLSelectElement;
+                if (this.forestGenerator) {
+                    this.forestGenerator.setTerrainType(target.value);
+                    this.updateTerrainStatsDisplay();
+                }
+            });
+        }
+
+        // Initialize terrain height variation slider
+        const heightVariationSlider = document.getElementById(
+            "terrainHeightVariation",
+        ) as HTMLInputElement;
+        if (heightVariationSlider) {
+            heightVariationSlider.addEventListener("input", (event) => {
+                const target = event.target as HTMLInputElement;
+                const value = parseFloat(target.value);
+                if (this.forestGenerator) {
+                    this.forestGenerator.setTerrainHeightVariation(value);
+                    this.updateTerrainStatsDisplay();
+                }
+                this.updateValueDisplay("terrainHeightVariation", target.value);
+            });
+        }
+
+        // Initialize terrain color picker
+        const colorPicker = document.getElementById(
+            "terrainColor",
+        ) as HTMLInputElement;
+        if (colorPicker) {
+            colorPicker.addEventListener("change", (event) => {
+                const target = event.target as HTMLInputElement;
+                const hexColor = parseInt(target.value.replace("#", ""), 16);
+                if (this.forestGenerator) {
+                    this.forestGenerator.setTerrainColor(hexColor);
+                }
+            });
+        }
+
+        // Initialize regenerate button
+        const regenerateBtn = document.querySelector(
+            "button[onclick='regenerateTerrain()']",
+        ) as HTMLButtonElement;
+        if (regenerateBtn) {
+            regenerateBtn.addEventListener("click", () => {
+                if (this.forestGenerator) {
+                    this.forestGenerator.regenerateTerrain();
+                    this.updateTerrainStatsDisplay();
+                }
+            });
+        }
+
+        // Initialize preset buttons
+        const presetButtons = document.querySelectorAll(
+            "button[onclick*='applyTerrainPreset']",
+        );
+        presetButtons.forEach((button) => {
+            const htmlButton = button as HTMLButtonElement;
+            const onclickAttr = htmlButton.getAttribute("onclick");
+            if (onclickAttr) {
+                const match = onclickAttr.match(
+                    /applyTerrainPreset\('([^']+)'\)/,
+                );
+                if (match) {
+                    const presetName = match[1];
+                    htmlButton.addEventListener("click", () => {
+                        this.applyTerrainPreset(presetName);
+                    });
+                }
+            }
+        });
+
+        console.log("Terrain controls initialized");
+    }
+
+    private applyTerrainPreset(presetName: string): void {
+        if (!this.forestGenerator) return;
+
+        const presets = {
+            COUNTRYSIDE: {
+                type: "rolling",
+                heightVariation: 2,
+                color: "#90EE90",
+            },
+            ALPINE: {
+                type: "mountainous",
+                heightVariation: 8,
+                color: "#8FBC8F",
+            },
+            FOREST_FLOOR: {
+                type: "hilly",
+                heightVariation: 3,
+                color: "#556B2F",
+            },
+        };
+
+        const preset = presets[presetName as keyof typeof presets];
+        if (preset) {
+            // Update UI controls
+            const terrainTypeSelect = document.getElementById(
+                "terrainType",
+            ) as HTMLSelectElement;
+            const heightVariationSlider = document.getElementById(
+                "terrainHeightVariation",
+            ) as HTMLInputElement;
+            const colorPicker = document.getElementById(
+                "terrainColor",
+            ) as HTMLInputElement;
+
+            if (terrainTypeSelect) terrainTypeSelect.value = preset.type;
+            if (heightVariationSlider)
+                heightVariationSlider.value = preset.heightVariation.toString();
+            if (colorPicker) colorPicker.value = preset.color;
+
+            // Apply changes
+            this.forestGenerator.setTerrainType(preset.type);
+            this.forestGenerator.setTerrainHeightVariation(
+                preset.heightVariation,
+            );
+            this.forestGenerator.setTerrainColor(
+                parseInt(preset.color.replace("#", ""), 16),
+            );
+            this.forestGenerator.regenerateTerrain();
+
+            // Update displays
+            this.updateValueDisplay(
+                "terrainHeightVariation",
+                preset.heightVariation.toString(),
+            );
+            this.updateTerrainStatsDisplay();
+
+            console.log(`Applied terrain preset: ${presetName}`);
+        }
+    }
+
+    private updateTerrainStatsDisplay(): void {
+        if (this.forestGenerator) {
+            const stats = this.forestGenerator.getTerrainStats();
+            if (stats) {
+                const terrainTypeElement =
+                    document.getElementById("terrain-type");
+                const terrainTrianglesElement =
+                    document.getElementById("terrain-triangles");
+
+                if (terrainTypeElement) {
+                    // Capitalize first letter and format the terrain type
+                    const formattedType =
+                        stats.terrainType.charAt(0).toUpperCase() +
+                        stats.terrainType.slice(1);
+                    terrainTypeElement.textContent = formattedType;
+                }
+                if (terrainTrianglesElement) {
+                    terrainTrianglesElement.textContent = (
+                        stats.triangles || 20000
+                    ).toLocaleString();
+                }
+            }
+        }
     }
 }

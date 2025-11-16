@@ -16,6 +16,8 @@ interface ForestStats {
     timeString: string;
     period: string;
     fogStatus: string;
+    terrainType: string;
+    terrainTriangles: number;
 }
 
 interface PlantPosition {
@@ -74,6 +76,8 @@ export class ForestGenerator {
             timeString: "12:00",
             period: "Day",
             fogStatus: "Clear",
+            terrainType: "Rolling",
+            terrainTriangles: 20000,
         };
 
         // Make this globally accessible for UI callbacks
@@ -391,6 +395,11 @@ export class ForestGenerator {
             ? this.lightingSystem.getStats()
             : { timeString: "12:00", period: "Day", fogStatus: "Clear" };
 
+        // Get terrain stats
+        const terrainStats = this.sceneManager
+            ? this.sceneManager.getTerrainStats()
+            : { terrainType: "Rolling", triangles: 20000 };
+
         // Update stats object
         this.stats = {
             plants: sceneStats.plants || 0,
@@ -401,6 +410,8 @@ export class ForestGenerator {
             timeString: lightingStats.timeString || "12:00",
             period: lightingStats.period || "Day",
             fogStatus: lightingStats.fogStatus || "Clear",
+            terrainType: terrainStats?.terrainType || "Rolling",
+            terrainTriangles: terrainStats?.triangles || 20000,
         };
 
         // Update UI
